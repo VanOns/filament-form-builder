@@ -1,0 +1,37 @@
+{
+    "name": "van-ons/filament-form-builder",
+    "description": "A form-builder plugin for FilamentPHP",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Patrick",
+            "email": "patrick@van-ons.nl"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "filament/filament": "^3.3"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0",
+        "friendsofphp/php-cs-fixer": "dev-master",
+        "phpstan/phpstan": "2.1.x-dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "VanOns\\FilamentFormBuilder\\": "src/"
+        }
+    },
+    "extra" : {
+        "laravel": {
+            "providers": [
+                "VanOns\\FilamentFormBuilder\\FilamentFormBuilderProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "scripts": {
+        "fix": "vendor/bin/php-cs-fixer fix",
+        "analyse": "vendor/bin/phpstan analyse"
+    }
+}
