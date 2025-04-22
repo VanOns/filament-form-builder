@@ -73,6 +73,7 @@ class FormSubmissionResource extends Resource
                     ->options(function (FormSubmission $model) {
                         return $model::query()
                             ->distinct('submitter_email')
+                            ->whereNotNull('submitter_email')
                             ->pluck('submitter_email')
                             ->mapWithKeys(fn ($email) => [$email => $email])
                             ->toArray();

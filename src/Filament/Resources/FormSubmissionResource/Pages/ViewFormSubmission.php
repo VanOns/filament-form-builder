@@ -35,7 +35,6 @@ class ViewFormSubmission extends ViewRecord
                             ->label(__('filament-form-builder::general.created_at'))
                             ->dateTime(),
                         TextEntry::make('submitter_email')
-                            ->when(fn (FormSubmission $formSubmission) => $formSubmission->submitter_email != null)
                             ->label(__('filament-form-builder::general.submitter_email')),
                     ])->columns(3),
                 Section::make(__('filament-form-builder::general.form_content'))
