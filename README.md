@@ -145,6 +145,28 @@ configured template.
 instance of the template class, passing it the form instance.
 - Resulting in your template being rendered.
 
+### Validation
+
+By adding a `public static function rules()` to your form component, you
+add validation rules to your form:
+
+```php
+use VanOns\FilamentFormBuilder\Models\Form;
+
+class MyAwesomeForm extends Component
+{
+    /**
+     * @return array<string, string>
+     */
+    public static function rules(): array
+    {
+        return [
+            'name' => ['nullable', 'sometimes', 'string']
+        ];
+    }
+}
+```
+
 ## Events
 
 All models events can be hooked into:
