@@ -7,4 +7,5 @@ return [
     ],
     'rate-limit_hour' => 6,
     'email_notification_enabled' => true,
+    'form-middleware' => ['web'],
 ];

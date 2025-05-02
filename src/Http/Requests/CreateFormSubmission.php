@@ -14,7 +14,7 @@ class CreateFormSubmission extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'submitter_email' => ['sometimes', 'nullable', 'string', 'email'],
+            'submitter_email' => ['sometimes', 'nullable', 'string', 'email:rfc'],
             'callback_url' => ['sometimes', 'string'],
         ];
 
