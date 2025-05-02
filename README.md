@@ -167,6 +167,16 @@ class MyAwesomeForm extends Component
 }
 ```
 
+## Translations
+
+This package comes with translation, they can be published with:
+`php artisan vendor:publish --tag=filament-form-builder-translations`.
+
+The default for most files should be ok, one file to note is the `fields.php`
+file. You should register translations for each of your form's fields in there.
+The email that is sent out will look for a translation based on the field's
+`name` property.
+
 ## Events
 
 All models events can be hooked into:
