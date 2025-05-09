@@ -60,7 +60,8 @@ You're free to set up form-templates as you want to, but there are a few require
 Your form-template:
 
 - **must** `POST` to a specific route: `route('filament-form-builder.form.store',
-['formId' => $form->id ])`. `$form` being the
+['formId' => $form->id ])`. `$form` being an instance of
+`VanOns\FilamentFormBuilder\Models\Form`.
 - **may** have a form field `submitter_email`.
 - **may** have a field `return_url` that will be used to redirect to, otherwise
 you'll be redirect to the page the form is on.
@@ -69,7 +70,7 @@ you'll be redirect to the page the form is on.
 after submitting.
 
 To get started, create a blade component for your form-template:
-`php artisan create:component Forms/MyAwesomeForm`.
+`php artisan make:component Forms/MyAwesomeForm`.
 
 Make sure your form-template is constructed with an instance of
 `VanOns\FilamentFormBuilder\Models\Form`, this will be used in the `action` of

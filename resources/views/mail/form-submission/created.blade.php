@@ -12,6 +12,10 @@
 {{ $submittedBy }}: <b><a href="mailto:{{ $formSubmission->submitter_email }}">{{ $formSubmission->submitter_email }}</a></b>.
 @endif
 
+@if($form->notification_content)
+{!! $form->notification_content !!}
+@endif
+
 ## {{ $contentHeader }}
 <x-mail::panel>
 @foreach ($formSubmission->data as $field => $value)
