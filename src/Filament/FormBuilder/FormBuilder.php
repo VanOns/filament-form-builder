@@ -27,12 +27,11 @@ class FormBuilder extends Field
                 ->hiddenLabel()
                 ->schema([
                     FieldSelect::make('fieldType')
-                        ->columnSpanFull()
-                        ->live(),
+                        ->columnSpanFull(),
 
                     Group::make(
                         fn (Get $get) => FieldHelper::getFields($get('fieldType'))
-                    ),
+                    )->columns(),
                 ]),
         ]);
     }

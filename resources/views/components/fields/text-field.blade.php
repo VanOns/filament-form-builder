@@ -4,13 +4,14 @@
      */
  @endphp
 
-<label for="{{ $field->key }}">
+<label for="{{ $field->getKey() }}">
     <p>{{ $field->label }}</p>
     <input
         type="text"
-        id="{{ $field->key }}"
-        name="{{ $field->key }}"
-        value="{{ old($field->key) }}"
+        id="{{ $field->getKey() }}"
+        name="{{ $field->getKey() }}"
+        value="{{ old($field->getKey()) }}"
         @if($field->placeholder) placeholder="{{ $field->placeholder }}" @endif
         @if($field->required) required @endif
+    />
 </label>

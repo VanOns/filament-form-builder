@@ -1,5 +1,7 @@
 <?php
 
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
+
 return [
     'add_nav_group' => true,
     'templates' => [
@@ -9,6 +11,7 @@ return [
     'email_notification_enabled' => true,
     'form-middleware' => ['web'],
     'fields' => [
-        \VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextField::class,
+        Fields\TextField::class,
+        Fields\CheckboxField::class,
     ],
 ];
