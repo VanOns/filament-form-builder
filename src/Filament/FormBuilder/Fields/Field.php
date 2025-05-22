@@ -4,15 +4,17 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Component;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Str;
 
 abstract class Field
 {
-    public static string $view;
-    public string $key;
+    public static string $view = '';
+    public ?string $key;
     public ?string $label;
     public ?bool $required = false;
     public ?string $description;
@@ -46,25 +48,24 @@ abstract class Field
     protected static function getDefaultFields(): array
     {
         return [
-            TextInput::make('key')
-                ->columnStart(1)
-                ->visible(fn (Get $get) => $get('set_key'))
-                ->label(__('filament-form-builder::fields.key')),
             TextInput::make('label')
                 ->label(__('filament-form-builder::fields.label')),
-            Checkbox::make('set_key')
-                ->columnSpanFull()
-                ->default(false)
-                ->label(__('filament-form-builder::fields.set_key'))
-                ->reactive(),
-            Checkbox::make('required')
-                ->columnSpanFull()
-                ->default(false)
-                ->label(__('filament-form-builder::fields.required')),
+            TextInput::make('key')
+                ->visible(fn (Get $get) => $get('set_key'))
+                ->label(__('filament-form-builder::fields.key')),
+            Group::make([
+                Checkbox::make('set_key')
+                    ->default(false)
+                    ->label(__('filament-form-builder::fields.set_key'))
+                    ->afterStateUpdated(fn (Set $set) => $set('key', ''))
+                    ->reactive(),
+                Checkbox::make('required')
+                    ->default(false)
+                    ->label(__('filament-form-builder::fields.required')),
+            ])->columnStart(1)->columns(4),
             TextInput::make('description')
-                ->label(__('filament-form-builder::fields.description'))
                 ->columnSpanFull()
-                ->placeholder(__('filament-form-builder::fields.description_placeholder')),
+                ->label(__('filament-form-builder::fields.description')),
         ];
     }
 
@@ -83,13 +84,18 @@ abstract class Field
             : $this->key;
     }
 
+    public function getView(): string
+    {
+        return static::$view;
+    }
+
     /**
      * @return string
      */
     public function render(): string
     {
         return Blade::render(
-            static::$view,
+            $this->getView(),
             ['field' => $this],
         );
     }

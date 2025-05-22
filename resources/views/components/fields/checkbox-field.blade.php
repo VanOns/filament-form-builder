@@ -11,5 +11,6 @@
         id="{{ $field->getKey() }}"
         name="{{ $field->getKey() }}"
         value="1"
+        @required($field->required)
     />
 </label>

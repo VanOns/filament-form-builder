@@ -6,6 +6,9 @@ return [
     'form_builder_placeholder' => 'Kies een veld',
     'required' => 'Verplicht',
     'label' => 'Label',
+    'description' => 'Beschrijving',
     'key' => 'Key',
     'set_key' => 'Key instellen',
+    'options' => 'Opties',
+    'multiple_choice_question' => 'Meerkeuze vraag',
 ];

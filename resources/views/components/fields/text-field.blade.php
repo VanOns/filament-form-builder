@@ -12,6 +12,6 @@
         name="{{ $field->getKey() }}"
         value="{{ old($field->getKey()) }}"
         @if($field->placeholder) placeholder="{{ $field->placeholder }}" @endif
-        @if($field->required) required @endif
+        @required($field->required)
     />
 </label>

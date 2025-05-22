@@ -13,5 +13,6 @@ return [
     'fields' => [
         Fields\TextField::class,
         Fields\CheckboxField::class,
+        Fields\SelectField::class,
     ],
 ];
