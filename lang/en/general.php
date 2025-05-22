@@ -3,6 +3,7 @@
 return [
     'url' => 'URL',
     'content' => 'Content',
+    'custom_form' => 'Custom form',
     'general' => 'General',
     'form_title' => 'Form title',
     'form_key' => 'Form field',

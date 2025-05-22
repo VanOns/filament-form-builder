@@ -3,6 +3,7 @@
 return [
     'url' => 'URL',
     'content' => 'Content',
+    'custom_form' => 'Custom formulier',
     'general' => 'Algemeen',
     'form_title' => 'Formulier titel',
     'form_content' => 'Formulier inhoud',

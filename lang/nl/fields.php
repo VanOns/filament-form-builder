@@ -1,5 +1,7 @@
 <?php
 
 return [
-    // 'name' => 'name',
+    'custom_form_builder' => 'Custom (formulier bouwer)',
+    'form_builder' => 'Formulier bouwer',
+    'form_builder_placeholder' => 'Kies een veld',
 ];

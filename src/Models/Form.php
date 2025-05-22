@@ -49,6 +49,7 @@ class Form extends Model
             'notification_enabled' => 'boolean',
             'notification_receivers' => 'array',
             'submission_notification_type' => SubmitNotificationType::class,
+            'custom' => 'array',
         ];
     }
 

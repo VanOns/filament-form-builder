@@ -38,7 +38,7 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ...
-            ->plugin(VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin::make())
+            ->plugin(\VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin::make())
             ...
     }
 }

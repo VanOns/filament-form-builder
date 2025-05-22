@@ -1,3 +1,7 @@
 vendor/
 workbench/
 composer.lock
+.idea
+.idea/
+.DS_Store
+.php-cs-fixer.cache

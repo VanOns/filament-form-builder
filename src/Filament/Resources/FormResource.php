@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormBuilder;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
 
@@ -59,74 +60,105 @@ class FormResource extends Resource
     {
         return $form
             ->schema([
-                Section::make(__('filament-form-builder::general.general'))
-                    ->schema([
-                        TextInput::make('title')
-                            ->label(__('filament-form-builder::general.title'))
-                            ->required()
-                            ->columnSpan(1),
-                        Select::make('template')
-                            ->required()
-                            ->label(__('filament-form-builder::general.template'))
-                            ->options(self::getFormTemplates())
-                            ->columnSpan(1),
-                    ])->columns(2),
-                Section::make(__('filament-form-builder::general.submit_notification'))
-                    ->schema([
-                        Select::make('submit_notification_type')
-                            ->label(__('filament-form-builder::general.submit_notification_type'))
-                            ->options(SubmitNotificationType::class)
-                            ->required()
-                            ->live()
-                            ->columnSpan(1),
-                        TextInput::make('submit_notification_content')
-                            ->label(__('filament-form-builder::general.url'))
-                            ->url()
-                            ->hidden(fn (Get $get) => $get('submit_notification_type') !== SubmitNotificationType::URL->value)
-                            ->required(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::URL->value)
-                            ->columnSpanFull(),
-                        RichEditor::make('submit_notification_content')
-                            ->label(__('filament-form-builder::general.content'))
-                            ->hidden(fn (Get $get) => $get('submit_notification_type') !== SubmitNotificationType::Content->value)
-                            ->required(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::Content->value)
-                            ->columnSpanFull(),
-                    ])->columns(2),
-                Section::make(__('filament-form-builder::general.email_notification'))
-                    ->schema([
-                        Toggle::make('notification_enabled')
-                            ->live()
-                            ->label(__('filament-form-builder::general.notification_enabled'))
-                            ->default(true)
-                            ->columnSpanFull(),
-                        TextInput::make('notification_subject')
-                            ->visible(fn (Get $get) => $get('notification_enabled') == true)
-                            ->label(__('filament-form-builder::general.notification_subject'))
-                            ->required()
-                            ->columnSpan(1),
-                        TextInput::make('notification_sender')
-                            ->visible(fn (Get $get) => $get('notification_enabled') == true)
-                            ->label(__('filament-form-builder::general.notification_sender'))
-                            ->default(config('mail.from.address'))
-                            ->email()
-                            ->required()
-                            ->columnSpan(1),
-                        RichEditor::make('notification_content')
-                            ->visible(fn (Get $get) => $get('notification_enabled') == true)
-                            ->label(__('filament-form-builder::general.notification_content'))
-                            ->required()
-                            ->columnSpanFull(),
-                        Repeater::make('notification_receivers')
-                            ->visible(fn (Get $get) => $get('notification_enabled') == true)
-                            ->label(__('filament-form-builder::general.notification_receivers'))
-                            ->simple(
-                                TextInput::make('email')
-                                    ->email()
-                                    ->required(),
-                            )
-                            ->grid(2)
-                            ->columnSpanFull(),
-                    ])->columns(2),
+                static::getGeneralSection(),
+                static::getCustomSection(),
+                static::getSubmitNotificationSection(),
+                static::getEmailNotificationSection(),
             ]);
+    }
+
+    public static function getGeneralSection(): Section
+    {
+        return Section::make()
+            ->schema([
+                Select::make('template')
+                    ->required()
+                    ->label(__('filament-form-builder::general.template'))
+                    ->options([
+                        'custom' => __('filament-form-builder::fields.custom_form_builder'),
+                        'test' => 'test',
+                        ...self::getFormTemplates(),
+                    ])
+                    ->live()
+                    ->columnSpan(1),
+                TextInput::make('title')
+                    ->label(__('filament-form-builder::general.title'))
+                    ->required()
+                    ->columnSpan(1),
+            ])->columns();
+    }
+
+    public static function getCustomSection(): Section
+    {
+        return Section::make(__('filament-form-builder::general.custom_form'))
+            ->collapsible()
+            ->visible(fn (array $state) => ($state['template'] ?? null) === 'custom')
+            ->schema([
+                FormBuilder::make('custom'),
+            ])->columnSpanFull();
+    }
+
+    public static function getSubmitNotificationSection(): Section
+    {
+        return Section::make(__('filament-form-builder::general.submit_notification'))
+            ->schema([
+                Select::make('submit_notification_type')
+                    ->label(__('filament-form-builder::general.submit_notification_type'))
+                    ->options(SubmitNotificationType::class)
+                    ->required()
+                    ->live()
+                    ->columnSpan(1),
+                TextInput::make('submit_notification_content')
+                    ->label(__('filament-form-builder::general.url'))
+                    ->url()
+                    ->hidden(fn (Get $get) => $get('submit_notification_type') !== SubmitNotificationType::URL->value)
+                    ->required(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::URL->value)
+                    ->columnSpanFull(),
+                RichEditor::make('submit_notification_content')
+                    ->label(__('filament-form-builder::general.content'))
+                    ->hidden(fn (Get $get) => $get('submit_notification_type') !== SubmitNotificationType::Content->value)
+                    ->required(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::Content->value)
+                    ->columnSpanFull(),
+            ])->columns();
+    }
+
+    public static function getEmailNotificationSection(): Section
+    {
+        return Section::make(__('filament-form-builder::general.email_notification'))
+            ->schema([
+                Toggle::make('notification_enabled')
+                    ->live()
+                    ->label(__('filament-form-builder::general.notification_enabled'))
+                    ->default(true)
+                    ->columnSpanFull(),
+                TextInput::make('notification_subject')
+                    ->visible(fn (Get $get) => $get('notification_enabled') == true)
+                    ->label(__('filament-form-builder::general.notification_subject'))
+                    ->required()
+                    ->columnSpan(1),
+                TextInput::make('notification_sender')
+                    ->visible(fn (Get $get) => $get('notification_enabled') == true)
+                    ->label(__('filament-form-builder::general.notification_sender'))
+                    ->default(config('mail.from.address'))
+                    ->email()
+                    ->required()
+                    ->columnSpan(1),
+                RichEditor::make('notification_content')
+                    ->visible(fn (Get $get) => $get('notification_enabled') == true)
+                    ->label(__('filament-form-builder::general.notification_content'))
+                    ->required()
+                    ->columnSpanFull(),
+                Repeater::make('notification_receivers')
+                    ->visible(fn (Get $get) => $get('notification_enabled') == true)
+                    ->label(__('filament-form-builder::general.notification_receivers'))
+                    ->simple(
+                        TextInput::make('email')
+                            ->email()
+                            ->required(),
+                    )
+                    ->grid()
+                    ->columnSpanFull(),
+            ])->columns();
     }
 
     public static function table(Table $table): Table
