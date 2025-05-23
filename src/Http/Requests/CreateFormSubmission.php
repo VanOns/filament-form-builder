@@ -37,8 +37,6 @@ class CreateFormSubmission extends FormRequest
             $rules = $form->getCustomFormRules();
         }
 
-        dump($rules);
-
         return $rules;
     }
 }

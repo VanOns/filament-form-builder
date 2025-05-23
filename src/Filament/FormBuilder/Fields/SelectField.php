@@ -6,6 +6,7 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Support\Arr;
+use Illuminate\Validation\Rule;
 
 class SelectField extends FormField
 {
@@ -18,16 +19,25 @@ class SelectField extends FormField
     public ?bool $multiple = false;
     public ?string $placeholder;
 
-    protected function rules(): array
+    /**
+     * @return array<string, mixed>
+     */
+    public function getRules(): array
     {
-        $values = implode(
-            ',',
-            Arr::pluck($this->options, 'value'),
-        );
+        $values = Arr::pluck($this->options, 'value');
 
         return [
-            ...$this->getDefaultRules(),
-            "exists:{$values}",
+            $this->getKey() => array_filter([
+                ...$this->getDefaultRules(),
+                !$this->multiple
+                    ? Rule::in($values)
+                    : null,
+            ]),
+            $this->getKey() . '.*' => array_filter([
+                $this->multiple
+                    ? Rule::in($values)
+                    : null,
+            ]),
         ];
     }
 
