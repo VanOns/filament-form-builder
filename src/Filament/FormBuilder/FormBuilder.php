@@ -24,6 +24,19 @@ class FormBuilder extends Field
     {
         $this->schema([
             Repeater::make('fields')
+                ->itemLabel(function (?array $state) {
+                    $join = array_filter([
+                        $state['label'] ?? null,
+                        (class_exists($class = $state['fieldType']) && method_exists($class, 'label'))
+                            ? $class::label()
+                            : null,
+                    ]);
+
+                    return !empty($join)
+                        ? implode(' - ', $join)
+                        : '-';
+                })
+                ->collapsed()
                 ->hiddenLabel()
                 ->schema([
                     FieldSelect::make('fieldType')

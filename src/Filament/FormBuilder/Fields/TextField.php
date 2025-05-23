@@ -4,7 +4,7 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
 use Filament\Forms\Components\TextInput;
 
-class TextField extends Field
+class TextField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.text-field';
 

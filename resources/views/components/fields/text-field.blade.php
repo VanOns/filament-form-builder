@@ -2,7 +2,7 @@
     /**
      * @var \VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextField $field
      */
- @endphp
+@endphp
 
 <label for="{{ $field->getKey() }}">
     <p>{{ $field->label }}</p>

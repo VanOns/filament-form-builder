@@ -2,10 +2,15 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
-class CheckboxField extends Field
+use Filament\Forms\Components\Component;
+
+class CheckboxField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.checkbox-field';
 
+    /**
+     * @return array<Component>
+     */
     public static function getFields(): array
     {
         return [

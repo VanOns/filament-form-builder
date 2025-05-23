@@ -6,7 +6,7 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 
-class SelectField extends Field
+class SelectField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.select-field';
 
@@ -25,6 +25,17 @@ class SelectField extends Field
                 ->label(__('filament-form-builder::fields.multiple_choice_question'))
                 ->default(false),
             Repeater::make('options')
+                ->itemLabel(function (?array $state) {
+                    $join = array_filter([
+                        $state['label'] ?? null,
+                        $state['value'] ?? null,
+                    ]);
+
+                    return !empty($join)
+                        ? implode(' - ', $join)
+                        : '-';
+                })
+                ->collapsed()
                 ->columnSpanFull()
                 ->label(__('filament-form-builder::fields.options'))
                 ->columns()

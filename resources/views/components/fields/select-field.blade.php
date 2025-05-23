@@ -2,7 +2,7 @@
     /**
      * @var \VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\SelectField $field
      */
- @endphp
+@endphp
 
 @if (!$field->multiple)
     <label for="{{ $field->getKey() }}">

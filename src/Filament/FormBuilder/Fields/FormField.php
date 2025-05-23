@@ -11,7 +11,7 @@ use Filament\Forms\Set;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Str;
 
-abstract class Field
+abstract class FormField
 {
     public static string $view = '';
     public ?string $key;
