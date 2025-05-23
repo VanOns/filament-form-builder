@@ -15,5 +15,6 @@ return [
         Fields\CheckboxField::class,
         Fields\SelectField::class,
         Fields\SubmitField::class,
+        Fields\EmailField::class,
     ],
 ];

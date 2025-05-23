@@ -18,7 +18,7 @@
 
 ## {{ $contentHeader }}
 <x-mail::panel>
-@foreach ($formSubmission->data as $field => $value)
+@foreach ($formSubmission->formattedData as $field => $value)
 <p><b>{{ __("filament-form-builder::fields.{$field}") }}</b>: {{ $value }}</p>
 @endforeach
 </x-mail::panel>

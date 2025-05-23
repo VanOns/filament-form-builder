@@ -62,7 +62,9 @@ abstract class FormField
                     ->label(__('filament-form-builder::fields.set_key'))
                     ->afterStateUpdated(fn (Set $set) => $set('key', ''))
                     ->reactive(),
-            ])->columnStart(1)->columns(4),
+            ])->columnStart(1)
+                ->columnSpanFull()
+                ->columns(4),
             TextInput::make('description')
                 ->columnStart(1)
                 ->label(__('filament-form-builder::fields.description')),
@@ -89,20 +91,23 @@ abstract class FormField
         return static::getFields();
     }
 
-    protected function generateLabel(): string
+    protected function generateKey(): string
     {
         $data = array_filter([
             static::label(),
             $this->label ?? null,
         ]);
 
-        return Str::snake(implode(' ', $data));
+        return Str::snake(
+            $this->label
+                ?? static::label()
+        );
     }
 
     public function getKey(): string
     {
         return !isset($this->key)
-            ? $this->key = $this->generateLabel()
+            ? $this->key = $this->generateKey()
             : $this->key;
     }
 

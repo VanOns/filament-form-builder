@@ -5,7 +5,11 @@
 @endphp
 
 <label for="{{ $field->getKey() }}">
-    <p>{{ $field->label }}</p>
+    <x-filament-form-builder::field-label
+        :label="$field->label"
+        :description="$field->description"
+        :required="$field->required"
+    />
     <input
         type="checkbox"
         id="{{ $field->getKey() }}"

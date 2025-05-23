@@ -11,7 +11,7 @@
         :required="$field->required"
     />
     <input
-        type="text"
+        type="email"
         id="{{ $field->getKey() }}"
         name="{{ $field->getKey() }}"
         value="{{ old($field->getKey()) }}"
@@ -19,6 +19,7 @@
         @required($field->required)
     />
 </label>
+@dump($errors)
 @error($field->getKey())
     <p>{{ $message }}</p>
 @enderror

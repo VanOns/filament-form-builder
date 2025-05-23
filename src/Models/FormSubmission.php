@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Arr;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionCreated;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionForceDeleted;
@@ -51,5 +52,17 @@ class FormSubmission extends Model
     public function form(): BelongsTo
     {
         return $this->belongsTo(Form::class);
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getFormattedDataAttribute(): array
+    {
+        return array_map(function ($value) {
+            return is_array($value)
+                ? implode(', ', Arr::flatten($value))
+                : $value;
+        }, $this->data);
     }
 }

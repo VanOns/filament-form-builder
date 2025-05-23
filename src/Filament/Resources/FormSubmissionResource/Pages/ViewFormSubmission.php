@@ -39,7 +39,7 @@ class ViewFormSubmission extends ViewRecord
                     ])->columns(3),
                 Section::make(__('filament-form-builder::general.form_content'))
                     ->schema([
-                        KeyValueEntry::make('data')
+                        KeyValueEntry::make('formattedData')
                             ->keyLabel(__('filament-form-builder::general.form_key'))
                             ->valueLabel(__('filament-form-builder::general.form_value')),
                     ]),

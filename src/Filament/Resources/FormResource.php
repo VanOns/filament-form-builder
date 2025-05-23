@@ -76,7 +76,6 @@ class FormResource extends Resource
                     ->label(__('filament-form-builder::general.template'))
                     ->options([
                         'custom' => __('filament-form-builder::fields.custom_form_builder'),
-                        'test' => 'test',
                         ...self::getFormTemplates(),
                     ])
                     ->live()

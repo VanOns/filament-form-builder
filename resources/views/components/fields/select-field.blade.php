@@ -4,44 +4,29 @@
      */
 @endphp
 
-@if (!$field->multiple)
-    <label for="{{ $field->getKey() }}">
-        <p>{{ $field->label }}</p>
-        <p>{{ $field->description }}</p>
-        <select
-            id="{{ $field->getKey() }}"
-            name="{{ $field->getKey() }}"
-            @required($field->required)
-        >
-            @if ($field->placeholder)
-                <option value="" disabled @selected(old($field->getKey(), '') == '')>
-                    {{ $field->placeholder }}
-                </option>
-            @endif
-            @foreach($field->options as $option)
-                <option value="{{ $option['value'] ?? '' }}" @selected(old($field->getKey()) == $option['value'] ?? '')>
-                    {{ $option['label'] ?? '' }}
-                </option>
-            @endforeach
-        </select>
-    </label>
-@else
-    <div>
-        <p>{{ $field->label }}</p>
-        <p>{{ $field->description }}</p>
-        @foreach($field->options as $option)
-            <label>
-                <input
+<div>
+    <x-filament-form-builder::field-label
+        :label="$field->label"
+        :description="$field->description"
+        :required="$field->required"
+    />
+    @foreach($field->options as $option)
+        <label>
+            <input
+                @if ($field->multiple)
                     type="checkbox"
-                    name="{{ $field->getKey() }}[]"
-                    value="{{ $option['value'] ?? '' }}"
-                    @checked(in_array($option['value'] ?? '', old($field->getKey(), [])))
-                >
-                {{ $option['label'] ?? '' }}
-            </label>
-        @endforeach
-    </div>
-@endif
+                @else
+                    type="radio"
+                @endif
+                name="{{ $field->getKey() }}[]"
+                value="{{ $option['value'] ?? '' }}"
+                @checked(in_array($option['value'] ?? '', old($field->getKey(), [])))
+            >
+            {{ $option['label'] ?? '' }}
+        </label>
+    @endforeach
+</div>
+
 @error($field->getKey())
     <p>{{ $message }}</p>
 @enderror
