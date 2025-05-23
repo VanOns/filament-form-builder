@@ -11,6 +11,7 @@ use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 
 /**
  * @property int $id
@@ -49,6 +50,7 @@ class Form extends Model
             'notification_enabled' => 'boolean',
             'notification_receivers' => 'array',
             'submission_notification_type' => SubmitNotificationType::class,
+            'custom' => 'array',
         ];
     }
 
@@ -63,5 +65,24 @@ class Form extends Model
     public function getTemplateLabel(): ?string
     {
         return config("filament-form-builder.templates.{$this->template}");
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getCustomFormRules(): array
+    {
+        $fields = $this->custom['fields'] ?? [];
+
+        $rules = [];
+        foreach ($fields as $field) {
+            if ($type = $field['fieldType'] ?? null) {
+                /* @var FormField $fieldInstace */
+                $fieldInstace = new $type($field);
+                $rules = array_merge($rules, $fieldInstace->getRules());
+            }
+        }
+
+        return array_filter($rules);
     }
 }

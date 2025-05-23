@@ -38,7 +38,7 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ...
-            ->plugin(VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin::make())
+            ->plugin(\VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin::make())
             ...
     }
 }
@@ -167,6 +167,33 @@ class MyAwesomeForm extends Component
     }
 }
 ```
+
+## Custom form builder
+Select the 'custom' template when creating a form to build your own form.
+Choose what fields you want to use in the form, and fill in the fields.
+
+### Fields
+You can use the following fields:
+- Text
+- Email 
+- Select (multi)
+- Checkbox
+- Submit (button)
+
+You can also create your own fields:
+1. Create a class that extends `VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField`.
+2. Set the view property to the path of your field's blade template (create this if it doesn't exist).
+3. Add fields to the `getFields` method.
+4. Add properties to your class that correspond to the field names.
+5. Add the class to the `filament-form-builder.php` config file.
+
+**Tip: look in the exisiting fields for examples.**
+
+### Overwriting existing views
+You can overwrite the views of the default fields by publishing the views:
+`php artisan vendor:publish --tag=filament-form-builder-views`.
+
+This will publish the views to `resources/views/vendor/filament-form-builder/components/fields`, where you can then modify them.
 
 ## Translations
 

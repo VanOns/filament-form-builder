@@ -10,14 +10,22 @@ use VanOns\FilamentFormBuilder\Models\Form as FormModel;
 
 class Form extends Component
 {
-    public function __construct(public ?FormModel $form) {}
+    public function __construct(public ?FormModel $form)
+    {
+    }
 
     public function render(): View|Closure|string
     {
-        if ($this->form && is_subclass_of($this->form->template, Component::class, true)) {
-            return Blade::renderComponent(new ($this->form->template)($this->form));
+        if (!isset($this->form)) {
+            return '';
         }
 
-        return '';
+        if ($this->form->template === 'custom') {
+            return Blade::renderComponent(new (CustomFormRenderer::class)($this->form));
+        } elseif (is_subclass_of($this->form->template, Component::class)) {
+            return Blade::renderComponent(new ($this->form->template)($this->form));
+        } else {
+            return '';
+        }
     }
 }

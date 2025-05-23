@@ -45,6 +45,7 @@ class FormSubmissionResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('form.title')
                     ->label(__('filament-form-builder::general.form_title'))
