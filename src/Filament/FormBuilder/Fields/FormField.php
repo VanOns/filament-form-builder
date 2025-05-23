@@ -54,19 +54,31 @@ abstract class FormField
                 ->visible(fn (Get $get) => $get('set_key'))
                 ->label(__('filament-form-builder::fields.key')),
             Group::make([
+                Checkbox::make('required')
+                    ->default(false)
+                    ->label(__('filament-form-builder::fields.required')),
                 Checkbox::make('set_key')
                     ->default(false)
                     ->label(__('filament-form-builder::fields.set_key'))
                     ->afterStateUpdated(fn (Set $set) => $set('key', ''))
                     ->reactive(),
-                Checkbox::make('required')
-                    ->default(false)
-                    ->label(__('filament-form-builder::fields.required')),
             ])->columnStart(1)->columns(4),
             TextInput::make('description')
-                ->columnSpanFull()
+                ->columnStart(1)
                 ->label(__('filament-form-builder::fields.description')),
         ];
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    protected function getDefaultRules(): array
+    {
+        return array_filter([
+            $this->required
+                ? 'required'
+                : null,
+        ]);
     }
 
     /**
@@ -77,11 +89,41 @@ abstract class FormField
         return static::getFields();
     }
 
+    protected function generateLabel(): string
+    {
+        $data = array_filter([
+            static::label(),
+            $this->label ?? null,
+        ]);
+
+        return Str::snake(implode(' ', $data));
+    }
+
     public function getKey(): string
     {
         return !isset($this->key)
-            ? Str::snake(static::label()) . '_' . Str::random(8)
+            ? $this->key = $this->generateLabel()
             : $this->key;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function rules(): array
+    {
+        return $this->getDefaultRules();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getRules(): array
+    {
+        return [
+            $this->getKey() => !empty($rules = $this->rules())
+                ? $rules
+                : null,
+        ];
     }
 
     public function getView(): string

@@ -7,11 +7,17 @@
 @if (!$field->multiple)
     <label for="{{ $field->getKey() }}">
         <p>{{ $field->label }}</p>
+        <p>{{ $field->description }}</p>
         <select
             id="{{ $field->getKey() }}"
             name="{{ $field->getKey() }}"
             @required($field->required)
         >
+            @if ($field->placeholder)
+                <option value="" disabled selected>
+                    {{ $field->placeholder }}
+                </option>
+            @endif
             @foreach($field->options as $option)
                 <option value="{{ $option['value'] ?? '' }}">
                     {{ $option['label'] ?? '' }}
@@ -22,6 +28,7 @@
 @else
     <div>
         <p>{{ $field->label }}</p>
+        <p>{{ $field->description }}</p>
         @foreach($field->options as $option)
             <label>
                 <input
@@ -34,3 +41,6 @@
         @endforeach
     </div>
 @endif
+@error($field->getKey())
+    <p>{{ $message }}</p>
+@enderror

@@ -15,3 +15,6 @@
         @required($field->required)
     />
 </label>
+@error($field->getKey())
+    <p>{{ $message }}</p>
+@enderror

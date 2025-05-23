@@ -9,8 +9,8 @@ use VanOns\FilamentFormBuilder\Models\Form;
 class CreateFormSubmission extends FormRequest
 {
     /**
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
+     * @return array<string, mixed>
+    */
     public function rules(): array
     {
         $rules = [
@@ -21,6 +21,9 @@ class CreateFormSubmission extends FormRequest
         return array_merge($rules, $this->getFormRules());
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function getFormRules(): array
     {
         $form = Form::query()
@@ -30,7 +33,11 @@ class CreateFormSubmission extends FormRequest
 
         if (method_exists($form->template, 'rules')) {
             $rules = $form->template::rules();
+        } elseif ($form->template === 'custom') {
+            $rules = $form->getCustomFormRules();
         }
+
+        dump($rules);
 
         return $rules;
     }

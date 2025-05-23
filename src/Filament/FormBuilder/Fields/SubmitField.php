@@ -8,6 +8,11 @@ class SubmitField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.submit-field';
 
+    protected function rules(): array
+    {
+        return [];
+    }
+
     public static function getFields(): array
     {
         return [
