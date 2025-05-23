@@ -17,6 +17,7 @@ abstract class FormField
     public ?string $key;
     public ?string $label;
     public ?bool $required = false;
+    public ?bool $large = false;
     public ?string $description;
 
     /**
@@ -57,6 +58,9 @@ abstract class FormField
                 Checkbox::make('required')
                     ->default(false)
                     ->label(__('filament-form-builder::fields.required')),
+                Checkbox::make('large')
+                    ->default(false)
+                    ->label(__('filament-form-builder::fields.large')),
                 Checkbox::make('set_key')
                     ->default(false)
                     ->label(__('filament-form-builder::fields.set_key'))

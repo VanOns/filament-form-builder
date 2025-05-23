@@ -16,5 +16,6 @@ return [
         Fields\SelectField::class,
         Fields\SubmitField::class,
         Fields\EmailField::class,
+        Fields\TextAreaField::class,
     ],
 ];

@@ -11,4 +11,6 @@ return [
     'set_key' => 'Key instellen',
     'options' => 'Opties',
     'multiple_choice_question' => 'Meerkeuze vraag',
+    'large' => 'Groot',
+    'rows' => 'Rijen',
 ];

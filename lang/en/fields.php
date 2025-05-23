@@ -11,4 +11,6 @@ return [
     'set_key' => 'Set key',
     'options' => 'Options',
     'multiple_choice_question' => 'Multiple choice question',
+    'large' => 'Large',
+    'rows' => 'Rows',
 ];
