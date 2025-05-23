@@ -29,9 +29,14 @@ class SelectField extends FormField
         return [
             $this->getKey() => array_filter([
                 ...$this->getDefaultRules(),
+                !$this->multiple
+                    ? Rule::in($values)
+                    : null,
             ]),
             $this->getKey() . '.*' => array_filter([
-                Rule::in($values)
+                $this->multiple
+                    ? Rule::in($values)
+                    : null,
             ]),
         ];
     }

@@ -13,14 +13,14 @@
     @foreach($field->options as $option)
         <label>
             <input
+                @type="{{ $field->multiple ? 'checkbox' : 'radio' }}"
+                name="{{ $field->getKey() . ($field->multiple ? '[]' : '') }}"
                 @if ($field->multiple)
-                    type="checkbox"
+                    @checked(in_array($option['value'] ?? '', old($field->getKey(), [])))
                 @else
-                    type="radio"
+                    @checked(old($field->getKey()) == $option['value'] ?? '')
                 @endif
-                name="{{ $field->getKey() }}[]"
                 value="{{ $option['value'] ?? '' }}"
-                @checked(in_array($option['value'] ?? '', old($field->getKey(), [])))
             >
             {{ $option['label'] ?? '' }}
         </label>

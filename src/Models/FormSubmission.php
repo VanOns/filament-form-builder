@@ -59,10 +59,34 @@ class FormSubmission extends Model
      */
     public function getFormattedDataAttribute(): array
     {
-        return array_map(function ($value) {
-            return is_array($value)
-                ? implode(', ', Arr::flatten($value))
-                : $value;
-        }, $this->data);
+        return $this->getFormattedData();
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getFormattedKeyDataAttribute(): array
+    {
+        return $this->getFormattedData(true);
+    }
+
+    /**
+     * @param bool $formatKeys
+     * @return array<string>
+     */
+    public function getFormattedData(bool $formatKeys = false): array
+    {
+        return collect($this->data)
+            ->mapWithKeys(function ($value, $key) use ($formatKeys) {
+                $value = is_array($value)
+                    ? implode(', ', Arr::flatten($value))
+                    : $value;
+
+                $key = $formatKeys
+                    ? ucfirst(str_replace('_', ' ', $key))
+                    : $key;
+
+                return [$key => $value];
+            })->filter()->toArray();
     }
 }

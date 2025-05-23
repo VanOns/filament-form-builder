@@ -19,7 +19,7 @@
         @required($field->required)
     />
 </label>
-@dump($errors)
+
 @error($field->getKey())
     <p>{{ $message }}</p>
 @enderror

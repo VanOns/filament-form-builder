@@ -19,7 +19,9 @@
 ## {{ $contentHeader }}
 <x-mail::panel>
 @foreach ($formSubmission->formattedData as $field => $value)
-<p><b>{{ __("filament-form-builder::fields.{$field}") }}</b>: {{ $value }}</p>
+<p>
+    <b>{{ Lang::has($transKey = "filament-form-builder::fields.{$field}") ? __($transKey) : ucfirst(str_replace('_', ' ', $field)) }}</b>: {{ $value }}
+</p>
 @endforeach
 </x-mail::panel>
 
