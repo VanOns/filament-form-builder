@@ -194,6 +194,8 @@ public static function messages(): array
 ```
 
 ## Custom form builder
+**The custom form builder can be enabled/disabled by `'custom' => <label>` to the `templates` array in the `filament-form-builder.php` config file.**
+
 Select the 'custom' template when creating a form to build your own form.
 Choose what fields you want to use in the form, and fill in the fields.
 

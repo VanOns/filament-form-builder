@@ -5,6 +5,7 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 return [
     'add_nav_group' => true,
     'templates' => [
+        'custom' => __('filament-form-builder::fields.custom_form_builder'),
         // App\View\Components\MyForm::class => 'My Form'
     ],
     'rate-limit_hour' => 6,
