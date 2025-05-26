@@ -168,6 +168,31 @@ class MyAwesomeForm extends Component
 }
 ```
 
+### Attributes & messages
+Similar to a request, when validation a form, you can set attribute names and custom validation messages:
+```php
+public static function rules(): array
+{
+    return [
+        'name' => 'required|string|max:255',
+    ];
+}
+
+public static function attributes(): array
+{
+    return [
+        'name' => 'Full name',
+    ];
+}
+
+public static function messages(): array
+{
+    return [
+        'name.required' => 'Please enter your full name.',
+    ];
+}
+```
+
 ## Custom form builder
 Select the 'custom' template when creating a form to build your own form.
 Choose what fields you want to use in the form, and fill in the fields.

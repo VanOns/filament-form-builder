@@ -43,7 +43,7 @@ class CreateFormSubmission extends FormRequest
 
         if (method_exists($form->template, 'rules')) {
             $rules = $form->template::rules();
-        } elseif ($form->template === 'custom') {
+        } elseif ($form->isCustom()) {
             $rules = $form->getCustomFormRules();
         }
 
@@ -55,6 +55,14 @@ class CreateFormSubmission extends FormRequest
      */
     public function attributes(): array
     {
-        return $this->getForm()->getCustomFormLabels();
+        return $this->getForm()->getFormAttributes();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->getForm()->getFormMessages();
     }
 }

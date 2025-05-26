@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
 use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
@@ -12,6 +13,7 @@ use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
 
 /**
  * @property int $id
@@ -23,13 +25,14 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
  * @property string $notification_content
  * @property SubmitNotificationType $submit_notification_type
  * @property string $submit_notification_content
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property \Illuminate\Support\Carbon|null $deleted_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  */
 class Form extends Model
 {
     use SoftDeletes;
+    use HasCustomFields;
 
     /**
      * @var array<FormField>
@@ -76,7 +79,7 @@ class Form extends Model
      */
     public function getFields(): array
     {
-        if (!isset($this->fields) && $this->template === 'custom') {
+        if (!isset($this->fields) && $this->isCustom()) {
             $fields = $this->custom['fields'] ?? [];
 
             $fieldInstaces = [];
@@ -97,28 +100,30 @@ class Form extends Model
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, string>
      */
-    public function getCustomFormRules(): array
+    public function getFormAttributes(): array
     {
-        $rules = [];
-        foreach ($this->getFields() as $field) {
-            $rules = array_merge($rules, $field->getRules());
+        if ($this->isCustom()) {
+            return $this->getCustomFormLabels();
         }
 
-        return array_filter($rules);
+        return method_exists($this->template, 'attributes')
+            ? $this->template::attributes()
+            : [];
     }
 
     /**
-     * @return array<string, string>
+     * @return array<string>
      */
-    public function getCustomFormLabels(): array
+    public function getFormMessages(): array
     {
-        $labels = [];
-        foreach ($this->getFields() as $field) {
-            $labels[$field->getKey()] = $field->getLabel();
+        if ($this->isCustom()) {
+            return [];
         }
 
-        return $labels;
+        return method_exists($this->template, 'messages')
+            ? $this->template::messages()
+            : [];
     }
 }

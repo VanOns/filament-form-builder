@@ -20,7 +20,7 @@ class Form extends Component
             return '';
         }
 
-        if ($this->form->template === 'custom') {
+        if ($this->form->isCustom()) {
             return Blade::renderComponent(new (CustomFormRenderer::class)($this->form));
         } elseif (is_subclass_of($this->form->template, Component::class)) {
             return Blade::renderComponent(new ($this->form->template)($this->form));
