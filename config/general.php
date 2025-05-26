@@ -11,11 +11,10 @@ return [
     'email_notification_enabled' => true,
     'form-middleware' => ['web'],
     'fields' => [
-        Fields\TextField::class,
+        Fields\InputField::class,
         Fields\CheckboxField::class,
         Fields\SelectField::class,
         Fields\SubmitField::class,
-        Fields\EmailField::class,
         Fields\TextAreaField::class,
     ],
 ];

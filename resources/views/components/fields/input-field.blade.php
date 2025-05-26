@@ -1,6 +1,6 @@
 @php
     /**
-     * @var \VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextField $field
+     * @var \VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\InputField $field
      */
 @endphp
 
@@ -11,7 +11,7 @@
         :required="$field->required"
     />
     <input
-        type="email"
+        type="{{ $field->inputType }}"
         id="{{ $field->getKey() }}"
         name="{{ $field->getKey() }}"
         value="{{ old($field->getKey()) }}"
@@ -19,7 +19,6 @@
         @required($field->required)
     />
 </label>
-
 @error($field->getKey())
     <p>{{ $message }}</p>
 @enderror

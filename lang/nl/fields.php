@@ -13,6 +13,7 @@ return [
     'multiple_choice_question' => 'Meerkeuze vraag',
     'large' => 'Groot',
     'rows' => 'Rijen',
+    'input_type' => 'Invoertype',
     'helper_texts' => [
         'submitter_email' => 'Gebruik de key `submitter_email` om dit veld als indiener e-mailadres te gebruiken.',
     ],
