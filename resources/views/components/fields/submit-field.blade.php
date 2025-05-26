@@ -7,5 +7,5 @@
 <button
     type="submit"
 >
-    {{ $field->label }}
+    {{ $field->getLabel() }}
 </button>

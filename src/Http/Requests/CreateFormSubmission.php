@@ -3,11 +3,22 @@
 namespace VanOns\FilamentFormBuilder\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Route;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 class CreateFormSubmission extends FormRequest
 {
+    public Form $form;
+
+    protected function getForm(): Form
+    {
+        if (!isset($this->form)) {
+            $this->form = Form::query()
+                ->findOrFail($this->route('formId'));
+        }
+
+        return $this->form;
+    }
+
     /**
      * @return array<string, mixed>
     */
@@ -26,8 +37,7 @@ class CreateFormSubmission extends FormRequest
      */
     private function getFormRules(): array
     {
-        $form = Form::query()
-            ->findOrFail(Route::current()->parameter('formId'));
+        $form = $this->getForm();
 
         $rules = [];
 
@@ -38,5 +48,13 @@ class CreateFormSubmission extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return $this->getForm()->getCustomFormLabels();
     }
 }

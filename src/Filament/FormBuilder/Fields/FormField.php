@@ -38,6 +38,11 @@ abstract class FormField
         return ucfirst($field);
     }
 
+    public function getLabel(): string
+    {
+        return $this->label ?? static::label();
+    }
+
     /**
      * @return array<Component>
      */
@@ -97,14 +102,8 @@ abstract class FormField
 
     protected function generateKey(): string
     {
-        $data = array_filter([
-            static::label(),
-            $this->label ?? null,
-        ]);
-
         return Str::snake(
-            $this->label
-                ?? static::label()
+            $this->getLabel()
         );
     }
 
@@ -116,7 +115,7 @@ abstract class FormField
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<int|string, mixed>
      */
     protected function rules(): array
     {

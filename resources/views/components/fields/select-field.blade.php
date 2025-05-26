@@ -6,7 +6,7 @@
 
 <div>
     <x-filament-form-builder::field-label
-        :label="$field->label"
+        :label="$field->getLabel()"
         :description="$field->description"
         :required="$field->required"
     />
