@@ -32,6 +32,6 @@ trait HasCustomFields
 
     public function isCustom(): bool
     {
-        return $this->isCustom();
+        return $this->template === 'custom';
     }
 }
