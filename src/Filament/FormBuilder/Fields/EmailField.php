@@ -17,6 +17,11 @@ class EmailField extends FormField
         ];
     }
 
+    public static function getHelperText(): ?string
+    {
+        return __('filament-form-builder::fields.helper_texts.submitter_email');
+    }
+
     public static function getFields(): array
     {
         return [

@@ -13,4 +13,7 @@ return [
     'multiple_choice_question' => 'Multiple choice question',
     'large' => 'Large',
     'rows' => 'Rows',
+    'helper_texts' => [
+        'submitter_email' => 'Use the key `submitter_email` to use this field as submitter email address.',
+    ],
 ];

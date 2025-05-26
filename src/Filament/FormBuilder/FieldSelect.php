@@ -17,6 +17,13 @@ class FieldSelect extends Select
         $this->options($fields)
             ->placeholder(__('filament-form-builder::fields.form_builder_placeholder'))
             ->reactive()
+            ->helperText(function (?string $state) {
+                if (!$state || !class_exists($state) || !method_exists($state, 'getHelperText')) {
+                    return null;
+                }
+
+                return $state::getHelperText();
+            })
             ->afterStateUpdated(fn (Get $get, Set $set) => $set('./', ['fieldType' => $get('fieldType')]));
     }
 }

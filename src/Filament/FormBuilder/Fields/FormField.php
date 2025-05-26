@@ -93,6 +93,14 @@ abstract class FormField
     }
 
     /**
+     * @return string|null
+     */
+    public static function getHelperText(): ?string
+    {
+        return null;
+    }
+
+    /**
      * @return array<Component>
      */
     public function make(): array
