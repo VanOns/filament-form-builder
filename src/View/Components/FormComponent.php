@@ -12,7 +12,10 @@ abstract class FormComponent extends Component
     /**
      * @var array<string>
      */
-    public array $defaultPlaceholders = ['all_fields', 'form_title'];
+    public array $defaultPlaceholders = [
+        'all_fields',
+        'form_title',
+    ];
 
     public function __construct(public Form $form)
     {

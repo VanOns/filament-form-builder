@@ -72,17 +72,19 @@ after submitting.
 To get started, create a blade component for your form-template:
 `php artisan make:component Forms/MyAwesomeForm`.
 
+After creating the component, make sure to extend the `VanOns\FilamentFormBuilder\View\Components\FormComponent` class, instead of the default `Component` class.
+When extending `FormComponent` you no longer need the `__construct` method in your class.
+
 Make sure your form-template is constructed with an instance of
 `VanOns\FilamentFormBuilder\Models\Form`, this will be used in the `action` of
 the html form in your blade template:
 
 ```php
 use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
-class MyAwesomeForm extends Component
+class MyAwesomeForm extends FormComponent
 {
-    public function __construct(public Form $form) {}
-
     public function render(): View|Closure|string
     {
         return view('components.forms.my-awesome-form');
@@ -146,49 +148,69 @@ configured template.
 instance of the template class, passing it the form instance.
 - Resulting in your template being rendered.
 
-### Validation
+### Validation, attributes & messages
 
-By adding a `public static function rules()` to your form component, you
-add validation rules to your form:
+Similar to a request, you can use the `rules`, `attributes`, and `messages` methods in your form component.
+These methods are used to validate the form data when it is submitted.
+Behind the scenes, these methods are used in a `Request`.
 
 ```php
 use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
-class MyAwesomeForm extends Component
+class MyAwesomeForm extends FormComponent
 {
-    /**
-     * @return array<string, string>
-     */
-    public static function rules(): array
+    public function rules(): array
     {
         return [
-            'name' => ['nullable', 'sometimes', 'string']
+            'name' => 'required|string|max:255',
+        ];
+    }
+    
+    public function attributes(): array
+    {
+        return [
+            'name' => 'Full name',
+        ];
+    }
+    
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Please enter your full name.',
         ];
     }
 }
 ```
 
-### Attributes & messages
-Similar to a request, when validation a form, you can set attribute names and custom validation messages:
+### Placeholders
+The placeholder method is used to show the user what placeholders can be when creating form notifications.
+You can choose to only add a key in this method, or add a key with a value. The value is used to set a fallback for when a field is not filled.
+By default, the fallback is `-`.
+
 ```php
-public static function rules(): array
+/**
+ * @return array<string>
+ */
+public function placeholders(): array
 {
     return [
-        'name' => 'required|string|max:255',
+        'name',
+        'message' => 'No message',
     ];
 }
+```
 
-public static function attributes(): array
-{
-    return [
-        'name' => 'Full name',
-    ];
-}
+Apart from the placeholders set in the form component, these placeholders are always available:
+- `form_title`: The title of the form.
+- `all_fields`: Adds all fields in the form, wrapped in a `panel` component, to the notification.
 
-public static function messages(): array
+If for any reason you want to change the default placeholders, you can overwrite the `$defaultPlaceholders` variable set in a form component:
+```php
+class MyAwesomeForm extends FormComponent
 {
-    return [
-        'name.required' => 'Please enter your full name.',
+    public array $defaultPlaceholders = [
+        'form_title',
     ];
 }
 ```
@@ -196,15 +218,15 @@ public static function messages(): array
 ## Custom form builder
 **The custom form builder can be enabled/disabled by `\VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm::class => <label>` to the `templates` array in the `filament-form-builder.php` config file.**
 
-Select the 'custom' template when creating a form to build your own form.
-Choose what fields you want to use in the form, and fill in the fields.
+Select the 'custom' template in filament if you want to build your own form.
+Choose what inputs you want to use in the form, and fill in the fields.
 
 ### Fields
 You can use the following fields:
-- Text
-- Email 
+- Input (text, number, email, phone)
 - Select (multi)
 - Checkbox
+- Text area
 - Submit (button)
 
 You can also create your own fields:
@@ -251,53 +273,3 @@ Forms:
 - `VanOns\FilamentFormBuilder\Events\Form\FormDeleted::class`
 - `VanOns\FilamentFormBuilder\Events\Form\FormRestored::class`
 - `VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted::class`
-
-## Customizing the email notification
-
-You can customize the email notification in two ways:
-
-### Publish the views
-
-You can publish and customize the email's markdown blade view by publishing it:
-`php artisan vendor:publish --tag=filament-form-builder-views`.
-
-### Turn of the notification and re-implement it
-
-You're the free to set up a listener for the
-`VanOns\FilamentFormBuilder\Models\Form\FormSubmissionCreated::class` event,
-and re-implement the email.
-
-## Example: Adding a form to your model
-
-This package does not restrict you to using forms in specific way. If you have
-a model, `Page::class` for example, you could relate a form to your model as
-following:
-
-in `App\Models\Page::class`:
-
-```php
-
-public function form(): BelongsTo
-{
-    return $this->belongsTo(VanOns\FilamentFormBuilder\Models::class);
-}
-```
-
-Make sure you have a `form_id` field in your `Page::class`'s table:
-
-```php
-    Illuminate\Support\Facades\Schema::create('pages', function (Blueprint $table) {
-        $table->foreignId('form_id')
-            ->constrained('forms')
-            ->nullOnDelete();
-    });
-```
-
-Then in to select one in a FilamentPHP resource:
-
-```php
-Filament\Forms\Components\Select::make('form_id')
-    ->relationship(name: 'form', title: 'title')
-    ->searchable()
-    ->preload();
-```
