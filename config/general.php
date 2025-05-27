@@ -16,5 +16,11 @@ return [
         Fields\SelectField::class,
         Fields\SubmitField::class,
         Fields\TextAreaField::class,
+        Fields\RecaptchaField::class,
+    ],
+    'recaptcha' => [
+        'enabled' => env('RECAPTCHA_ENABLED', false),
+        'secret' => env('RECAPTCHA_SECRET', ''),
+        'key' => env('RECAPTCHA_KEY', ''),
     ],
 ];

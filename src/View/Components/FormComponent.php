@@ -6,9 +6,12 @@ use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\Component;
 use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\Services\RecaptchaService;
 
 abstract class FormComponent extends Component
 {
+    public bool $recaptcha = false;
+
     /**
      * @var array<string>
      */
@@ -44,7 +47,14 @@ abstract class FormComponent extends Component
      */
     public function getRules(): array
     {
-        return $this->rules();
+        $recaptchaRule = $this->recaptcha && RecaptchaService::checkEnabled()
+            ? RecaptchaService::getRules()
+            : [];
+
+        return [
+            ...$recaptchaRule,
+            ...$this->rules(),
+        ];
     }
 
     /**
