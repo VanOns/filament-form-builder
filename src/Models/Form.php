@@ -19,10 +19,8 @@ use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
  * @property int $id
  * @property string $title
  * @property string $template
- * @property bool $notification_enabled
- * @property array<string> $notification_receivers
- * @property string $notification_subject
- * @property string $notification_content
+ * @property array $custom
+ * @property array $notifications
  * @property SubmitNotificationType $submit_notification_type
  * @property string $submit_notification_content
  * @property Carbon|null $created_at
@@ -54,10 +52,9 @@ class Form extends Model
     protected function casts(): array
     {
         return [
-            'notification_enabled' => 'boolean',
-            'notification_receivers' => 'array',
             'submission_notification_type' => SubmitNotificationType::class,
             'custom' => 'array',
+            'notifications' => 'array',
         ];
     }
 

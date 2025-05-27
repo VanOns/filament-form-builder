@@ -9,7 +9,6 @@ return [
         \VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm::class => 'Contact',
     ],
     'rate-limit_hour' => 6,
-    'email_notification_enabled' => true,
     'form-middleware' => ['web'],
     'fields' => [
         Fields\InputField::class,

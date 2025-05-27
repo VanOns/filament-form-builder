@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
+use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionCreated;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionForceDeleted;
@@ -17,9 +19,9 @@ use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionUpdated;
  * @property int $form_id
  * @property ?string $submitter_email
  * @property array<mixed> $data
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property \Illuminate\Support\Carbon|null $deleted_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  * @property ?Form $form
  */
 class FormSubmission extends Model
@@ -88,5 +90,19 @@ class FormSubmission extends Model
 
                 return [$key => $value];
             })->filter()->toArray();
+    }
+
+    /**
+     * @return array<EmailNotification>
+     */
+    public function getNotifications(): array
+    {
+        return array_map(
+            fn (array $notification) => new EmailNotification(
+                formSubmission: $this,
+                notification: $notification
+            ),
+            $this->form->notifications,
+        );
     }
 }

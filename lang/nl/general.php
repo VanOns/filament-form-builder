@@ -1,7 +1,9 @@
 <?php
 
 return [
+    'add' => 'Toevoegen',
     'url' => 'URL',
+    'close' => 'Sluiten',
     'content' => 'Content',
     'custom_form' => 'Custom formulier',
     'general' => 'Algemeen',
@@ -15,18 +17,15 @@ return [
     'submissions' => 'Inzendingen',
     'last_submission' => 'Laatste inzending',
     'notification_receiver_count' => 'Aantal notificatie ontvangers',
+    'email_notifications' => 'E-mail notificaties',
     'email_notification' => 'E-mail notificatie',
     'submitter_email' => 'Inzender e-mail',
     'title' => 'Titel',
     'template' => 'Template',
-    'email' => 'E-mail',
+    'email' => 'Email',
+    'email_address' => 'Emailadres',
     'submit_notification_content' => 'Content',
     'submit_notification_url' => 'URL',
-    'notification_enabled' => 'Email notificatie ingeschakeld',
-    'notification_sender' => 'Email notificatie afzender',
-    'notification_subject' => 'Email notificatie onderwerp',
-    'notification_content' => 'Email notificatie inhoud',
-    'notification_receivers' => 'Email notificatie ontvangers',
     'submit_notification_type' => 'Formulier notificatie type',
     'submit_notification_types' => [
         'url' => 'URL',
@@ -41,5 +40,14 @@ return [
         ],
     ],
     'navigation-group' => 'Formulieren',
-    'submitted' => 'Ingezonden',
+    'notifications' => [
+        'subject' => 'Onderwerp',
+        'content' => 'Content',
+        'sender' => 'Afzender',
+        'receivers' => 'Ontvangers',
+        'email_or_field' => 'Email of veld',
+        'email_or_field_hint' => 'Voeg een e-mailadres toe of kies een veld met een e-mailadres.',
+    ],
+    'you_can_use_placeholders' => 'Je kunt gebruikmaken van de volgende placeholders:',
+    'unknown' => 'Onbekend',
 ];

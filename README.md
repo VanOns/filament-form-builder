@@ -263,9 +263,6 @@ You can publish and customize the email's markdown blade view by publishing it:
 
 ### Turn of the notification and re-implement it
 
-You can completely disable emails send by the package by disabling
-`email_notification_enabled` in the config.
-
 You're the free to set up a listener for the
 `VanOns\FilamentFormBuilder\Models\Form\FormSubmissionCreated::class` event,
 and re-implement the email.

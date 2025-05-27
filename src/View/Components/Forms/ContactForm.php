@@ -4,10 +4,10 @@ namespace VanOns\FilamentFormBuilder\View\Components\Forms;
 
 use Closure;
 use Illuminate\Contracts\View\View;
-use Illuminate\View\Component;
 use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
-class ContactForm extends Component
+class ContactForm extends FormComponent
 {
     public function __construct(public Form $form)
     {
@@ -24,6 +24,17 @@ class ContactForm extends Component
             'submitter_email' => 'required|email|max:255',
             'phone_number' => 'required|string|max:255',
             'message' => 'required|string|max:6000',
+        ];
+    }
+
+    public static function placeholders(): array
+    {
+        return [
+            'name',
+            'company_name',
+            'submitter_email',
+            'phone_number',
+            'message',
         ];
     }
 
