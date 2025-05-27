@@ -88,9 +88,19 @@ class FormResource extends Resource
 
     public static function getCustomSection(): Section
     {
+        $visible = function (array $state) {
+            if (!$template = $state['template']) {
+                return false;
+            }
+
+            return class_exists($template)
+                && is_subclass_of($template, FormComponent::class)
+                && $template::isCustom();
+        };
+
         return Section::make(__('filament-form-builder::general.custom_form'))
             ->collapsible()
-            ->visible(fn (array $state) => ($state['template'] ?? null) === 'custom')
+            ->visible(fn (array $state) => $visible($state))
             ->schema([
                 FormBuilder::make('custom'),
             ])->columnSpanFull();
@@ -134,13 +144,14 @@ class FormResource extends Resource
                     ->hiddenLabel()
                     ->extraItemActions([
                         ModalAction::make('placeholders')
-                            ->modalContent(function (Get $get) {
+                            ->hidden(fn (?FormModel $record) => is_null($record))
+                            ->modalContent(function (Get $get, ?FormModel $record) {
                                 /**
                                  * @var null|string|class-string<FormComponent> $template
                                  */
                                 $template = $get('template');
-                                return (isset($template) && $template !== 'custom' && (new \ReflectionClass($template))->isSubclassOf(FormComponent::class))
-                                    ? $template::getPlaceholdersHtmlString()
+                                return (isset($template) && is_subclass_of($template, FormComponent::class))
+                                    ? $record?->getFormComponent()->getPlaceholdersHtmlString()
                                     : new HtmlString(__('filament-form-builder::general.unknown'));
                             }),
                     ])

@@ -4,7 +4,6 @@ namespace VanOns\FilamentFormBuilder\View\Components;
 
 use Closure;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\View\Component;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
 
@@ -20,10 +19,8 @@ class Form extends Component
             return '';
         }
 
-        if ($this->form->isCustom()) {
-            return Blade::renderComponent(new (CustomFormRenderer::class)($this->form));
-        } elseif (is_subclass_of($this->form->template, Component::class)) {
-            return Blade::renderComponent(new ($this->form->template)($this->form));
+        if (is_subclass_of($this->form->template, FormComponent::class)) {
+            return $this->form->getFormComponent()->render();
         } else {
             return '';
         }

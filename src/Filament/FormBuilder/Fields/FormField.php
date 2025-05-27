@@ -32,6 +32,11 @@ abstract class FormField
         }
     }
 
+    public static function isInput(): bool
+    {
+        return true;
+    }
+
     public static function label(): string
     {
         $field = Str::replace('-', ' ', Str::kebab(class_basename(static::class)));

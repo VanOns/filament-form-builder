@@ -4,7 +4,7 @@ namespace VanOns\FilamentFormBuilder\Classes;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
-use ReflectionClass;
+use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 use VanOns\FilamentFormBuilder\View\Components\Mail\MailPanel;
@@ -40,9 +40,10 @@ class EmailNotification
         $formData = $this->getFormSubmissionData(true);
 
         $data = array_filter([
-            'allFields' => str_contains($content, '$allFields')
+            'all_fields' => str_contains($content, '$all_fields')
                 ? $this->getAllFieldsHtml($formData)
                 : null,
+            'form_title' => $this->formSubmission->form->title,
             ...$formData,
         ]);
 
@@ -56,7 +57,7 @@ class EmailNotification
     }
 
     /**
-     * Get html ata for the `allFields` placeholder
+     * Get html ata for the `all_fields` placeholder
      *
      * @param array<string, mixed>|null $data
      * @return string
@@ -67,8 +68,11 @@ class EmailNotification
             return '';
         }
 
-        $allFieldsFormatted = array_map(function ($key, $value) {
-            $label = $this->formSubmission->form->template::findAttributeForKey($key);
+        /* @var Form $form */
+        $form = $this->formSubmission->form;
+
+        $allFieldsFormatted = array_map(function ($key, $value) use ($form) {
+            $label = $form->getFormComponent()->findAttributeForKey($key);
             return "<p><b>{$label}</b>: {$value}</p>";
         }, array_keys($data), $data);
 
@@ -93,14 +97,14 @@ class EmailNotification
     /**
      * @return array<string, mixed>
      */
-    protected function getFormSubmissionData(bool $withFallbacks = false): array
+    protected function getFormSubmissionData(bool $withPlaceholders = false): array
     {
-        $fallbacks = $withFallbacks
+        $placeholders = $withPlaceholders
             ? $this->getPlaceholders()
             : [];
 
         return [
-            ...$fallbacks,
+            ...$placeholders,
             ...$this->formSubmission->getFormattedData(),
             'submitter_email' => $this->formSubmission->submitter_email,
         ];
@@ -114,11 +118,11 @@ class EmailNotification
         $template = $this->formSubmission->form->template;
 
         try {
-            if ($template !== 'custom' && (new ReflectionClass($template))->isSubclassOf(FormComponent::class)) {
+            if (is_subclass_of($template, FormComponent::class)) {
                 /**
                  * @var FormComponent $template
                  */
-                return $template::getPlaceholders();
+                return $this->formSubmission->form->getFormComponent()->getPlaceholders();
             }
         } catch (\Exception) {
             return [];

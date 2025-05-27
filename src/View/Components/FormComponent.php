@@ -5,13 +5,33 @@ namespace VanOns\FilamentFormBuilder\View\Components;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\Component;
+use VanOns\FilamentFormBuilder\Models\Form;
 
 abstract class FormComponent extends Component
 {
     /**
+     * @var array<string>
+     */
+    public array $defaultPlaceholders = ['all_fields', 'form_title'];
+
+    public function __construct(public Form $form)
+    {
+    }
+
+    /**
+     * Determines if the form component has a custom form builder.
+     *
+     * @return bool
+     */
+    public static function isCustom(): bool
+    {
+        return false;
+    }
+
+    /**
      * @return array<string, string>
      */
-    public static function rules(): array
+    public function rules(): array
     {
         return [];
     }
@@ -19,9 +39,9 @@ abstract class FormComponent extends Component
     /**
      * @return array<string, string>
      */
-    public static function getRules(): array
+    public function getRules(): array
     {
-        return static::rules();
+        return $this->rules();
     }
 
     /**
@@ -29,7 +49,7 @@ abstract class FormComponent extends Component
      *
      * @return array<int|string, string>
      */
-    public static function placeholders(): array
+    public function placeholders(): array
     {
         return [];
     }
@@ -37,11 +57,11 @@ abstract class FormComponent extends Component
     /**
      * @return array<string, string>
      */
-    public static function getPlaceholders(): array
+    public function getPlaceholders(): array
     {
         $mapped = [];
 
-        foreach (static::placeholders() as $key => $value) {
+        foreach ($this->placeholders() as $key => $value) {
             if (is_int($key)) {
                 $mapped[$value] = '-';
             } else {
@@ -57,9 +77,17 @@ abstract class FormComponent extends Component
      *
      * @return HtmlString
      */
-    public static function getPlaceholdersHtmlString(): HtmlString
+    public function getPlaceholdersHtmlString(): HtmlString
     {
-        $placeholders = array_map(fn ($value) => '{{ $' . $value . ' }}', array_keys(static::getPlaceholders()));
+        $formPlaceholders = [
+            ...array_keys($this->getPlaceholders()),
+            ...$this->defaultPlaceholders,
+        ];
+
+        $placeholders = array_map(
+            fn ($value) => '{{ $' . $value . ' }}',
+            $formPlaceholders
+        );
 
         return new HtmlString('<p>' . __('filament-form-builder::general.you_can_use_placeholders') . '<br/><br/>' . implode('<br/>', $placeholders));
     }
@@ -67,7 +95,7 @@ abstract class FormComponent extends Component
     /**
      * @return array<string, string>
      */
-    public static function attributes(): array
+    public function attributes(): array
     {
         return [];
     }
@@ -78,9 +106,9 @@ abstract class FormComponent extends Component
      * @param string $key
      * @return string
      */
-    public static function findAttributeForKey(string $key): string
+    public function findAttributeForKey(string $key): string
     {
-        $attributes = static::attributes();
+        $attributes = $this->attributes();
 
         if (array_key_exists($key, $attributes)) {
             return $attributes[$key];
@@ -94,7 +122,7 @@ abstract class FormComponent extends Component
     /**
      * @return array<string, string>
      */
-    public static function messages(): array
+    public function messages(): array
     {
         return [];
     }

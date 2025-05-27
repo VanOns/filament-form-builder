@@ -21,4 +21,9 @@ class SubmitField extends FormField
                 ->required(),
         ];
     }
+
+    public static function isInput(): bool
+    {
+        return false;
+    }
 }

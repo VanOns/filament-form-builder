@@ -3,7 +3,6 @@
 namespace VanOns\FilamentFormBuilder\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use ReflectionClass;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
@@ -45,18 +44,16 @@ class CreateFormSubmission extends FormRequest
         $rules = [];
 
         try {
-            if ($template !== 'custom' && (new ReflectionClass($template))->isSubclassOf(FormComponent::class)) {
+            if (is_subclass_of($template, FormComponent::class)) {
                 /**
                  * @var class-string<FormComponent> $template
                  */
-                $rules = $template::getRules();
-            } elseif ($form->isCustom()) {
-                $rules = $form->getCustomFormRules();
+                $rules = $form->getFormComponent()->getRules();
             }
 
             return $rules;
         } catch (\Exception) {
-            return [];
+            return $rules;
         }
     }
 
