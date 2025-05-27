@@ -7,24 +7,24 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\Alignment;
 use Filament\Tables;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Actions\ModalAction;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormBuilder;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
+use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
 class FormResource extends Resource
 {
@@ -88,9 +88,19 @@ class FormResource extends Resource
 
     public static function getCustomSection(): Section
     {
+        $visible = function (array $state) {
+            if (!$template = $state['template']) {
+                return false;
+            }
+
+            return class_exists($template)
+                && is_subclass_of($template, FormComponent::class)
+                && $template::isCustom();
+        };
+
         return Section::make(__('filament-form-builder::general.custom_form'))
             ->collapsible()
-            ->visible(fn (array $state) => ($state['template'] ?? null) === 'custom')
+            ->visible(fn (array $state) => $visible($state))
             ->schema([
                 FormBuilder::make('custom'),
             ])->columnSpanFull();
@@ -99,6 +109,7 @@ class FormResource extends Resource
     public static function getSubmitNotificationSection(): Section
     {
         return Section::make(__('filament-form-builder::general.submit_notification'))
+            ->collapsed(fn (string $operation) => !str_contains($operation, 'create'))
             ->schema([
                 Select::make('submit_notification_type')
                     ->label(__('filament-form-builder::general.submit_notification_type'))
@@ -122,40 +133,64 @@ class FormResource extends Resource
 
     public static function getEmailNotificationSection(): Section
     {
-        return Section::make(__('filament-form-builder::general.email_notification'))
+        return Section::make(__('filament-form-builder::general.email_notifications'))
+            ->collapsible()
             ->schema([
-                Toggle::make('notification_enabled')
-                    ->live()
-                    ->label(__('filament-form-builder::general.notification_enabled'))
-                    ->default(true)
-                    ->columnSpanFull(),
-                TextInput::make('notification_subject')
-                    ->visible(fn (Get $get) => $get('notification_enabled') == true)
-                    ->label(__('filament-form-builder::general.notification_subject'))
-                    ->required()
-                    ->columnSpan(1),
-                TextInput::make('notification_sender')
-                    ->visible(fn (Get $get) => $get('notification_enabled') == true)
-                    ->label(__('filament-form-builder::general.notification_sender'))
-                    ->default(config('mail.from.address'))
-                    ->email()
-                    ->required()
-                    ->columnSpan(1),
-                RichEditor::make('notification_content')
-                    ->visible(fn (Get $get) => $get('notification_enabled') == true)
-                    ->label(__('filament-form-builder::general.notification_content'))
-                    ->required()
-                    ->columnSpanFull(),
-                Repeater::make('notification_receivers')
-                    ->visible(fn (Get $get) => $get('notification_enabled') == true)
-                    ->label(__('filament-form-builder::general.notification_receivers'))
-                    ->simple(
-                        TextInput::make('email')
+                Repeater::make('notifications')
+                    ->columnSpanFull()
+                    ->columns(3)
+                    ->collapsed()
+                    ->label(__('filament-form-builder::general.email_notifications'))
+                    ->hiddenLabel()
+                    ->extraItemActions([
+                        ModalAction::make('placeholders')
+                            ->hidden(fn (?FormModel $record) => is_null($record))
+                            ->modalContent(function (Get $get, ?FormModel $record) {
+                                /**
+                                 * @var null|string|class-string<FormComponent> $template
+                                 */
+                                $template = $get('template');
+                                return (isset($template) && is_subclass_of($template, FormComponent::class))
+                                    ? $record?->getFormComponent()->getPlaceholdersHtmlString()
+                                    : new HtmlString(__('filament-form-builder::general.unknown'));
+                            }),
+                    ])
+                    ->itemLabel(function (array $state) {
+                        if ($subject = $state['subject'] ?? null) {
+                            return "{$subject} - " . __('filament-form-builder::general.email_notification');
+                        }
+                        return __('filament-form-builder::general.email_notification');
+                    })
+                    ->schema([
+                        TextInput::make('subject')
+                            ->columnSpanFull()
+                            ->label(__('filament-form-builder::general.notifications.subject'))
+                            ->required(),
+                        RichEditor::make('content')
+                            ->columnSpanFull()
+                            ->label(__('filament-form-builder::general.notifications.content'))
+                            ->required(),
+                        TextInput::make('sender')
+                            ->label(__('filament-form-builder::general.notifications.sender'))
+                            ->placeholder('example@email.com')
                             ->email()
                             ->required(),
-                    )
-                    ->grid()
-                    ->columnSpanFull(),
+                        Repeater::make('receivers')
+                            ->columnStart(1)
+                            ->columnSpanFull()
+                            ->label(__('filament-form-builder::general.notifications.receivers'))
+                            ->hint(__('filament-form-builder::general.notifications.email_or_field_hint'))
+                            ->grid(3)
+                            ->addActionLabel(__('filament-form-builder::general.add'))
+                            ->addActionAlignment(Alignment::Start)
+                            ->default([])
+                            ->simple(
+                                TextInput::make('email')
+                                    ->regex('/^\S*$/')
+                                    ->placeholder(__('filament-form-builder::general.notifications.email_or_field'))
+                                    ->required(),
+                            ),
+                    ]),
             ])->columns();
     }
 
@@ -170,11 +205,6 @@ class FormResource extends Resource
                 TextColumn::make('template')
                     ->state(fn (FormModel $record) => $record->getTemplateLabel())
                     ->label(__('filament-form-builder::general.template')),
-                IconColumn::make('notification_enabled')
-                    ->label(__('filament-form-builder::general.notification_enabled'))
-                    ->boolean()
-                    ->sortable()
-                    ->toggleable(),
                 TextColumn::make('submissions_count')
                     ->label(__('filament-form-builder::general.submissions'))
                     ->counts('submissions')
@@ -191,10 +221,6 @@ class FormResource extends Resource
                             ?->created_at;
                     })->since()
                     ->toggleable(),
-                TextColumn::make('receiver_count')
-                    ->label(__('filament-form-builder::general.notification_receiver_count'))
-                    ->state(fn (Model $record) => count($record->notification_receivers ?? []))
-                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
                     ->label(__('filament-form-builder::general.created_at'))
                     ->sortable()
@@ -207,8 +233,6 @@ class FormResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TernaryFilter::make('notification_enabled')
-                    ->label(__('filament-form-builder::general.notification_enabled')),
                 SelectFilter::make('template')
                     ->label(__('filament-form-builder::general.template'))
                     ->options(function () {

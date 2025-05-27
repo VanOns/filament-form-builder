@@ -5,11 +5,10 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 return [
     'add_nav_group' => true,
     'templates' => [
-        'custom' => 'Custom',
+        \VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm::class => 'Custom',
         \VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm::class => 'Contact',
     ],
     'rate-limit_hour' => 6,
-    'email_notification_enabled' => true,
     'form-middleware' => ['web'],
     'fields' => [
         Fields\InputField::class,

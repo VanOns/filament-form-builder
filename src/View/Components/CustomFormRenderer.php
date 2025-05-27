@@ -20,11 +20,8 @@ class CustomFormRenderer extends Component
 
     public function render(): View|Closure|string
     {
-        $fields = $this->form->custom['fields'] ?? [];
-
         return view($this->view, [
             'form' => $this->form,
-            'fields' => $fields,
         ]);
     }
 }

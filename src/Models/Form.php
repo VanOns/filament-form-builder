@@ -14,15 +14,14 @@ use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
+use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
 /**
  * @property int $id
  * @property string $title
- * @property string $template
- * @property bool $notification_enabled
- * @property array<string> $notification_receivers
- * @property string $notification_subject
- * @property string $notification_content
+ * @property string|class-string<FormComponent> $template
+ * @property array<string, mixed> $custom
+ * @property array<int, mixed> $notifications
  * @property SubmitNotificationType $submit_notification_type
  * @property string $submit_notification_content
  * @property Carbon|null $created_at
@@ -38,6 +37,7 @@ class Form extends Model
      * @var array<FormField>
      */
     protected array $fields;
+    protected FormComponent $formComponent;
     protected $guarded = ['id'];
 
     /**
@@ -54,10 +54,9 @@ class Form extends Model
     protected function casts(): array
     {
         return [
-            'notification_enabled' => 'boolean',
-            'notification_receivers' => 'array',
             'submission_notification_type' => SubmitNotificationType::class,
             'custom' => 'array',
+            'notifications' => 'array',
         ];
     }
 
@@ -75,31 +74,6 @@ class Form extends Model
     }
 
     /**
-     * @return array<string, FormField>
-     */
-    public function getFields(): array
-    {
-        if (!isset($this->fields) && $this->isCustom()) {
-            $fields = $this->custom['fields'] ?? [];
-
-            $fieldInstaces = [];
-            foreach ($fields as $field) {
-                if ($type = $field['fieldType'] ?? null) {
-                    /* @var FormField $fieldInstace */
-                    $fieldInstace = new $type($field);
-                    $fieldInstaces[] = $fieldInstace;
-                }
-            }
-
-            $this->fields = $fieldInstaces;
-        } elseif ($this->template !== 'custom') {
-            $this->fields = [];
-        }
-
-        return $this->fields;
-    }
-
-    /**
      * @return array<string, string>
      */
     public function getFormAttributes(): array
@@ -108,9 +82,7 @@ class Form extends Model
             return $this->getCustomFormLabels();
         }
 
-        return method_exists($this->template, 'attributes')
-            ? $this->template::attributes()
-            : [];
+        return $this->getFormComponent()->attributes();
     }
 
     /**
@@ -122,8 +94,15 @@ class Form extends Model
             return [];
         }
 
-        return method_exists($this->template, 'messages')
-            ? $this->template::messages()
-            : [];
+        return $this->getFormComponent()->messages();
+    }
+
+    public function getFormComponent(): FormComponent
+    {
+        if (isset($this->formComponent)) {
+            return $this->formComponent;
+        }
+
+        return $this->formComponent = new $this->template($this);
     }
 }

@@ -194,7 +194,7 @@ public static function messages(): array
 ```
 
 ## Custom form builder
-**The custom form builder can be enabled/disabled by `'custom' => <label>` to the `templates` array in the `filament-form-builder.php` config file.**
+**The custom form builder can be enabled/disabled by `\VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm::class => <label>` to the `templates` array in the `filament-form-builder.php` config file.**
 
 Select the 'custom' template when creating a form to build your own form.
 Choose what fields you want to use in the form, and fill in the fields.
@@ -262,9 +262,6 @@ You can publish and customize the email's markdown blade view by publishing it:
 `php artisan vendor:publish --tag=filament-form-builder-views`.
 
 ### Turn of the notification and re-implement it
-
-You can completely disable emails send by the package by disabling
-`email_notification_enabled` in the config.
 
 You're the free to set up a listener for the
 `VanOns\FilamentFormBuilder\Models\Form\FormSubmissionCreated::class` event,

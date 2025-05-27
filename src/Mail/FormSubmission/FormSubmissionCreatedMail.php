@@ -10,21 +10,22 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
-class FormSubmissionCreated extends Mailable implements ShouldQueue
+class FormSubmissionCreatedMail extends Mailable implements ShouldQueue
 {
     use Queueable;
     use SerializesModels;
 
-    public function __construct(public FormSubmission $formSubmission)
-    {
+    public function __construct(
+        public string $emailSubject,
+        public string $emailContent,
+        public FormSubmission $formSubmission,
+    ) {
     }
 
     public function envelope(): Envelope
     {
-        $formTitle = $this->formSubmission->form->title;
-
         return new Envelope(
-            subject: "Form {$formTitle} submitted",
+            subject: $this->emailSubject,
         );
     }
 
@@ -33,8 +34,9 @@ class FormSubmissionCreated extends Mailable implements ShouldQueue
         return new Content(
             markdown: 'filament-form-builder::mail.form-submission.created',
             with: [
+                'subject' => $this->emailSubject,
+                'content' => $this->emailContent,
                 'formSubmission' => $this->formSubmission,
-                'form' => $this->formSubmission->form,
             ],
         );
     }
