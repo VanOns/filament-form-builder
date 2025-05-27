@@ -84,9 +84,9 @@ class FormSubmission extends Model
                     ? implode(', ', Arr::flatten($value))
                     : $value;
 
-                $key = $formatKeys
-                    ? ucfirst(str_replace('_', ' ', $key))
-                    : $key;
+                if ($formatKeys) {
+                    $key = $this->form->getFormComponent()->findAttributeForKey($key);
+                }
 
                 return [$key => $value];
             })->filter()->toArray();
