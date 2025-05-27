@@ -14,13 +14,14 @@ use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
+use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
 /**
  * @property int $id
  * @property string $title
- * @property string $template
- * @property array $custom
- * @property array $notifications
+ * @property string|class-string<FormComponent> $template
+ * @property array<string, mixed> $custom
+ * @property array<int, mixed> $notifications
  * @property SubmitNotificationType $submit_notification_type
  * @property string $submit_notification_content
  * @property Carbon|null $created_at
@@ -105,9 +106,7 @@ class Form extends Model
             return $this->getCustomFormLabels();
         }
 
-        return method_exists($this->template, 'attributes')
-            ? $this->template::attributes()
-            : [];
+        return $this->template::attributes();
     }
 
     /**
@@ -119,8 +118,6 @@ class Form extends Model
             return [];
         }
 
-        return method_exists($this->template, 'messages')
-            ? $this->template::messages()
-            : [];
+        return $this->template::messages();
     }
 }

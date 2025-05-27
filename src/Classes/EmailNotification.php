@@ -3,9 +3,11 @@
 namespace VanOns\FilamentFormBuilder\Classes;
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Blade;
 use ReflectionClass;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\FormComponent;
+use VanOns\FilamentFormBuilder\View\Components\Mail\MailPanel;
 
 class EmailNotification
 {
@@ -35,7 +37,14 @@ class EmailNotification
 
     public function replacePlaceholders(string $content): string
     {
-        $data = $this->getFormSubmissionData(true);
+        $formData = $this->getFormSubmissionData(true);
+
+        $data = array_filter([
+            'allFields' => str_contains($content, '$allFields')
+                ? $this->getAllFieldsHtml($formData)
+                : null,
+            ...$formData,
+        ]);
 
         foreach ($data as $key => $value) {
             $search = '$' . $key;
@@ -44,6 +53,28 @@ class EmailNotification
         }
 
         return $content;
+    }
+
+    /**
+     * Get html ata for the `allFields` placeholder
+     *
+     * @param array<string, mixed>|null $data
+     * @return string
+     */
+    protected function getAllFieldsHtml(?array $data = null): string
+    {
+        if (empty($data ??= $this->getFormSubmissionData(true))) {
+            return '';
+        }
+
+        $allFieldsFormatted = array_map(function ($key, $value) {
+            $label = $this->formSubmission->form->template::findAttributeForKey($key);
+            return "<p><b>{$label}</b>: {$value}</p>";
+        }, array_keys($data), $data);
+
+        return Blade::render(MailPanel::$view, [
+            'slot' => implode('', $allFieldsFormatted),
+        ]);
     }
 
     /**

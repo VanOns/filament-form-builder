@@ -37,7 +37,6 @@ class FormSubmissionCreatedMail extends Mailable implements ShouldQueue
                 'subject' => $this->emailSubject,
                 'content' => $this->emailContent,
                 'formSubmission' => $this->formSubmission,
-                'withFormContent' => false,
             ],
         );
     }

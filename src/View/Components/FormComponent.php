@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\View\Components;
 
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\Component;
 
@@ -61,5 +62,40 @@ abstract class FormComponent extends Component
         $placeholders = array_map(fn ($value) => '{{ $' . $value . ' }}', array_keys(static::getPlaceholders()));
 
         return new HtmlString('<p>' . __('filament-form-builder::general.you_can_use_placeholders') . '<br/><br/>' . implode('<br/>', $placeholders));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function attributes(): array
+    {
+        return [];
+    }
+
+    /**
+     * Find the correct attribute label for a given key.
+     *
+     * @param string $key
+     * @return string
+     */
+    public static function findAttributeForKey(string $key): string
+    {
+        $attributes = static::attributes();
+
+        if (array_key_exists($key, $attributes)) {
+            return $attributes[$key];
+        }
+
+        return Lang::has($transKey = "filament-form-builder::fields.{$key}")
+            ? __($transKey)
+            : ucfirst(str_replace('_', ' ', $key));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function messages(): array
+    {
+        return [];
     }
 }
