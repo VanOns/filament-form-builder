@@ -17,4 +17,5 @@ return [
     'helper_texts' => [
         'submitter_email' => 'Use the key `submitter_email` to use this field as submitter email address.',
     ],
+    'invalid_recaptcha' => 'Recaptcha validation failed.',
 ];

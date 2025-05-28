@@ -238,7 +238,24 @@ You can also create your own fields:
 
 **Tip: look in the exisiting fields for examples.**
 
-### Overwriting existing views
+## Recaptcha
+Enter your recaptcha keys in your .env file:
+```
+RECAPTCHA_ENABLED=true
+RECAPTCHA_KEY=
+RECAPTCHA_SECRET=
+```
+
+Then navigate to the form you want to use recaptcha on, and set the `$recaptcha` property to `true`.
+This adds the `recaptcha` rules to the form, if you dont do this, the captcha will not be validated.
+```php
+class MyAwesomeForm extends FormComponent
+{
+    public bool $recaptcha = true;
+}
+```
+
+## Overwriting existing views
 You can overwrite the views of the default fields by publishing the views:
 `php artisan vendor:publish --tag=filament-form-builder-views`.
 
