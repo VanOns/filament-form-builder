@@ -22,7 +22,7 @@ class FormSubmissionController
             ->create([
                 'form_id' => $form->id,
                 'submitter_email' => $request->get('submitter_email'),
-                'data' => $request->except(['submitter_email', '_token', 'callback_url']),
+                'data' => $request->except(['submitter_email', '_token', 'callback_url', 'g-recaptcha-response']),
             ]);
 
         if ($callBackUrl) {

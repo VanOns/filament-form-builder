@@ -103,16 +103,11 @@ class EmailNotification
             ? $this->getPlaceholders()
             : [];
 
-        $data = [
+        return [
             ...$placeholders,
             ...$this->formSubmission->getFormattedData(),
             'submitter_email' => $this->formSubmission->submitter_email,
         ];
-
-        $filter = ['g-recaptcha-response'];
-        return array_filter($data, function ($key) use ($filter) {
-            return !in_array($key, $filter);
-        }, ARRAY_FILTER_USE_KEY);
     }
 
     /**
