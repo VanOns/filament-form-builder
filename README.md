@@ -19,7 +19,7 @@ To get started with this package, add it to the repositories of your
 ```json
 "repositories": [
     {
-        "type": "path",
+        "type": "vcs",
         "url": "https://github.com/VanOns/filament-form-builder"
     }
 ],
