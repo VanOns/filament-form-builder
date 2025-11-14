@@ -15,12 +15,17 @@ class InputField extends FormField
     protected function rules(): array
     {
         $type = $this->inputType;
-        return match ($type) {
+        $rules =  match ($type) {
             'email' => ['email'],
             'number' => ['numeric'],
             'tel' => ['phone'],
             default => [],
         };
+
+        return [
+            ...$this->getDefaultRules(),
+            ...$rules,
+        ];
     }
 
     public static function getFields(): array

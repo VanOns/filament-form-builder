@@ -8,7 +8,7 @@
     <x-filament-form-builder::field-label
         :label="$field->getLabel()"
         :description="$field->description"
-        :required="$field->required"
+        :required="$field->isRequired()"
     />
     @foreach($field->options as $option)
         <label>
