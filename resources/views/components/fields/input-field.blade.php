@@ -5,7 +5,7 @@
      */
 @endphp
 
-<label for="{{ $field->getKey() }}" {{ $field->getAttributes() }}>
+<label for="{{ $field->getKey() }}" {{ $field->getWrapperAttributes() }}>
     <x-filament-form-builder::field-label
         :label="$field->getLabel()"
         :description="$field->description"
@@ -18,6 +18,7 @@
         value="{{ old($field->getKey()) }}"
         @if($field->placeholder) placeholder="{{ $field->placeholder }}" @endif
         @required($field->isRequired())
+        {{ $field->getAttributes() }}
     />
 </label>
 @error($field->getKey())

@@ -6,6 +6,7 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -50,13 +51,27 @@ trait HasFields
             TextInput::make('description')
                 ->columnStart(1)
                 ->label(__('filament-form-builder::fields.description')),
-            Section::make(__('filament-form-builder::fields.advanced_fields'))
-                ->columns()
+            Section::make(__('filament-form-builder::fields.visibility'))
+                ->columns(3)
+                ->reactive()
                 ->schema([
                     TextInput::make('visibleWhenKey')
                         ->label(__('filament-form-builder::fields.visible_when_key')),
+                    Select::make('visibleWhenType')
+                        ->label('Is')
+                        ->options([
+                            'equals' => __('filament-form-builder::fields.equals'),
+                            'not_equals' => __('filament-form-builder::fields.not_equals'),
+                            'empty' => __('filament-form-builder::fields.is_empty'),
+                            'not_empty' => __('filament-form-builder::fields.is_not_empty'),
+                        ])
+                        ->default('equals')
+                        ->required(fn (Get $get) => !empty($get('visibleWhenKey')))
+                        ->hidden(fn (Get $get) => empty($get('visibleWhenKey')))
+                        ->reactive(),
                     TextInput::make('visibleWhenValue')
-                        ->label(__('filament-form-builder::fields.visible_when_value'))
+                        ->visible(fn (Get $get) => !empty($get('visibleWhenKey')) && !empty($get('visibleWhenType') && !in_array($get('visibleWhenType'), ['empty', 'not_empty'])))
+                        ->label(__('filament-form-builder::fields.value'))
                         ->required(fn (Get $get) => !empty($get('visibleWhenKey'))),
                 ]),
         ];

@@ -4,7 +4,7 @@
      */
 @endphp
 
-<div>
+<div {{ $field->getWrapperAttributes() }} {{ $field->getWrapperAttributes() }}>
     <x-filament-form-builder::field-label
         :label="$field->getLabel()"
         :description="$field->description"
@@ -21,6 +21,7 @@
                     @checked(old($field->getKey()) == $option['value'] ?? '')
                 @endif
                 value="{{ $option['value'] ?? '' }}"
+                {{ $field->getAttributes() }}
             >
             {{ $option['label'] ?? '' }}
         </label>

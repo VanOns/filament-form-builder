@@ -13,6 +13,7 @@ use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
 use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
 use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
@@ -104,5 +105,12 @@ class Form extends Model
         }
 
         return $this->formComponent = new $this->template($this);
+    }
+
+    public function getWrapperAttributes(): string
+    {
+        return AttributeHelper::arrayToString([
+            'data-form-builder-form' => $this->id,
+        ]);
     }
 }

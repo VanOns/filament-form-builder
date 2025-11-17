@@ -2,25 +2,28 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
+use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
+
 trait HasAttributes
 {
     public function getAttributesList(): array
     {
         return array_filter([
+            'data-form-builder-input' => $this->getKey(),
             'data-visible-when-key' => $this->visibleWhenKey,
-            'data-visible-when-value' => $this->visibleWhenValue,
+            'data-visible-when-value' => $this->getVisibleWhenValue(),
         ]);
     }
 
-    public function getAttributes(): string
+    public function getAttributes(array $attributes = null): string
     {
-        $attributes = $this->getAttributesList();
-        $extraAttributes = '';
+        return AttributeHelper::arrayToString($attributes ?? $this->getAttributesList());
+    }
 
-        foreach ($attributes as $key => $value) {
-            $extraAttributes .= "{$key}=\"{$value}\" ";
-        }
-
-        return trim($extraAttributes);
+    public function getWrapperAttributes(): string
+    {
+        return $this->getAttributes([
+            'data-form-builder-input-wrapper' => $this->getKey(),
+        ]);
     }
 }

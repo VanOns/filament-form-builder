@@ -4,7 +4,7 @@
      */
 @endphp
 
-<label for="{{ $field->getKey() }}">
+<label for="{{ $field->getKey() }}" {{ $field->getWrapperAttributes() }}>
     <x-filament-form-builder::field-label
         :label="$field->getLabel()"
         :description="$field->description"
@@ -16,6 +16,7 @@
         @if($field->placeholder) placeholder="{{ $field->placeholder }}" @endif
         @required($field->isRequired())
         @if($field->rows) rows="{{ $field->rows }}" @endif
+        {{ $field->getAttributes() }}
     >
         {{ old($field->getKey()) }}
     </textarea>

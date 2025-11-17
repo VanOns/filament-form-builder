@@ -20,5 +20,10 @@ return [
     'invalid_recaptcha' => 'Recaptcha validatie is mislukt.',
     'visible_when_key' => 'Zichtbaar wanneer key',
     'visible_when_value' => 'Zichtbaar wanneer waarde',
-    'advanced_fields' => 'Geavanceerde velden',
+    'visibility' => 'Zichtbaarheid',
+    'value' => 'Waarde',
+    'equals' => 'gelijk aan',
+    'not_equals' => 'niet gelijk aan',
+    'is_empty' => 'leeg',
+    'is_not_empty' => 'niet leeg',
 ];

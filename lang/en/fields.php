@@ -20,5 +20,10 @@ return [
     'invalid_recaptcha' => 'Recaptcha validation failed.',
     'visible_when_key' => 'Visible when key',
     'visible_when_value' => 'Visible when value',
-    'advanced_fields' => 'Advanced fields',
+    'visibility' => 'Visibility',
+    'value' => 'Value',
+    'equals' => 'equals',
+    'not_equals' => 'not equals',
+    'is_empty' => 'empty',
+    'is_not_empty' => 'not empty',
 ];
