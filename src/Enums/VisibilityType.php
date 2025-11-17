@@ -39,7 +39,7 @@ enum VisibilityType: string
             self::EQUALS => $string,
             self::NOT_EQUALS => '__not__' . $string,
             self::EMPTY => '__empty__',
-            self::NOT_EMPTY => '__not-empty__',
+            self::NOT_EMPTY => '__not_empty__',
         };
     }
 

@@ -34,17 +34,28 @@ class FormBuilderForm {
         if (shouldShow) {
             inputWrapper.style.display = '';
             if (input.hasAttribute('data-required')) {
-                input.setAttribute('required');
+                input.setAttribute('required', true);
             }
         } else {
             inputWrapper.style.display = 'none';
             input.removeAttribute('required');
-            input.value = '';
+
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                input.checked = false;
+            } else if (input.tagName === 'SELECT') {
+                if (input.multiple) {
+                    Array.from(input.options).forEach(option => option.selected = false);
+                } else {
+                    input.selectedIndex = -1;
+                }
+            } else {
+                input.value = '';
+            }
         }
     }
 
     shouldShow(value, conditionValue) {
-        if (conditionValue === '__not-empty__') {
+        if (conditionValue === '__not_empty__') {
             return Array.isArray(value)
                 ? value.length > 0
                 : value !== undefined && value !== null && value !== '';

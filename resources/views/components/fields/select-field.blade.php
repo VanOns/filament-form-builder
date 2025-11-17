@@ -4,7 +4,7 @@
      */
 @endphp
 
-<div {{ $field->getWrapperAttributes() }} {{ $field->getWrapperAttributes() }}>
+<div {{ $field->getWrapperAttributes() }}>
     <x-filament-form-builder::field-label
         :label="$field->getLabel()"
         :description="$field->description"
