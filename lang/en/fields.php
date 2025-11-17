@@ -18,4 +18,12 @@ return [
         'submitter_email' => 'Use the key `submitter_email` to use this field as submitter email address.',
     ],
     'invalid_recaptcha' => 'Recaptcha validation failed.',
+    'visible_when_key' => 'Visible when key',
+    'visible_when_value' => 'Visible when value',
+    'visibility' => 'Visibility',
+    'value' => 'Value',
+    'equals' => 'equals',
+    'not_equals' => 'not equals',
+    'empty' => 'empty',
+    'not_empty' => 'not empty',
 ];

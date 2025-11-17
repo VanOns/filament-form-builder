@@ -51,6 +51,7 @@ class SelectField extends FormField
                 ->label(__('filament-form-builder::fields.multiple_choice_question'))
                 ->default(false),
             Repeater::make('options')
+                ->grid()
                 ->itemLabel(function (?array $state) {
                     $join = array_filter([
                         $state['label'] ?? null,

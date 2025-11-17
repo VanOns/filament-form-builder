@@ -238,6 +238,12 @@ You can also create your own fields:
 
 **Tip: look in the exisiting fields for examples.**
 
+### Dynamic visibility
+You can set fields to be dynamically visible based on other field's values.
+To do this, fill the fields under the 'Visibility' section.
+
+**You must import the JavaScript for this to work. See [JavaScript](#javascript) for more info.**
+
 ## Recaptcha
 Enter your recaptcha keys in your .env file:
 ```
@@ -290,3 +296,11 @@ Forms:
 - `VanOns\FilamentFormBuilder\Events\Form\FormDeleted::class`
 - `VanOns\FilamentFormBuilder\Events\Form\FormRestored::class`
 - `VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted::class`
+
+
+## JavaScript
+To enable dynamic visibility in the custom form builder, you need to import the JavaScript file provided by the package.
+```js
+// app.js
+import '../../vendor/van-ons/filament-form-builder/resources/js/form-builder.js';
+```

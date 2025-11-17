@@ -6,6 +6,7 @@ use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Get;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Helpers\FieldHelper;
 
 class FormBuilder extends Field
@@ -25,11 +26,16 @@ class FormBuilder extends Field
         $this->schema([
             Repeater::make('fields')
                 ->itemLabel(function (?array $state) {
+                    $class = $state['fieldType'] ?? null;
+                    if ($class && class_exists($class)) {
+                        /** @var class-string<FormField> $class */
+                        $itemLabel = $class::getItemLabel($state);
+                        $label = $class::label();
+                    }
+
                     $join = array_filter([
-                        $state['label'] ?? null,
-                        (class_exists($class = $state['fieldType']) && method_exists($class, 'label'))
-                            ? $class::label()
-                            : null,
+                        $itemLabel ?? null,
+                        $label ?? null,
                     ]);
 
                     return !empty($join)
@@ -39,12 +45,10 @@ class FormBuilder extends Field
                 ->collapsed()
                 ->hiddenLabel()
                 ->schema([
-                    FieldSelect::make('fieldType')
-                        ->columnSpanFull(),
-
-                    Group::make(
-                        fn (Get $get) => FieldHelper::getFields($get('fieldType'))
-                    )->columns(),
+                    Group::make(fn (Get $get) => [
+                        FieldSelect::make('fieldType'),
+                        ...FieldHelper::getFields($get('fieldType')),
+                    ])->columns(),
                 ]),
         ]);
     }

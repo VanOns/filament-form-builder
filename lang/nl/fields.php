@@ -18,4 +18,12 @@ return [
         'submitter_email' => 'Gebruik de key `submitter_email` om dit veld als indiener e-mailadres te gebruiken.',
     ],
     'invalid_recaptcha' => 'Recaptcha validatie is mislukt.',
+    'visible_when_key' => 'Zichtbaar wanneer key',
+    'visible_when_value' => 'Zichtbaar wanneer waarde',
+    'visibility' => 'Zichtbaarheid',
+    'value' => 'Waarde',
+    'equals' => 'gelijk aan',
+    'not_equals' => 'niet gelijk aan',
+    'empty' => 'leeg',
+    'not_empty' => 'niet leeg',
 ];
