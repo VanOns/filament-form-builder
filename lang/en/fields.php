@@ -26,4 +26,5 @@ return [
     'not_equals' => 'not equals',
     'empty' => 'empty',
     'not_empty' => 'not empty',
+    'multiple_uploads' => 'Multiple uploads',
 ];

@@ -110,6 +110,7 @@ class Form extends Model
     public function getWrapperAttributes(): string
     {
         return AttributeHelper::arrayToString([
+            'enctype' => 'multipart/form-data',
             'data-form-builder-form' => $this->id,
         ]);
     }

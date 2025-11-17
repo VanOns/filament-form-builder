@@ -93,6 +93,23 @@ class FormSubmission extends Model
     }
 
     /**
+     * @return array<string>
+     */
+    public function getAllUrlsInData(): array
+    {
+        $urls = [];
+        $data = $this->data;
+
+        array_walk_recursive($data, function ($value) use (&$urls) {
+            if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+                $urls[] = $value;
+            }
+        });
+
+        return $urls;
+    }
+
+    /**
      * @return array<EmailNotification>
      */
     public function getNotifications(): array

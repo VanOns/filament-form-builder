@@ -8,8 +8,8 @@ class TextAreaField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.text-area-field';
 
-    public ?string $placeholder;
-    public ?int $rows;
+    public ?string $placeholder = null;
+    public ?int $rows = null;
 
     public static function getFields(): array
     {
