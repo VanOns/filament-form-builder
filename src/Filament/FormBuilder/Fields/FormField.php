@@ -8,6 +8,7 @@ use VanOns\FilamentFormBuilder\Traits\Fields\CanBeRequired;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasAttributes;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasFields;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasHelperText;
+use VanOns\FilamentFormBuilder\Traits\Fields\HasItemLabel;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasKey;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasLabel;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasRules;
@@ -18,6 +19,7 @@ abstract class FormField
 {
     use HasKey;
     use HasLabel;
+    use HasItemLabel;
     use HasRules;
     use HasHelperText;
     use HasView;

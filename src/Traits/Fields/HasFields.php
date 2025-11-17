@@ -29,7 +29,6 @@ trait HasFields
     {
         return [
             TextInput::make('label')
-                ->columnStart(1)
                 ->label(__('filament-form-builder::fields.label')),
             TextInput::make('key')
                 ->visible(fn (Get $get) => $get('set_key'))
@@ -53,6 +52,7 @@ trait HasFields
                 ->columnStart(1)
                 ->label(__('filament-form-builder::fields.description')),
             Section::make(__('filament-form-builder::fields.visibility'))
+                ->collapsed()
                 ->columns(3)
                 ->reactive()
                 ->schema([
