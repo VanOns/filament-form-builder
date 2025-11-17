@@ -26,4 +26,5 @@ return [
     'not_equals' => 'niet gelijk aan',
     'empty' => 'leeg',
     'not_empty' => 'niet leeg',
+    'multiple_uploads' => 'Meerdere uploads',
 ];

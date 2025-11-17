@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages;
 
+use Filament\Infolists\Components\Actions;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
@@ -22,6 +23,16 @@ class ViewFormSubmission extends ViewRecord
 
     public function infolist(Infolist $infolist): Infolist
     {
+        /** @var FormSubmission $record */
+        $record = $this->getRecord();
+        $actions = array_map(function ($url) {
+            return Actions\Action::make('view-url')
+                ->color('gray')
+                ->label($url)
+                ->url($url)
+                ->openUrlInNewTab();
+        }, $record->getAllUrlsInData());
+
         return $infolist
             ->schema([
                 Section::make(__('filament-form-builder::general.general'))
@@ -42,6 +53,12 @@ class ViewFormSubmission extends ViewRecord
                         KeyValueEntry::make('formattedKeyData')
                             ->keyLabel(__('filament-form-builder::general.form_key'))
                             ->valueLabel(__('filament-form-builder::general.form_value')),
+                    ]),
+
+                Section::make(__('filament-form-builder::general.found_urls'))
+                    ->hidden(empty($actions))
+                    ->schema([
+                        Actions::make($actions),
                     ]),
             ]);
     }

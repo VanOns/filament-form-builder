@@ -3,6 +3,7 @@
 namespace VanOns\FilamentFormBuilder\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
 use VanOns\FilamentFormBuilder\Models\Form;
@@ -14,6 +15,11 @@ class FormSubmissionController
         int $formId,
         CreateFormSubmission $request
     ): RedirectResponse {
+        $data = $request->except(['submitter_email', '_token', 'callback_url', 'g-recaptcha-response']);
+        if (!empty($request->allFiles())) {
+            $data = array_merge($data, $this->mapFields($data));
+        }
+
         $form = Form::query()->findOrFail($formId);
 
         $callBackUrl = $request->get('callback_url');
@@ -22,7 +28,7 @@ class FormSubmissionController
             ->create([
                 'form_id' => $form->id,
                 'submitter_email' => $request->get('submitter_email'),
-                'data' => $request->except(['submitter_email', '_token', 'callback_url', 'g-recaptcha-response']),
+                'data' => $data,
             ]);
 
         if ($callBackUrl) {
@@ -36,5 +42,48 @@ class FormSubmissionController
             'submit_notification_type' => $form->submit_notification_type,
             'submit_notification_content' => $form->submit_notification_content,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $allFields
+     * @return array<string, mixed>
+     */
+    protected function mapFields(array $allFields): array
+    {
+        $mappedFields = [];
+        foreach ($allFields as $key => $value) {
+            if (is_array($value)) {
+                $mappedFields[$key] = $this->mapFields($value);
+            } elseif ($value instanceof UploadedFile) {
+                $mappedFields[$key] = route(
+                    'filament-form-builder.form.download-file',
+                    ['filePath' => $value->store('form_uploads', config('filament-form-builder.form-uploads-disk'))]
+                );
+            } else {
+                $mappedFields[$key] = $value;
+            }
+        }
+
+        return $mappedFields;
+    }
+
+    public function showFile(string $filePath): Response
+    {
+        $disk = config('filament-form-builder.form-uploads-disk', 'private');
+
+        if (!\Storage::disk($disk)->exists($filePath)) {
+            abort(404);
+        }
+
+        $mimeType = \Storage::disk($disk)->mimeType($filePath);
+
+        return response(
+            \Storage::disk($disk)->get($filePath),
+            200,
+            [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'inline; filename="' . basename($filePath) . '"',
+            ]
+        );
     }
 }

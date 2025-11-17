@@ -50,4 +50,5 @@ return [
     ],
     'you_can_use_placeholders' => 'You can use the following placeholders:',
     'unknown' => 'Unknown',
+    'found_urls' => 'Found URL(s)',
 ];
