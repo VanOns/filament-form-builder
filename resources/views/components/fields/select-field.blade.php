@@ -21,7 +21,7 @@
                     @checked(old($field->getKey()) == $option['value'] ?? '')
                 @endif
                 value="{{ $option['value'] ?? '' }}"
-                {{ $field->getAttributes() }}
+                {{ $field->getAttributes(withRequired: false) }}
             >
             {{ $option['label'] ?? '' }}
         </label>

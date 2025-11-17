@@ -10,6 +10,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use VanOns\FilamentFormBuilder\Enums\VisibilityType;
 
 trait HasFields
 {
@@ -59,13 +60,8 @@ trait HasFields
                         ->label(__('filament-form-builder::fields.visible_when_key')),
                     Select::make('visibleWhenType')
                         ->label('Is')
-                        ->options([
-                            'equals' => __('filament-form-builder::fields.equals'),
-                            'not_equals' => __('filament-form-builder::fields.not_equals'),
-                            'empty' => __('filament-form-builder::fields.is_empty'),
-                            'not_empty' => __('filament-form-builder::fields.is_not_empty'),
-                        ])
-                        ->default('equals')
+                        ->options(VisibilityType::toArray())
+                        ->default(VisibilityType::EQUALS->value)
                         ->required(fn (Get $get) => !empty($get('visibleWhenKey')))
                         ->hidden(fn (Get $get) => empty($get('visibleWhenKey')))
                         ->reactive(),

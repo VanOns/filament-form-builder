@@ -9,10 +9,14 @@ trait HasRules
      */
     protected function getDefaultRules(): array
     {
+        if ($this->hasVisibilityCondition() && $this->isRequired()) {
+            $requiredRule = $this->getRequiredVisibilityRule();
+        } else {
+            $requiredRule = $this->isRequired() ? 'required' : null;
+        }
+
         return array_filter([
-            $this->isRequired()
-                ? 'required'
-                : null,
+            $requiredRule,
         ]);
     }
 

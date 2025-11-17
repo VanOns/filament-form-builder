@@ -31,7 +31,16 @@ class FormBuilderForm {
 
         const shouldShow = this.shouldShow(currentValue, visibleWhenValue);
 
-        inputWrapper.style.display = shouldShow ? '' : 'none';
+        if (shouldShow) {
+            inputWrapper.style.display = '';
+            if (input.hasAttribute('data-required')) {
+                input.setAttribute('required');
+            }
+        } else {
+            inputWrapper.style.display = 'none';
+            input.removeAttribute('required');
+            input.value = '';
+        }
     }
 
     shouldShow(value, conditionValue) {

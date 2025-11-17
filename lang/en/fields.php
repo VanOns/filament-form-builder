@@ -24,6 +24,6 @@ return [
     'value' => 'Value',
     'equals' => 'equals',
     'not_equals' => 'not equals',
-    'is_empty' => 'empty',
-    'is_not_empty' => 'not empty',
+    'empty' => 'empty',
+    'not_empty' => 'not empty',
 ];

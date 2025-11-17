@@ -6,18 +6,21 @@ use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
 
 trait HasAttributes
 {
-    public function getAttributesList(): array
+    public function getAttributesList(bool $withRequired = true): array
     {
         return array_filter([
             'data-form-builder-input' => $this->getKey(),
             'data-visible-when-key' => $this->visibleWhenKey,
             'data-visible-when-value' => $this->getVisibleWhenValue(),
+            'data-required' => !$withRequired
+                ? null
+                : ($this->isRequired() ? 'true' : 'false'),
         ]);
     }
 
-    public function getAttributes(array $attributes = null): string
+    public function getAttributes(array $attributes = null, bool $withRequired = true): string
     {
-        return AttributeHelper::arrayToString($attributes ?? $this->getAttributesList());
+        return AttributeHelper::arrayToString($attributes ?? $this->getAttributesList($withRequired));
     }
 
     public function getWrapperAttributes(): string
