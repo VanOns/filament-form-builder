@@ -23,12 +23,18 @@ class RecaptchaField extends FormField
     {
         return [
             Placeholder::make('recaptcha')
+                ->columnStart(1)
                 ->hiddenLabel()
-                ->content('No settings'),
+                ->content(__('filament-form-builder::general.no_settings')),
         ];
     }
 
     public static function isInput(): bool
+    {
+        return false;
+    }
+
+    public static function hasVisibilitySettings(): bool
     {
         return false;
     }

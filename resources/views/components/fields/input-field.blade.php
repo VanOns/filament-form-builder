@@ -22,5 +22,5 @@
     />
 </label>
 @error($field->getKey())
-<p>{{ $message }}</p>
+    <p>{{ $message }}</p>
 @enderror

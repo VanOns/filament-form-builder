@@ -33,7 +33,7 @@ class FormBuilderForm {
 
         if (shouldShow) {
             inputWrapper.style.display = '';
-            if (input.hasAttribute('data-required')) {
+            if (input.hasAttribute('data-required') && input.getAttribute('data-required') === 'true') {
                 input.setAttribute('required', true);
             }
         } else {

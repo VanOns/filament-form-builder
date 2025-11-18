@@ -5,12 +5,9 @@ namespace VanOns\FilamentFormBuilder\Traits\Fields;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Group;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
-use VanOns\FilamentFormBuilder\Enums\VisibilityType;
 
 trait HasFields
 {
@@ -51,25 +48,6 @@ trait HasFields
             TextInput::make('description')
                 ->columnStart(1)
                 ->label(__('filament-form-builder::fields.description')),
-            Section::make(__('filament-form-builder::fields.visibility'))
-                ->collapsed()
-                ->columns(3)
-                ->reactive()
-                ->schema([
-                    TextInput::make('visibleWhenKey')
-                        ->label(__('filament-form-builder::fields.visible_when_key')),
-                    Select::make('visibleWhenType')
-                        ->label('Is')
-                        ->options(VisibilityType::toArray())
-                        ->default(VisibilityType::EQUALS->value)
-                        ->required(fn (Get $get) => !empty($get('visibleWhenKey')))
-                        ->hidden(fn (Get $get) => empty($get('visibleWhenKey')))
-                        ->reactive(),
-                    TextInput::make('visibleWhenValue')
-                        ->visible(fn (Get $get) => !empty($get('visibleWhenKey')) && !empty($get('visibleWhenType') && !in_array($get('visibleWhenType'), ['empty', 'not_empty'])))
-                        ->label(__('filament-form-builder::fields.value'))
-                        ->required(fn (Get $get) => !empty($get('visibleWhenKey'))),
-                ]),
         ];
     }
 }
