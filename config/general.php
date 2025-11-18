@@ -13,7 +13,7 @@ return [
     'form-middleware' => ['web'],
     'form-uploads-middleware' => ['web', 'auth'],
     'form-uploads-disk' => 'private',
-    'form-uploads-max-size' => 100,
+    'form-uploads-max-size' => 10240,
     'fields' => [
         Fields\TitleField::class,
         Fields\InputField::class,
