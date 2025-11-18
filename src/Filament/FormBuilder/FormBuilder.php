@@ -97,8 +97,9 @@ class FormBuilder extends Field
                     ? $activeColor
                     : null;
             })
-            ->hidden(function (array $arguments, Repeater $component): bool {
-                $fieldType = $component->getItemState($arguments['item'])['fieldType'] ?? null;
+            ->hidden(function (array $arguments, Repeater $component, Get $get) use ($fieldKey): bool {
+                $key = $fieldKey($arguments);
+                $fieldType = $get("{$key}.fieldType");
 
                 if (!$fieldType || !class_exists($fieldType) || !method_exists($fieldType, 'hasVisibilitySettings')) {
                     return true;
