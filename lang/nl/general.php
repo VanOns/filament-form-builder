@@ -51,4 +51,7 @@ return [
     'you_can_use_placeholders' => 'Je kunt gebruikmaken van de volgende placeholders:',
     'unknown' => 'Onbekend',
     'found_urls' => 'Gevonden URL(\'s)',
+    'settings' => 'Instellingen',
+    'save' => 'Opslaan',
+    'no_settings' => 'Geen instellingen',
 ];

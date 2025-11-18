@@ -26,4 +26,9 @@ class SubmitField extends FormField
     {
         return false;
     }
+
+    public static function hasVisibilitySettings(): bool
+    {
+        return false;
+    }
 }

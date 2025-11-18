@@ -34,4 +34,9 @@ trait HasVisibility
     {
         return !empty($this->visibleWhenKey) || !empty($this->visibleWhenValue);
     }
+
+    public static function hasVisibilitySettings(): bool
+    {
+        return true;
+    }
 }
