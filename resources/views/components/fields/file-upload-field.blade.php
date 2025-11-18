@@ -20,6 +20,10 @@
         {{ $field->getAttributes() }}
     >
 </label>
-@error($field->getKey())
+@error($field->getOriginalKey())
+    <p>{{ $message }}</p>
+@enderror
+
+@error($field->getOriginalKey() . '.*')
     <p>{{ $message }}</p>
 @enderror

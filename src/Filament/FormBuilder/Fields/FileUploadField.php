@@ -10,7 +10,12 @@ class FileUploadField extends FormField
     public static string $view = 'filament-form-builder::components.fields.file-upload-field';
 
     public ?string $placeholder = null;
-    public bool $multiple = false;
+    public ?bool $multiple = false;
+
+    public function getOriginalKey(): string
+    {
+        return parent::getKey();
+    }
 
     public function getKey(): string
     {
@@ -22,6 +27,13 @@ class FileUploadField extends FormField
         return $key;
     }
 
+    protected function getMaxSize(): ?int
+    {
+        $maxSize = config('filament-form-builder.form-uploads-max-size');
+
+        return is_int($maxSize) ? $maxSize : null;
+    }
+
     protected function rules(): array
     {
         $rules = [];
@@ -29,6 +41,7 @@ class FileUploadField extends FormField
             $rules[] = 'array';
         } else {
             $rules[] = 'file';
+            $rules[] = 'max:' . $this->getMaxSize();
         }
 
         return [
@@ -39,13 +52,16 @@ class FileUploadField extends FormField
 
     public function getRules(): array
     {
-        $key = str_replace('[]', '', $this->getKey());
+        $key = $this->getOriginalKey();
 
         return array_filter([
             $key => !empty($rules = $this->rules())
                 ? $rules
                 : null,
-            $key . '.*' => $this->multiple ? 'file' : null,
+            $key . '.*' => $this->multiple ? [
+                'file',
+                'max:' . $this->getMaxSize(),
+            ] : null,
         ]);
     }
 
