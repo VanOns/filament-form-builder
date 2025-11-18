@@ -16,6 +16,7 @@ return [
     'form-uploads-max-size' => 10240,
     'fields' => [
         Fields\TitleField::class,
+        Fields\TextField::class,
         Fields\InputField::class,
         Fields\TextAreaField::class,
         Fields\SelectField::class,

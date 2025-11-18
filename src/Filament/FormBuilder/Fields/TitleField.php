@@ -16,8 +16,10 @@ class TitleField extends FormField
     public static function getFields(): array
     {
         return [
-            TextInput::make('title'),
+            TextInput::make('title')
+                ->label(__('filament-form-builder::general.title')),
             Select::make('headingLevel')
+                ->label(__('filament-form-builder::general.heading_level'))
                 ->default('h2')
                 ->options([
                     'h1' => 'H1',

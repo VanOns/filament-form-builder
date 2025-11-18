@@ -54,4 +54,6 @@ return [
     'settings' => 'Instellingen',
     'save' => 'Opslaan',
     'no_settings' => 'Geen instellingen',
+    'heading_level' => 'Kopniveau',
+    'text' => 'Tekst',
 ];

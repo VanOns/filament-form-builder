@@ -54,4 +54,6 @@ return [
     'settings' => 'Settings',
     'save' => 'Save',
     'no_settings' => 'No settings',
+    'heading_level' => 'Heading level',
+    'text' => 'Text',
 ];
