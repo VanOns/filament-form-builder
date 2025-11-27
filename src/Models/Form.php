@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
-use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
 use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
@@ -23,7 +22,7 @@ use VanOns\FilamentFormBuilder\View\Components\FormComponent;
  * @property string|class-string<FormComponent> $template
  * @property array<string, mixed> $custom
  * @property array<int, mixed> $notifications
- * @property SubmitNotificationType $submit_notification_type
+ * @property string $submit_notification_type
  * @property string $submit_notification_content
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -55,7 +54,6 @@ class Form extends Model
     protected function casts(): array
     {
         return [
-            'submission_notification_type' => SubmitNotificationType::class,
             'custom' => 'array',
             'notifications' => 'array',
         ];

@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Http\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
+use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -15,14 +16,12 @@ class FormSubmissionController
         int $formId,
         CreateFormSubmission $request
     ): RedirectResponse {
-        $data = $request->except(['submitter_email', '_token', 'callback_url', 'g-recaptcha-response']);
+        $data = $request->except(['submitter_email', '_token', 'g-recaptcha-response']);
         if (!empty($request->allFiles())) {
             $data = array_merge($data, $this->mapFields($data));
         }
 
         $form = Form::query()->findOrFail($formId);
-
-        $callBackUrl = $request->get('callback_url');
 
         FormSubmission::query()
             ->create([
@@ -31,11 +30,10 @@ class FormSubmissionController
                 'data' => $data,
             ]);
 
-        if ($callBackUrl) {
-            return redirect($callBackUrl)->with([
-                'submit_notification_type' => $form->submit_notification_type,
-                'submit_notification_content' => $form->submit_notification_content,
-            ]);
+        if ($form->submit_notification_type === SubmitNotificationType::URL->value && !empty($form->submit_notification_content)) {
+            $callBackUrl = $form->submit_notification_content;
+
+            return redirect($callBackUrl);
         }
 
         return back(Response::HTTP_CREATED)->with([

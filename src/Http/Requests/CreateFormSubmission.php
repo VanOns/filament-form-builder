@@ -27,7 +27,6 @@ class CreateFormSubmission extends FormRequest
     {
         $rules = [
             'submitter_email' => ['sometimes', 'nullable', 'string', 'email:rfc'],
-            'callback_url' => ['sometimes', 'string'],
         ];
 
         return array_merge($rules, $this->getFormRules());
