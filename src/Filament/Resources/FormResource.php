@@ -83,6 +83,7 @@ class FormResource extends Resource
                 TextInput::make('title')
                     ->label(__('filament-form-builder::general.title'))
                     ->required()
+                    ->unique()
                     ->columnSpan(1),
             ])->columns();
     }
