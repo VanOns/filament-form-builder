@@ -11,6 +11,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -252,6 +253,17 @@ class FormResource extends Resource
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\ForceDeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),
+                Tables\Actions\ReplicateAction::make()
+                    ->modalWidth(MaxWidth::ExtraLarge)
+                    ->form([
+                        TextInput::make('title')
+                            ->label(__('filament-form-builder::general.title'))
+                            ->unique()
+                            ->required(),
+                    ])
+                    ->beforeReplicaSaved(function (FormModel $replica) {
+                        $replica->offsetUnset('submissions_count');
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
