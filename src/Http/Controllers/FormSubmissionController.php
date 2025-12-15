@@ -4,8 +4,11 @@ namespace VanOns\FilamentFormBuilder\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -23,10 +26,17 @@ class FormSubmissionController
 
         $form = Form::query()->findOrFail($formId);
 
+        $submitterEmail = $request->get('submitter_email');
+        if (empty($submitterEmail)) {
+            if (!empty($emailData = Arr::only($data, static::getPossibleEmailFields()))) {
+                $submitterEmail = head($emailData);
+            }
+        }
+
         FormSubmission::query()
             ->create([
                 'form_id' => $form->id,
-                'submitter_email' => $request->get('submitter_email'),
+                'submitter_email' => $submitterEmail,
                 'data' => $data,
             ]);
 
@@ -69,19 +79,40 @@ class FormSubmissionController
     {
         $disk = config('filament-form-builder.form-uploads-disk', 'private');
 
-        if (!\Storage::disk($disk)->exists($filePath)) {
+        if (!Storage::disk($disk)->exists($filePath)) {
             abort(404);
         }
 
-        $mimeType = \Storage::disk($disk)->mimeType($filePath);
+        $mimeType = Storage::disk($disk)->mimeType($filePath);
 
         return response(
-            \Storage::disk($disk)->get($filePath),
+            Storage::disk($disk)->get($filePath),
             200,
             [
                 'Content-Type' => $mimeType,
                 'Content-Disposition' => 'inline; filename="' . basename($filePath) . '"',
             ]
+        );
+    }
+
+    /**
+     * @return array<string>
+     */
+    public static function getPossibleEmailFields(): array
+    {
+        $possibleEmailFields = [
+            'email',
+            'e-mail',
+            'emailadres',
+            'email_adres',
+            'e-mail_adres',
+            'e-mail_address',
+            'mail_address',
+        ];
+
+        return array_merge(
+            $possibleEmailFields,
+            array_map(fn ($field) => FormField::$keyPrefix . $field, $possibleEmailFields)
         );
     }
 }
