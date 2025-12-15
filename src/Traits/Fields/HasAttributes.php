@@ -10,7 +10,7 @@ trait HasAttributes
     {
         return array_filter([
             'data-form-builder-input' => $this->getKey(),
-            'data-visible-when-key' => $this->visibleWhenKey,
+            'data-visible-when-key' => $this->getVisibleWenKey(),
             'data-visible-when-value' => $this->getVisibleWhenValue(),
             'data-required' => !$withRequired
                 ? null

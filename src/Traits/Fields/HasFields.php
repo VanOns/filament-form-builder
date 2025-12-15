@@ -8,6 +8,7 @@ use Filament\Forms\Components\Group;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 
 trait HasFields
 {
@@ -24,10 +25,22 @@ trait HasFields
      */
     protected static function getDefaultFields(): array
     {
+        $getKey = function (Get $get, ?string $state) {
+            $key = \Str::snake($get('key') ?? $state ?? '');
+            $prefix = FormField::$keyPrefix;
+            return empty($key)
+                ? null
+                : __('filament-form-builder::fields.key') . ": {$prefix}{$key}";
+        };
+
         return [
             TextInput::make('label')
+                ->reactive()
+                ->helperText($getKey(...))
                 ->label(__('filament-form-builder::fields.label')),
             TextInput::make('key')
+                ->required()
+                ->reactive()
                 ->visible(fn (Get $get) => $get('set_key'))
                 ->label(__('filament-form-builder::fields.key')),
             Group::make([
