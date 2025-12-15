@@ -10,6 +10,16 @@ trait HasVisibility
     protected ?string $visibleWhenType = null;
     public ?string $visibleWhenValue = null;
 
+    public function getVisibleWenKey(): ?string
+    {
+        $key = $this->visibleWhenKey;
+        if ($key && !str_starts_with($key, 'key_')) {
+            $key = "key_{$key}";
+        }
+
+        return $key;
+    }
+
     public function getVisibilityType(): ?VisibilityType
     {
         return VisibilityType::tryFrom($this->visibleWhenType);

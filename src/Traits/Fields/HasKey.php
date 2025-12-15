@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 trait HasKey
 {
     public ?string $key;
+    public static string $keyPrefix = 'key_';
 
     protected function generateKey(): string
     {
@@ -17,8 +18,10 @@ trait HasKey
 
     public function getKey(): string
     {
-        return !isset($this->key)
+        $key = !isset($this->key)
             ? $this->key = $this->generateKey()
             : $this->key;
+
+        return static::$keyPrefix . $key;
     }
 }
