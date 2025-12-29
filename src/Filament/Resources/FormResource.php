@@ -8,6 +8,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
@@ -24,12 +25,12 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\HtmlString;
+use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Actions\ModalAction;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormBuilder;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
-use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
 class FormResource extends Resource
 {
@@ -83,6 +84,7 @@ class FormResource extends Resource
                 Select::make('template')
                     ->required()
                     ->label(__('filament-form-builder::general.template'))
+                    ->searchable()
                     ->options([
                         ...self::getFormTemplates(),
                     ])
@@ -104,7 +106,7 @@ class FormResource extends Resource
             }
 
             return class_exists($template)
-                && is_subclass_of($template, FormComponent::class)
+                && is_subclass_of($template, FilamentForm::class)
                 && $template::isCustom();
         };
 
@@ -120,13 +122,15 @@ class FormResource extends Resource
     {
         return Section::make(__('filament-form-builder::general.submit_notification'))
             ->schema([
-                Select::make('submit_notification_type')
-                    ->label(__('filament-form-builder::general.what_happens_after_submission'))
-                    ->afterStateUpdated(fn (Set $set) => $set('submit_notification_content', null))
-                    ->options(SubmitNotificationType::class)
+                ToggleButtons::make('submit_notification_type')
                     ->required()
+                    ->label(__('filament-form-builder::general.what_happens_after_submission'))
+                    ->options(SubmitNotificationType::class)
+                    ->default(SubmitNotificationType::URL)
                     ->live()
-                    ->columnSpan(1),
+                    ->columnSpan(1)
+                    ->grouped()
+                    ->afterStateUpdated(fn (Set $set) => $set('submit_notification_content', null)),
                 Group::make(function (Get $get) {
                     $isType = fn (SubmitNotificationType $type) => $get('submit_notification_type') === $type;
 
@@ -135,6 +139,7 @@ class FormResource extends Resource
                             ->label(__('filament-form-builder::general.url'))
                             ->required()
                             ->placeholder(__('filament-form-builder::general.form_redirect_example', ['url' => 'https://example.com/form-confirmation']))
+                            ->suffixIcon(Heroicon::OutlinedLink)
                             ->columnSpanFull() : null,
                         $isType(SubmitNotificationType::Content) ? RichEditor::make('submit_notification_content')
                             ->label(__('filament-form-builder::general.content'))
@@ -163,10 +168,10 @@ class FormResource extends Resource
                             ->hidden(fn (?FormModel $record) => is_null($record))
                             ->modalContent(function (Get $get, ?FormModel $record) {
                                 /**
-                                 * @var null|string|class-string<FormComponent> $template
+                                 * @var null|string|class-string<FilamentForm> $template
                                  */
                                 $template = $get('template');
-                                return (isset($template) && is_subclass_of($template, FormComponent::class))
+                                return (isset($template) && is_subclass_of($template, FilamentForm::class))
                                     ? $record?->getFormComponent()->getPlaceholdersHtmlString()
                                     : new HtmlString(__('filament-form-builder::general.unknown'));
                             }),
@@ -262,23 +267,26 @@ class FormResource extends Resource
                     })
                     ->multiple()
                     ->searchable(),
-                TrashedFilter::make(),
+                TrashedFilter::make()->default('with_trashed'),
             ])
             ->recordActions([
                 Actions\EditAction::make(),
                 Actions\ForceDeleteAction::make(),
                 Actions\RestoreAction::make(),
-                Actions\ReplicateAction::make()
-                    ->modalWidth(Width::ExtraLarge)
-                    ->form([
-                        TextInput::make('title')
-                            ->label(__('filament-form-builder::general.title'))
-                            ->unique()
-                            ->required(),
-                    ])
-                    ->beforeReplicaSaved(function (FormModel $replica) {
-                        $replica->offsetUnset('submissions_count');
-                    }),
+                Actions\ActionGroup::make([
+                    Actions\ReplicateAction::make()
+                        ->modalWidth(Width::ExtraLarge)
+                        ->form([
+                            TextInput::make('title')
+                                ->label(__('filament-form-builder::general.title'))
+                                ->unique()
+                                ->required(),
+                        ])
+                        ->beforeReplicaSaved(function (FormModel $replica) {
+                            $replica->offsetUnset('submissions_count');
+                        }),
+                    Actions\DeleteAction::make(),
+                ]),
             ])
             ->toolbarActions([
                 Actions\BulkActionGroup::make([

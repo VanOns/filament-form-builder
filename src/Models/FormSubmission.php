@@ -18,7 +18,7 @@ use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionUpdated;
  * @property int $id
  * @property int $form_id
  * @property ?string $submitter_email
- * @property array<mixed> $data
+ * @property array<string, mixed> $data
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at

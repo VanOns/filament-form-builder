@@ -10,6 +10,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -19,6 +20,17 @@ class FormSubmissionResource extends Resource
     protected static ?string $model = FormSubmission::class;
 
     protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
+
+    /**
+     * @return Builder<FormSubmission>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ])->with(['form' => fn (BelongsTo $q) => $q->withTrashed()]);
+    }
 
     public static function getModelLabel(): string
     {
@@ -114,16 +126,5 @@ class FormSubmissionResource extends Resource
             'index' => Pages\ListFormSubmissions::route('/'),
             'view' => Pages\ViewFormSubmission::route('/{record}'),
         ];
-    }
-
-    /**
-     * @return Builder<FormSubmission>
-     */
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
     }
 }
