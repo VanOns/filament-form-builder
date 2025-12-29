@@ -2,7 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
-use Filament\Forms\Components\Component;
+use Filament\Schemas\Components\Component;
 
 class CheckboxField extends FormField
 {

@@ -2,29 +2,21 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 
-use Filament\Forms\Components\Actions\Action;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use VanOns\FilamentFormBuilder\Enums\VisibilityType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Helpers\FieldHelper;
 
 class FormBuilder extends Field
 {
-    protected string $view = 'filament-forms::components.group';
-
-    public static function make(string $name): static
-    {
-        $static = app(static::class, ['name' => $name]);
-        $static->configure();
-
-        return $static;
-    }
+    protected string $view = 'filament-schemas::components.grid';
 
     protected function setUp(): void
     {

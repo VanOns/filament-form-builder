@@ -2,9 +2,9 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
-use Filament\Forms\Components\Group;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Set;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Str;
 
 class TextField extends FormField

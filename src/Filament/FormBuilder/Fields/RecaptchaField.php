@@ -2,7 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
-use Filament\Forms\Components\Placeholder;
+use Filament\Schemas\Components\Text;
 use VanOns\FilamentFormBuilder\Rules\RecaptchaRule;
 use VanOns\FilamentFormBuilder\Services\RecaptchaService;
 
@@ -22,10 +22,8 @@ class RecaptchaField extends FormField
     public static function getFields(): array
     {
         return [
-            Placeholder::make('recaptcha')
-                ->columnStart(1)
-                ->hiddenLabel()
-                ->content(__('filament-form-builder::general.no_settings')),
+            Text::make(__('filament-form-builder::general.no_settings'))
+                ->columnStart(1),
         ];
     }
 

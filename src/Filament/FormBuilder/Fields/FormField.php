@@ -2,7 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
-use Filament\Forms\Components\Component;
+use Filament\Schemas\Components\Component;
 use Illuminate\Support\Facades\Blade;
 use VanOns\FilamentFormBuilder\Traits\Fields\CanBeRequired;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasAttributes;
