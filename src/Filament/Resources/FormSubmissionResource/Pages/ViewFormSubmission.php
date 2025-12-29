@@ -2,12 +2,13 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages;
 
-use Filament\Infolists\Components\Actions;
+use Filament\Actions\Action;
 use Filament\Infolists\Components\KeyValueEntry;
-use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -21,26 +22,27 @@ class ViewFormSubmission extends ViewRecord
         return [];
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
         /** @var FormSubmission $record */
         $record = $this->getRecord();
         $actions = array_map(function ($url) {
-            return Actions\Action::make('view-url')
+            return Action::make('view-url')
                 ->color('gray')
                 ->label($url)
                 ->url($url)
                 ->openUrlInNewTab();
         }, $record->getAllUrlsInData());
 
-        return $infolist
+        return $schema
             ->schema([
                 Section::make(__('filament-form-builder::general.general'))
+                    ->columnSpanFull()
                     ->schema([
                         TextEntry::make('form.title')
                             ->label(__('filament-form-builder::general.form_title'))
-                            ->url(function (FormSubmission $model) {
-                                return FormResource::getUrl('edit', ['record' => $model->form]);
+                            ->url(function (FormSubmission $record) {
+                                return FormResource::getUrl('edit', ['record' => $record->form]);
                             }),
                         TextEntry::make('created_at')
                             ->label(__('filament-form-builder::general.created_at'))
@@ -49,6 +51,7 @@ class ViewFormSubmission extends ViewRecord
                             ->label(__('filament-form-builder::general.submitter_email')),
                     ])->columns(3),
                 Section::make(__('filament-form-builder::general.form_content'))
+                    ->columnSpanFull()
                     ->schema([
                         KeyValueEntry::make('formattedKeyData')
                             ->keyLabel(__('filament-form-builder::general.form_key'))

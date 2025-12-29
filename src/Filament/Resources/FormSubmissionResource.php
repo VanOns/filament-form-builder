@@ -2,8 +2,10 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\Resources;
 
+use BackedEnum;
+use Filament\Actions;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -16,7 +18,7 @@ class FormSubmissionResource extends Resource
 {
     protected static ?string $model = FormSubmission::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
     public static function getModelLabel(): string
     {
@@ -71,7 +73,10 @@ class FormSubmissionResource extends Resource
                     ->preload(),
                 SelectFilter::make('submitter_email')
                     ->label(__('filament-form-builder::general.submitter_email'))
-                    ->options(function (FormSubmission $model) {
+                    ->options(function () {
+                        /** @var class-string<FormSubmission> $model */
+                        $model = static::getModel();
+
                         return $model::query()
                             ->distinct('submitter_email')
                             ->whereNotNull('submitter_email')
@@ -82,16 +87,16 @@ class FormSubmissionResource extends Resource
                     ->multiple()
                     ->searchable(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\ForceDeleteAction::make(),
-                Tables\Actions\RestoreAction::make(),
+            ->recordActions([
+                Actions\EditAction::make(),
+                Actions\ForceDeleteAction::make(),
+                Actions\RestoreAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
+            ->toolbarActions([
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
+                    Actions\ForceDeleteBulkAction::make(),
+                    Actions\RestoreBulkAction::make(),
                 ]),
             ]);
     }

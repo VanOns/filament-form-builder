@@ -2,17 +2,21 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\Resources;
 
+use BackedEnum;
+use Filament\Actions;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
-use Filament\Support\Enums\MaxWidth;
-use Filament\Tables;
+use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -31,7 +35,7 @@ class FormResource extends Resource
 {
     protected static ?string $model = FormModel::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
     public static function getModelLabel(): string
     {
@@ -57,14 +61,18 @@ class FormResource extends Resource
         return null;
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                static::getGeneralSection(),
-                static::getCustomSection(),
-                static::getSubmitNotificationSection(),
-                static::getEmailNotificationSection(),
+        return $schema
+            ->components([
+                static::getGeneralSection()
+                    ->columnSpanFull(),
+                static::getCustomSection()
+                    ->columnSpanFull(),
+                static::getSubmitNotificationSection()
+                    ->columnSpanFull(),
+                static::getEmailNotificationSection()
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -111,25 +119,30 @@ class FormResource extends Resource
     public static function getSubmitNotificationSection(): Section
     {
         return Section::make(__('filament-form-builder::general.submit_notification'))
-            ->collapsed(fn (string $operation) => !str_contains($operation, 'create'))
             ->schema([
                 Select::make('submit_notification_type')
-                    ->label(__('filament-form-builder::general.submit_notification_type'))
+                    ->label(__('filament-form-builder::general.what_happens_after_submission'))
+                    ->afterStateUpdated(fn (Set $set) => $set('submit_notification_content', null))
                     ->options(SubmitNotificationType::class)
                     ->required()
                     ->live()
                     ->columnSpan(1),
-                TextInput::make('submit_notification_content')
-                    ->label(__('filament-form-builder::general.url'))
-                    ->url()
-                    ->hidden(fn (Get $get) => $get('submit_notification_type') !== SubmitNotificationType::URL->value)
-                    ->required(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::URL->value)
-                    ->columnSpanFull(),
-                RichEditor::make('submit_notification_content')
-                    ->label(__('filament-form-builder::general.content'))
-                    ->hidden(fn (Get $get) => $get('submit_notification_type') !== SubmitNotificationType::Content->value)
-                    ->required(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::Content->value)
-                    ->columnSpanFull(),
+                Group::make(function (Get $get) {
+                    $isType = fn (SubmitNotificationType $type) => $get('submit_notification_type') === $type;
+
+                    return [
+                        $isType(SubmitNotificationType::URL) ? TextInput::make('submit_notification_content')
+                            ->label(__('filament-form-builder::general.url'))
+                            ->required()
+                            ->placeholder(__('filament-form-builder::general.form_redirect_example', ['url' => 'https://example.com/form-confirmation']))
+                            ->columnSpanFull() : null,
+                        $isType(SubmitNotificationType::Content) ? RichEditor::make('submit_notification_content')
+                            ->label(__('filament-form-builder::general.content'))
+                            ->required()
+                            ->placeholder(__('filament-form-builder::general.form_submitted_successfully'))
+                            ->columnSpanFull() : null,
+                    ];
+                })->columnSpanFull(),
             ])->columns();
     }
 
@@ -139,11 +152,12 @@ class FormResource extends Resource
             ->collapsible()
             ->schema([
                 Repeater::make('notifications')
+                    ->label(__('filament-form-builder::general.email_notifications'))
+                    ->hiddenLabel()
                     ->columnSpanFull()
                     ->columns(3)
                     ->collapsed()
-                    ->label(__('filament-form-builder::general.email_notifications'))
-                    ->hiddenLabel()
+                    ->default([])
                     ->extraItemActions([
                         ModalAction::make('placeholders')
                             ->hidden(fn (?FormModel $record) => is_null($record))
@@ -250,12 +264,12 @@ class FormResource extends Resource
                     ->searchable(),
                 TrashedFilter::make(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\ForceDeleteAction::make(),
-                Tables\Actions\RestoreAction::make(),
-                Tables\Actions\ReplicateAction::make()
-                    ->modalWidth(MaxWidth::ExtraLarge)
+            ->recordActions([
+                Actions\EditAction::make(),
+                Actions\ForceDeleteAction::make(),
+                Actions\RestoreAction::make(),
+                Actions\ReplicateAction::make()
+                    ->modalWidth(Width::ExtraLarge)
                     ->form([
                         TextInput::make('title')
                             ->label(__('filament-form-builder::general.title'))
@@ -266,11 +280,11 @@ class FormResource extends Resource
                         $replica->offsetUnset('submissions_count');
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
+            ->toolbarActions([
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
+                    Actions\ForceDeleteBulkAction::make(),
+                    Actions\RestoreBulkAction::make(),
                 ]),
             ]);
     }

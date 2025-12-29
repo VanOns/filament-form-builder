@@ -11,6 +11,17 @@ What is does not do (yet):
 
 - Create and maintain forms.
 
+## Compatibility
+
+For certain Filament versions, changes have to be made that render the package backwards incompatible with the previous version.
+Please see the table below to determine which version you need.
+
+| Version                                                               | Filament |
+|-----------------------------------------------------------------------|----------|
+| v2 (current)                                                          | \>=4.0   |
+| [v1](https://github.com/VanOns/filament-form-builder/tree/release/v1) | <4.0     |
+
+
 ## Installation
 
 To get started with this package, add it to the repositories of your
