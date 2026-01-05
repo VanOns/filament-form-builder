@@ -3,8 +3,8 @@
 namespace VanOns\FilamentFormBuilder\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Models\Form;
-use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
 class CreateFormSubmission extends FormRequest
 {
@@ -43,9 +43,9 @@ class CreateFormSubmission extends FormRequest
         $rules = [];
 
         try {
-            if (is_subclass_of($template, FormComponent::class)) {
+            if (is_subclass_of($template, FilamentForm::class)) {
                 /**
-                 * @var class-string<FormComponent> $template
+                 * @var class-string<FilamentForm> $template
                  */
                 $rules = $form->getFormComponent()->getRules();
             }
@@ -70,5 +70,17 @@ class CreateFormSubmission extends FormRequest
     public function messages(): array
     {
         return $this->getForm()->getFormMessages();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function validationData(): array
+    {
+        if ($template = $this->getForm()->template) {
+            return $template::modifyDataBeforeValidation($this->all());
+        }
+
+        return $this->all();
     }
 }

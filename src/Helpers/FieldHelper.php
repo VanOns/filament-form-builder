@@ -2,7 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Helpers;
 
-use Filament\Forms\Components\Component;
+use Filament\Schemas\Components\Component;
 
 class FieldHelper
 {

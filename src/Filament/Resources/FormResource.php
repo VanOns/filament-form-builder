@@ -2,17 +2,22 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\Resources;
 
+use BackedEnum;
+use Filament\Actions;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
-use Filament\Support\Enums\MaxWidth;
-use Filament\Tables;
+use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -20,18 +25,18 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\HtmlString;
+use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Actions\ModalAction;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormBuilder;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
-use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
 class FormResource extends Resource
 {
     protected static ?string $model = FormModel::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
     public static function getModelLabel(): string
     {
@@ -57,14 +62,18 @@ class FormResource extends Resource
         return null;
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                static::getGeneralSection(),
-                static::getCustomSection(),
-                static::getSubmitNotificationSection(),
-                static::getEmailNotificationSection(),
+        return $schema
+            ->components([
+                static::getGeneralSection()
+                    ->columnSpanFull(),
+                static::getCustomSection()
+                    ->columnSpanFull(),
+                static::getSubmitNotificationSection()
+                    ->columnSpanFull(),
+                static::getEmailNotificationSection()
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -75,6 +84,7 @@ class FormResource extends Resource
                 Select::make('template')
                     ->required()
                     ->label(__('filament-form-builder::general.template'))
+                    ->searchable()
                     ->options([
                         ...self::getFormTemplates(),
                     ])
@@ -96,7 +106,7 @@ class FormResource extends Resource
             }
 
             return class_exists($template)
-                && is_subclass_of($template, FormComponent::class)
+                && is_subclass_of($template, FilamentForm::class)
                 && $template::isCustom();
         };
 
@@ -111,25 +121,33 @@ class FormResource extends Resource
     public static function getSubmitNotificationSection(): Section
     {
         return Section::make(__('filament-form-builder::general.submit_notification'))
-            ->collapsed(fn (string $operation) => !str_contains($operation, 'create'))
             ->schema([
-                Select::make('submit_notification_type')
-                    ->label(__('filament-form-builder::general.submit_notification_type'))
-                    ->options(SubmitNotificationType::class)
+                ToggleButtons::make('submit_notification_type')
                     ->required()
+                    ->label(__('filament-form-builder::general.what_happens_after_submission'))
+                    ->options(SubmitNotificationType::class)
+                    ->default(SubmitNotificationType::URL)
                     ->live()
-                    ->columnSpan(1),
-                TextInput::make('submit_notification_content')
-                    ->label(__('filament-form-builder::general.url'))
-                    ->url()
-                    ->hidden(fn (Get $get) => $get('submit_notification_type') !== SubmitNotificationType::URL->value)
-                    ->required(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::URL->value)
-                    ->columnSpanFull(),
-                RichEditor::make('submit_notification_content')
-                    ->label(__('filament-form-builder::general.content'))
-                    ->hidden(fn (Get $get) => $get('submit_notification_type') !== SubmitNotificationType::Content->value)
-                    ->required(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::Content->value)
-                    ->columnSpanFull(),
+                    ->columnSpan(1)
+                    ->grouped()
+                    ->afterStateUpdated(fn (Set $set) => $set('submit_notification_content', null)),
+                Group::make(function (Get $get) {
+                    $isType = fn (SubmitNotificationType $type) => $get('submit_notification_type') === $type;
+
+                    return [
+                        $isType(SubmitNotificationType::URL) ? TextInput::make('submit_notification_content')
+                            ->label(__('filament-form-builder::general.url'))
+                            ->required()
+                            ->placeholder(__('filament-form-builder::general.form_redirect_example', ['url' => 'https://example.com/form-confirmation']))
+                            ->suffixIcon(Heroicon::OutlinedLink)
+                            ->columnSpanFull() : null,
+                        $isType(SubmitNotificationType::Content) ? RichEditor::make('submit_notification_content')
+                            ->label(__('filament-form-builder::general.content'))
+                            ->required()
+                            ->placeholder(__('filament-form-builder::general.form_submitted_successfully'))
+                            ->columnSpanFull() : null,
+                    ];
+                })->columnSpanFull(),
             ])->columns();
     }
 
@@ -139,20 +157,21 @@ class FormResource extends Resource
             ->collapsible()
             ->schema([
                 Repeater::make('notifications')
+                    ->label(__('filament-form-builder::general.email_notifications'))
+                    ->hiddenLabel()
                     ->columnSpanFull()
                     ->columns(3)
                     ->collapsed()
-                    ->label(__('filament-form-builder::general.email_notifications'))
-                    ->hiddenLabel()
+                    ->default([])
                     ->extraItemActions([
                         ModalAction::make('placeholders')
                             ->hidden(fn (?FormModel $record) => is_null($record))
                             ->modalContent(function (Get $get, ?FormModel $record) {
                                 /**
-                                 * @var null|string|class-string<FormComponent> $template
+                                 * @var null|string|class-string<FilamentForm> $template
                                  */
                                 $template = $get('template');
-                                return (isset($template) && is_subclass_of($template, FormComponent::class))
+                                return (isset($template) && is_subclass_of($template, FilamentForm::class))
                                     ? $record?->getFormComponent()->getPlaceholdersHtmlString()
                                     : new HtmlString(__('filament-form-builder::general.unknown'));
                             }),
@@ -248,29 +267,33 @@ class FormResource extends Resource
                     })
                     ->multiple()
                     ->searchable(),
-                TrashedFilter::make(),
+                TrashedFilter::make()->default('with_trashed'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\ForceDeleteAction::make(),
-                Tables\Actions\RestoreAction::make(),
-                Tables\Actions\ReplicateAction::make()
-                    ->modalWidth(MaxWidth::ExtraLarge)
-                    ->form([
-                        TextInput::make('title')
-                            ->label(__('filament-form-builder::general.title'))
-                            ->unique()
-                            ->required(),
-                    ])
-                    ->beforeReplicaSaved(function (FormModel $replica) {
-                        $replica->offsetUnset('submissions_count');
-                    }),
+            ->recordActions([
+                Actions\EditAction::make(),
+                Actions\ForceDeleteAction::make()
+                    ->modalDescription(__('filament-form-builder::fields.form_force_deletion_warning')),
+                Actions\RestoreAction::make(),
+                Actions\ActionGroup::make([
+                    Actions\ReplicateAction::make()
+                        ->modalWidth(Width::ExtraLarge)
+                        ->form([
+                            TextInput::make('title')
+                                ->label(__('filament-form-builder::general.title'))
+                                ->unique()
+                                ->required(),
+                        ])
+                        ->beforeReplicaSaved(function (FormModel $replica) {
+                            $replica->offsetUnset('submissions_count');
+                        }),
+                    Actions\DeleteAction::make(),
+                ]),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
+            ->toolbarActions([
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
+                    Actions\ForceDeleteBulkAction::make(),
+                    Actions\RestoreBulkAction::make(),
                 ]),
             ]);
     }

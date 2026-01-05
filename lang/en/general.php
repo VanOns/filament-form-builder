@@ -56,4 +56,7 @@ return [
     'no_settings' => 'No settings',
     'heading_level' => 'Heading level',
     'text' => 'Text',
+    'form_submitted_successfully' => 'Form submitted successfully',
+    'form_redirect_example' => 'E.g. :url',
+    'what_happens_after_submission' => 'What should happen after submission?',
 ];

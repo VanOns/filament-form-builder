@@ -3,11 +3,11 @@
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
 use Filament\Forms\Components\Checkbox;
-use Filament\Forms\Components\Component;
-use Filament\Forms\Components\Group;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 
 trait HasFields

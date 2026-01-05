@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
 use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
@@ -14,12 +15,11 @@ use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
 use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
-use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
 /**
  * @property int $id
  * @property string $title
- * @property string|class-string<FormComponent> $template
+ * @property string|class-string<FilamentForm> $template
  * @property array<string, mixed> $custom
  * @property array<int, mixed> $notifications
  * @property string $submit_notification_type
@@ -37,7 +37,7 @@ class Form extends Model
      * @var array<FormField>
      */
     protected array $fields;
-    protected FormComponent $formComponent;
+    protected FilamentForm $formComponent;
     protected $guarded = ['id'];
 
     /**
@@ -96,7 +96,7 @@ class Form extends Model
         return $this->getFormComponent()->messages();
     }
 
-    public function getFormComponent(): FormComponent
+    public function getFormComponent(): FilamentForm
     {
         if (isset($this->formComponent)) {
             return $this->formComponent;

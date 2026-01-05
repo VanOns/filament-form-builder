@@ -2,7 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Actions;
 
-use Filament\Forms\Components\Actions\Action;
+use Filament\Actions\Action;
 
 class ModalAction extends Action
 {

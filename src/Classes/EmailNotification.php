@@ -4,9 +4,9 @@ namespace VanOns\FilamentFormBuilder\Classes;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
+use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
-use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 use VanOns\FilamentFormBuilder\View\Components\Mail\MailPanel;
 
 class EmailNotification
@@ -118,10 +118,7 @@ class EmailNotification
         $template = $this->formSubmission->form->template;
 
         try {
-            if (is_subclass_of($template, FormComponent::class)) {
-                /**
-                 * @var FormComponent $template
-                 */
+            if (is_subclass_of($template, FilamentForm::class)) {
                 return $this->formSubmission->form->getFormComponent()->getPlaceholders();
             }
         } catch (\Exception) {
