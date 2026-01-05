@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
+use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionCreated;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionForceDeleted;
@@ -69,16 +70,34 @@ class FormSubmission extends Model
      */
     public function getFormattedKeyDataAttribute(): array
     {
+        return $this->modifyFormattedKeyDataUsing(
+            $this->data
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function modifyFormattedKeyDataUsing(array $data): array
+    {
+        $template = $this->form->template;
+        if (is_subclass_of($template, FilamentForm::class)) {
+            return $template::modifyResourceDataUsing($data, $this);
+        }
         return $this->getFormattedData(true);
     }
 
     /**
      * @param bool $formatKeys
+     * @param array<string, mixed>|null $data
      * @return array<string>
      */
-    public function getFormattedData(bool $formatKeys = false): array
+    public function getFormattedData(bool $formatKeys = false, ?array $data = null): array
     {
-        return collect($this->data)
+        $data ??= $this->data;
+
+        return collect($data)
             ->mapWithKeys(function ($value, $key) use ($formatKeys) {
                 $value = is_array($value)
                     ? implode(', ', Arr::flatten($value))
@@ -121,5 +140,17 @@ class FormSubmission extends Model
             ),
             $this->form->notifications,
         );
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::created(function (FormSubmission $submission) {
+            $template = $submission->form->template;
+            if (is_subclass_of($template, FilamentForm::class)) {
+                $template::afterSubmissionCreated($submission);
+            }
+        });
     }
 }

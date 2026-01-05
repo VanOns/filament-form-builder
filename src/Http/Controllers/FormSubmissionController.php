@@ -26,6 +26,11 @@ class FormSubmissionController
 
         $form = Form::query()->findOrFail($formId);
 
+        /** @var FilamentForm $template */
+        $template = $form->template;
+
+        $data = $template::modifyDataUsing($data);
+
         $submitterEmail = $request->get('submitter_email');
         if (empty($submitterEmail)) {
             if (!empty($emailData = Arr::only($data, static::getPossibleEmailFields()))) {
@@ -40,8 +45,6 @@ class FormSubmissionController
                 'data' => $data,
             ]);
 
-        /** @var FilamentForm $template */
-        $template = $form->template;
         if ($response = $template::successReponse([
             'form' => $form,
             'data' => $data,

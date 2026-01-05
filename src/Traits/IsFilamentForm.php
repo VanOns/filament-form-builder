@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Traits;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Services\RecaptchaService;
 
 trait IsFilamentForm
@@ -37,16 +38,6 @@ trait IsFilamentForm
     public static function isCustom(): bool
     {
         return false;
-    }
-
-    /**
-     * Fully modify the response after a successful form submission.
-     *
-     * @return bool
-     */
-    public static function successReponse(array $data = []): mixed
-    {
-        return null;
     }
 
     /**
@@ -153,5 +144,61 @@ trait IsFilamentForm
     public function messages(): array
     {
         return [];
+    }
+
+    /**
+     * Fully modify the response after a successful form submission.
+     *
+     * @param array<string, mixed> $data
+     * @return mixed
+     */
+    public static function successReponse(array $data = []): mixed
+    {
+        return null;
+    }
+
+    /**
+     * Modify the form data before validation.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public static function modifyDataBeforeValidation(array $data): array
+    {
+        return $data;
+    }
+
+    /**
+     * Modify the form data before it is processed.
+     *
+     * @param array $data
+     * @return array
+     */
+    public static function modifyDataUsing(array $data): array
+    {
+        return $data;
+    }
+
+    /**
+     * Hook to perform actions after a form submission is created.
+     *
+     * @param FormSubmission $submission
+     * @return void
+     */
+    public static function afterSubmissionCreated(FormSubmission $submission): void
+    {
+        //
+    }
+
+    /**
+     * Modify the data shown in the Filament resource detail view.
+     *
+     * @param array<string, mixed> $data
+     * @param FormSubmission $submission
+     * @return array<string, mixed>
+     */
+    public static function modifyResourceDataUsing(array $data, FormSubmission $submission): array
+    {
+        return $submission->getFormattedData(true);
     }
 }

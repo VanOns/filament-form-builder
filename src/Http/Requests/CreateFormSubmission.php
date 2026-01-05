@@ -71,4 +71,16 @@ class CreateFormSubmission extends FormRequest
     {
         return $this->getForm()->getFormMessages();
     }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function validationData(): array
+    {
+        if ($template = $this->getForm()->template) {
+            return $template::modifyDataBeforeValidation($this->all());
+        }
+
+        return $this->all();
+    }
 }
