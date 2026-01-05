@@ -27,4 +27,6 @@ return [
     'empty' => 'leeg',
     'not_empty' => 'niet leeg',
     'multiple_uploads' => 'Meerdere uploads',
+    'form_force_deletion_warning' => 'Het verwijderen van dit veld zal ook alle bijbehorende formulierinzendingen verwijderen.',
+    'form_deletion_warning' => 'Na deze actie wordt het formulier nog steeds in de database opgeslagen.',
 ];

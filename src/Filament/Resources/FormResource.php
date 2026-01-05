@@ -271,7 +271,8 @@ class FormResource extends Resource
             ])
             ->recordActions([
                 Actions\EditAction::make(),
-                Actions\ForceDeleteAction::make(),
+                Actions\ForceDeleteAction::make()
+                    ->modalDescription(__('filament-form-builder::fields.form_force_deletion_warning')),
                 Actions\RestoreAction::make(),
                 Actions\ActionGroup::make([
                     Actions\ReplicateAction::make()
