@@ -54,6 +54,7 @@ class ViewFormSubmission extends ViewRecord
                     ->columnSpanFull()
                     ->schema([
                         KeyValueEntry::make('formattedKeyData')
+                            ->hiddenLabel()
                             ->keyLabel(__('filament-form-builder::general.form_key'))
                             ->valueLabel(__('filament-form-builder::general.form_value')),
                     ]),

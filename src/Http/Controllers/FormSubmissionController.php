@@ -38,17 +38,14 @@ class FormSubmissionController
             }
         }
 
-        FormSubmission::query()
+        $submission = FormSubmission::query()
             ->create([
                 'form_id' => $form->id,
                 'submitter_email' => $submitterEmail,
                 'data' => $data,
             ]);
 
-        if ($response = $template::successReponse([
-            'form' => $form,
-            'data' => $data,
-        ])) {
+        if ($response = $template::successResponse($submission)) {
             return $response;
         }
 

@@ -149,10 +149,10 @@ trait IsFilamentForm
     /**
      * Fully modify the response after a successful form submission.
      *
-     * @param array<string, mixed> $data
+     * @param FormSubmission $submission
      * @return mixed
      */
-    public static function successReponse(array $data = []): mixed
+    public static function successResponse(FormSubmission $submission): mixed
     {
         return null;
     }
