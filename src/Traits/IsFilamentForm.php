@@ -199,6 +199,9 @@ trait IsFilamentForm
      */
     public static function modifyResourceDataUsing(array $data, FormSubmission $submission): array
     {
-        return $submission->getFormattedData(true);
+        return $submission->getFormattedData(
+            formatKeys: true,
+            data: $data
+        );
     }
 }
