@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Classes;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -29,6 +30,7 @@ class EmailNotification
     ) {
         $this->subject = $this->replacePlaceholders($notification['subject'] ?? '');
         $this->content = $this->replacePlaceholders($notification['content'] ?? '');
+        $this->content = $this->sanitizeContent($this->content);
         $this->sender = $notification['sender'] ?? '';
         $this->receivers = $this->parseReceivers(
             $notification['receivers'] ?? []
@@ -47,6 +49,8 @@ class EmailNotification
             ...$formData,
         ]);
 
+        $data = $this->includePlaceholdersWithoutKeyPrefix($data);
+
         foreach ($data as $key => $value) {
             $search = '$' . $key;
             $content = str_replace("{{ {$search} }}", $value, $content);
@@ -54,6 +58,42 @@ class EmailNotification
         }
 
         return $content;
+    }
+
+    /**
+     * To support older versions which didn't have the key prefix for custom fields. Add placeholders without the "key_" prefix.
+     *
+     * @param array<string, mixed> $placeholders
+     * @return array<string, mixed>
+     */
+    protected function includePlaceholdersWithoutKeyPrefix(array $placeholders): array
+    {
+        $prefix = 'key_';
+
+        $new = [];
+        foreach ($placeholders as $key => $value) {
+            if (str_starts_with($key, $prefix)) {
+                $newKey = Str::after($key, $prefix);
+                if (!array_key_exists($newKey, $placeholders)) {
+                    $new[$newKey] = $value;
+                }
+            }
+        }
+
+        return array_merge($placeholders, $new);
+    }
+
+    /**
+     * Validate content so no unprocessed placeholders, variables remain. This is to prevent errors.
+     *
+     * @param string $content
+     * @return string
+     */
+    protected function sanitizeContent(string $content): string
+    {
+        $content = preg_replace('/{{\s*\$[a-zA-Z0-9_]+\s*}}/', '', $content);
+
+        return preg_replace('/\$[a-zA-Z_][a-zA-Z0-9_]*/', '', $content);
     }
 
     /**
