@@ -11,6 +11,7 @@ class RecaptchaField extends FormField
     public static string $view = 'filament-form-builder::components.fields.recaptcha-field';
 
     public ?string $key = 'g-recaptcha-response';
+    public static string $keyPrefix = '';
 
     protected function rules(): array
     {
