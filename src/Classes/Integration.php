@@ -4,9 +4,12 @@ namespace VanOns\FilamentFormBuilder\Classes;
 
 use Filament\Schemas\Components\Component;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
+use VanOns\FilamentFormBuilder\Traits\Integrations\HasResponses;
 
 class Integration
 {
+    use HasResponses;
+
     /**
      * @param array<string, mixed> $integration
      */

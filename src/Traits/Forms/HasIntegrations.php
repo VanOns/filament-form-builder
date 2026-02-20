@@ -2,10 +2,13 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
+use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 trait HasIntegrations
 {
+    protected static array $integrationResponses = [];
+
     public static function hasIntegrations(): bool
     {
         return true;
@@ -23,7 +26,36 @@ trait HasIntegrations
         }
 
         foreach ($submission->getIntegrations() as $integration) {
-            $integration->handle();
+            self::triggerIntegration($integration);
         }
+
+        self::saveIntegrationResponses($submission);
+    }
+
+    public static function triggerIntegration(Integration $integration): void
+    {
+        try {
+            $integration->handle();
+        } catch (\Exception $e) {
+            $integration->setResponse($e->getMessage())
+                ->setSuccess(false);
+        }
+
+        self::storeIntegrationResponse($integration);
+    }
+
+    protected static function storeIntegrationResponse(Integration $integration): void
+    {
+        self::$integrationResponses[] = [
+            'integration' => get_class($integration),
+            'response' => $integration->responseData(),
+        ];
+    }
+
+    protected static function saveIntegrationResponses(FormSubmission $submission): void
+    {
+        $submission->update([
+            'integrations' => self::$integrationResponses,
+        ]);
     }
 }

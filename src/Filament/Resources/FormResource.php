@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -158,7 +159,6 @@ class FormResource extends Resource
     public static function getEmailNotificationSection(): Section
     {
         return Section::make(__('filament-form-builder::general.email_notifications'))
-            ->collapsible()
             ->visible(self::hasNotificationsEnabled(...))
             ->schema([
                 Repeater::make('notifications')
@@ -224,8 +224,10 @@ class FormResource extends Resource
     {
         $options = fn () => Integration::getOptionList();
         return Section::make(__('filament-form-builder::general.integrations'))
-            ->collapsible()
+            ->description(__('filament-form-builder::general.integrations_explanation'))
             ->visible(self::hasIntegrationsEnabled(...))
+            ->icon('heroicon-o-server-stack')
+            ->iconSize(IconSize::ExtraLarge)
             ->schema([
                 Repeater::make('integrations')
                     ->label(__('filament-form-builder::general.integrations'))

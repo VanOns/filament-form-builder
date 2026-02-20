@@ -36,6 +36,7 @@ class FormSubmission extends Model
     {
         return [
             'data' => 'array',
+            'integrations' => 'array',
         ];
     }
 
