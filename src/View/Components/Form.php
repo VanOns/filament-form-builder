@@ -19,8 +19,9 @@ class Form extends Component
             return '';
         }
 
-        if (is_subclass_of($this->form->template, FormComponent::class)) {
-            return $this->form->getFormComponent()->render();
+        $formComponent = $this->form->getFormComponent();
+        if (is_subclass_of($this->form->template, FormComponent::class) && method_exists($formComponent, 'render')) {
+            return $formComponent->render();
         } else {
             return '';
         }

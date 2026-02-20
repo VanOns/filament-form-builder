@@ -9,6 +9,8 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\IconSize;
+use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -64,6 +66,73 @@ class ViewFormSubmission extends ViewRecord
                     ->schema([
                         Actions::make($actions),
                     ]),
+
+                $this->getIntegrationsSection($record),
             ]);
+    }
+
+    public function getIntegrationsSection(FormSubmission $record): Section
+    {
+        $integrationResponses = $record->integrations ?? [];
+
+        if (empty($integrationResponses)) {
+            return Section::make(__('filament-form-builder::general.integration_responses'))
+                ->icon('heroicon-o-server-stack')
+                ->iconSize(IconSize::ExtraLarge)
+                ->description(__('filament-form-builder::general.no_integrations'));
+        }
+
+        $entries = [];
+
+        foreach ($integrationResponses as $index => $integrationData) {
+            $integrationClass = $integrationData['integration'] ?? 'Unknown';
+
+            $label = class_exists($integrationClass) && is_subclass_of($integrationClass, Integration::class)
+                ? $integrationClass::label()
+                : class_basename($integrationClass);
+
+            $success = $integrationData['response']['success'] ?? null;
+
+            $color = match ($success) {
+                true => 'success',
+                false => 'danger',
+                default => 'gray',
+            };
+
+            $entries[] = Section::make($label)
+                ->description($integrationClass)
+                ->collapsed()
+                ->icon(match ($success) {
+                    true => 'heroicon-o-check-circle',
+                    false => 'heroicon-o-x-circle',
+                    default => 'heroicon-o-question-mark-circle',
+                })
+                ->iconColor($color)
+                ->schema([
+                    TextEntry::make("integrations.{$index}.response.success")
+                        ->label(__('filament-form-builder::general.status'))
+                        ->badge()
+                        ->color($color)
+                        ->formatStateUsing(fn ($state) => match ($state) {
+                            true => __('filament-form-builder::general.success'),
+                            false => __('filament-form-builder::general.failed'),
+                            default => __('filament-form-builder::general.unknown'),
+                        }),
+                    KeyValueEntry::make("integrations.{$index}.response.response")
+                        ->label(__('filament-form-builder::general.response'))
+                        ->keyLabel(__('filament-form-builder::general.key'))
+                        ->valueLabel(__('filament-form-builder::general.value')),
+                ])
+                ->columns(1)
+                ->collapsible();
+        }
+
+        return Section::make(__('filament-form-builder::general.integration_responses'))
+            ->icon('heroicon-o-server-stack')
+            ->iconSize(IconSize::ExtraLarge)
+            ->columnSpanFull()
+            ->columns()
+            ->description(__('filament-form-builder::general.integration_responses_description'))
+            ->schema($entries);
     }
 }

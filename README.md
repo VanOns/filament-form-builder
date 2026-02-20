@@ -288,6 +288,336 @@ file. You should register translations for each of your form's fields in there.
 The email that is sent out will look for a translation based on the field's
 `name` property.
 
+## Email Notifications
+
+**Email notifications are enabled by default for all form templates.**
+
+When a form is submitted, email notifications configured in the admin panel will automatically be sent to the specified recipients. You can configure multiple email notifications per form, each with their own subject, content, sender, and receivers.
+
+### Disabling Email Notifications
+
+If you want to disable email notifications for a specific form template, add the `hasNotifications()` method and return `false`:
+
+```php
+use VanOns\FilamentFormBuilder\View\Components\FormComponent;
+
+class MyAwesomeForm extends FormComponent
+{
+    public static function hasNotifications(): bool
+    {
+        return false;
+    }
+    
+    // Your form code...
+}
+```
+
+### Configuring Email Notifications
+
+In the admin panel:
+
+1. Navigate to a form
+2. Scroll to the "Email Notifications" section
+3. Click "Add" to create a new notification
+4. Fill in:
+   - **Subject**: The email subject line (supports placeholders)
+   - **Content**: The email body (supports placeholders and rich text)
+   - **Sender**: The email address the notification will be sent from
+   - **Receivers**: One or more email addresses or form fields containing email addresses
+5. Save the form
+
+You can add multiple email notifications to send different messages to different recipients.
+
+## Integrations
+
+The integration system allows you to automatically send form submission data to external services when a form is submitted. Each integration can have its own configuration fields and will track success/failure responses.
+
+### How Integrations Work
+
+When a form is submitted:
+1. The form submission is created and saved
+2. All configured integrations for that form are triggered
+3. Each integration's `handle()` method is called
+4. Response data (success/failure) is saved to the form submission
+5. You can view integration responses in the form submission detail page
+
+### Creating an Integration
+
+To create a custom integration:
+
+1. Create a new class that extends `VanOns\FilamentFormBuilder\Classes\Integration`
+2. Implement the `handle()` method with your integration logic
+3. Optionally override the `label()` method for a custom display name
+4. Optionally define a `schema()` method for configuration fields
+5. Register the integration in your config file
+
+#### Example: N8N Webhook Integration
+
+Here's an example showing how to handle responses:
+
+```php
+<?php
+
+namespace App\Forms\Integrations;
+
+use Filament\Forms\Components\TextInput;
+use Illuminate\Support\Facades\Http;
+use VanOns\FilamentFormBuilder\Classes\Integration;
+
+class N8nIntegration extends Integration
+{
+    public static function label(): string
+    {
+        return 'N8N Webhook';
+    }
+
+    public static function schema(): array
+    {
+        return [
+            TextInput::make('webhook_url')
+                ->label('Webhook URL')
+                ->url()
+                ->required()
+                ->placeholder('https://your-n8n-instance.com/webhook/...'),
+        ];
+    }
+
+    public function handle(): void
+    {
+        $webhookUrl = $this->integration['webhook_url'] ?? null;
+        
+        if (!$webhookUrl) {
+            throw new \Exception('Webhook URL is required');
+        }
+
+        // Your integration logic here...
+        $response = Http::post($webhookUrl, [
+            'data' => $this->formSubmission->data,
+        ]);
+
+        // Set success and response data
+        if ($response->successful()) {
+            $this->setSuccess(true)
+                ->setResponse($response->json() ?? ['message' => 'Success']);
+        } else {
+            $this->setSuccess(false)
+                ->setResponse([
+                    'code' => $response->status(),
+                    'message' => $response->body(),
+                ]);
+        }
+    }
+}
+```
+
+#### Example: Mailchimp Integration
+
+Here's another example for adding subscribers to Mailchimp:
+
+```php
+<?php
+
+namespace App\Forms\Integrations;
+
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Illuminate\Support\Facades\Http;
+use VanOns\FilamentFormBuilder\Classes\Integration;
+
+class MailchimpIntegration extends Integration
+{
+    public static function label(): string
+    {
+        return 'Mailchimp';
+    }
+
+    public static function schema(): array
+    {
+        return [
+            TextInput::make('api_key')
+                ->label('API Key')
+                ->required()
+                ->password(),
+            
+            TextInput::make('list_id')
+                ->label('Audience/List ID')
+                ->required(),
+            
+            Select::make('email_field')
+                ->label('Email Field')
+                ->options(fn () => [
+                    'submitter_email' => 'Submitter Email',
+                    'email' => 'Email',
+                    'contact_email' => 'Contact Email',
+                ])
+                ->required()
+                ->helperText('Which form field contains the email address?'),
+        ];
+    }
+
+    public function handle(): void
+    {
+        $apiKey = $this->integration['api_key'];
+        $listId = $this->integration['list_id'];
+        $emailField = $this->integration['email_field'] ?? 'submitter_email';
+        
+        // Get email from form submission
+        $email = $emailField === 'submitter_email' 
+            ? $this->formSubmission->submitter_email
+            : $this->formSubmission->data[$emailField] ?? null;
+        
+        if (!$email) {
+            throw new \Exception("Email field '{$emailField}' not found in submission");
+        }
+
+        // Extract datacenter from API key
+        $datacenter = substr($apiKey, strpos($apiKey, '-') + 1);
+        
+        // Add subscriber
+        $response = Http::withBasicAuth('user', $apiKey)
+            ->post("https://{$datacenter}.api.mailchimp.com/3.0/lists/{$listId}/members", [
+                'email_address' => $email,
+                'status' => 'subscribed',
+                'merge_fields' => [
+                    'FNAME' => $this->formSubmission->data['first_name'] ?? '',
+                    'LNAME' => $this->formSubmission->data['last_name'] ?? '',
+                ],
+            ]);
+
+        if ($response->successful()) {
+            $this->setSuccess(true)
+                ->setResponse([
+                    'subscriber_id' => $response->json()['id'] ?? null,
+                    'email' => $email,
+                ]);
+        } else {
+            $this->setSuccess(false)
+                ->setResponse($response->json());
+        }
+    }
+}
+```
+
+### Registering Integrations
+
+After creating your integration class, register it in your `config/filament-form-builder.php`:
+
+```php
+return [
+    // ...existing config...
+    
+    'integrations' => [
+        \App\Forms\Integrations\N8nIntegration::class,
+        \App\Forms\Integrations\MailchimpIntegration::class,
+        // Add more integrations here
+    ],
+];
+```
+
+### Enabling/Disabling Integrations for a Form Template
+
+**Integrations are enabled by default for all form templates.**
+
+If you want to disable integrations for a specific form template, add the `hasIntegrations()` method and return `false`:
+
+```php
+use VanOns\FilamentFormBuilder\View\Components\FormComponent;
+
+class MyAwesomeForm extends FormComponent
+{
+    public static function hasIntegrations(): bool
+    {
+        return false;
+    }
+    
+    // Your form code...
+}
+```
+
+### Configuring Integrations in the Admin Panel
+
+Once registered:
+
+1. Navigate to a form in the admin panel
+2. If the form template has integrations enabled, you'll see an "Integrations" section
+3. Click "Add" to add a new integration
+4. Select the integration type from the dropdown
+5. Fill in the configuration fields (webhook URL, API keys, etc.)
+6. Save the form
+
+### Viewing Integration Responses
+
+When viewing a form submission:
+
+1. Navigate to the form submission detail page
+2. Scroll to the "Integrations" section
+3. You'll see all integrations that were triggered, including:
+   - Integration name and type
+   - Status badge (Success/Failed/Unknown)
+   - Complete response data from the integration
+
+### Integration Methods
+
+Your integration class has access to:
+
+#### Properties
+- `$this->formSubmission` - The `FormSubmission` model instance
+- `$this->integration` - Array containing the integration configuration
+
+#### Methods
+- `handle()` - **Required**. Implement your integration logic here
+- `setSuccess(bool $success)` - Mark the integration as successful or failed
+- `setResponse(string|array $response)` - Store response data
+- `static::label()` - Return the display name for this integration
+- `static::schema()` - Return Filament form fields for configuration
+
+#### Example Access to Form Data
+
+```php
+public function handle(): void
+{
+    // Access form submission data
+    $name = $this->formSubmission->data['name'] ?? 'Unknown';
+    $email = $this->formSubmission->submitter_email;
+    $formTitle = $this->formSubmission->form->title;
+    
+    // Access integration config
+    $apiKey = $this->integration['api_key'];
+    $webhookUrl = $this->integration['webhook_url'];
+    
+    // Your integration logic...
+}
+```
+
+### Error Handling
+
+Integrations automatically handle exceptions. If an exception is thrown in your `handle()` method:
+- The integration is marked as failed
+- The exception message is stored as the response
+- Other integrations continue to execute
+- The form submission is still created successfully
+
+You can also manually set errors:
+
+```php
+public function handle(): void
+{
+    $response = Http::post($url, $data);
+    
+    if ($response->failed()) {
+        $this->setSuccess(false)
+            ->setResponse([
+                'error' => 'API request failed',
+                'status_code' => $response->status(),
+                'message' => $response->body(),
+            ]);
+        return;
+    }
+    
+    // Success handling...
+}
+```
+
 ## Events
 
 All models events can be hooked into:

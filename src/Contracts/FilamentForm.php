@@ -5,7 +5,7 @@ namespace VanOns\FilamentFormBuilder\Contracts;
 use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
-interface FilamentForm
+interface FilamentForm extends HasNotifications, HasIntegrations
 {
     public function hasRecaptcha(): bool;
 

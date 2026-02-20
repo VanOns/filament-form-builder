@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -25,6 +26,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\HtmlString;
+use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Actions\ModalAction;
@@ -64,6 +66,7 @@ class FormResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $groupColumns = fn (Get $get) => (self::hasIntegrationsEnabled($get) && self::hasNotificationsEnabled($get)) ? 2 : 1;
         return $schema
             ->components([
                 static::getGeneralSection()
@@ -72,8 +75,10 @@ class FormResource extends Resource
                     ->columnSpanFull(),
                 static::getSubmitNotificationSection()
                     ->columnSpanFull(),
-                static::getEmailNotificationSection()
-                    ->columnSpanFull(),
+                Group::make([
+                    static::getEmailNotificationSection(),
+                    static::getIntegrationsSections(),
+                ])->columnSpanFull()->columns($groupColumns(...)),
             ]);
     }
 
@@ -154,7 +159,7 @@ class FormResource extends Resource
     public static function getEmailNotificationSection(): Section
     {
         return Section::make(__('filament-form-builder::general.email_notifications'))
-            ->collapsible()
+            ->visible(self::hasNotificationsEnabled(...))
             ->schema([
                 Repeater::make('notifications')
                     ->label(__('filament-form-builder::general.email_notifications'))
@@ -211,6 +216,39 @@ class FormResource extends Resource
                                     ->placeholder(__('filament-form-builder::general.notifications.email_or_field'))
                                     ->required(),
                             ),
+                    ]),
+            ])->columns();
+    }
+
+    public static function getIntegrationsSections(): Section
+    {
+        $options = fn () => Integration::getOptionList();
+        return Section::make(__('filament-form-builder::general.integrations'))
+            ->description(__('filament-form-builder::general.integrations_explanation'))
+            ->visible(self::hasIntegrationsEnabled(...))
+            ->icon('heroicon-o-server-stack')
+            ->iconSize(IconSize::ExtraLarge)
+            ->schema([
+                Repeater::make('integrations')
+                    ->label(__('filament-form-builder::general.integrations'))
+                    ->hiddenLabel()
+                    ->itemLabel(fn (array $state) => isset($state['class']) ? ($options()[$state['class']] ?? $state['class']) : __('filament-form-builder::general.integration'))
+                    ->columnSpanFull()
+                    ->columns(3)
+                    ->collapsed()
+                    ->reactive()
+                    ->schema([
+                        Select::make('class')
+                            ->label(__('filament-form-builder::general.integration'))
+                            ->hiddenLabel()
+                            ->required()
+                            ->reactive()
+                            ->columnSpan(2)
+                            ->options($options),
+
+                        Group::make(self::getIntegrationSchema(...))
+                            ->columns()
+                            ->columnSpanFull(),
                     ]),
             ])->columns();
     }
@@ -332,5 +370,41 @@ class FormResource extends Resource
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    public static function hasNotificationsEnabled(Get $get): bool
+    {
+        $template = $get('template');
+        if ((isset($template) && is_subclass_of($template, FilamentForm::class))) {
+            return $template::hasNotifications();
+        }
+
+        return false;
+    }
+
+    public static function hasIntegrationsEnabled(Get $get): bool
+    {
+        $template = $get('template');
+        if ((isset($template) && is_subclass_of($template, FilamentForm::class))) {
+            return $template::hasIntegrations();
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $state
+     * @return array<string, string>
+     */
+    public static function getIntegrationSchema(array $state): array
+    {
+        $integration = $state['class'] ?? null;
+        if (isset($integration) && is_subclass_of($integration, Integration::class)) {
+            $schema = $integration::schema();
+        }
+
+        return [
+            ...$schema ?? [],
+        ];
     }
 }

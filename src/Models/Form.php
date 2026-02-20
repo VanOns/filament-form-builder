@@ -56,6 +56,7 @@ class Form extends Model
         return [
             'custom' => 'array',
             'notifications' => 'array',
+            'integrations' => 'array',
         ];
     }
 
