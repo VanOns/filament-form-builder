@@ -22,6 +22,7 @@ class FormBuilder extends Field
     {
         $this->schema([
             Repeater::make('fields')
+                ->default([])
                 ->extraItemActions([
                     static::getVisibilityAction(),
                 ])

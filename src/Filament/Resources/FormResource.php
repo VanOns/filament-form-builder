@@ -237,6 +237,7 @@ class FormResource extends Resource
                     ->columns(3)
                     ->collapsed()
                     ->reactive()
+                    ->default([])
                     ->schema([
                         Select::make('class')
                             ->label(__('filament-form-builder::general.integration'))
