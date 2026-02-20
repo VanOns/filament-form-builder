@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Traits;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Traits\Forms\CanBeCustom;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasAttributes;
+use VanOns\FilamentFormBuilder\Traits\Forms\HasIntegrations;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasLifecycle;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasMessages;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasModifiers;
@@ -26,6 +27,7 @@ trait IsFilamentForm
     use HasResponses;
     use HasLifecycle;
     use HasNotifications;
+    use HasIntegrations;
 
     public function __construct(public Form $form)
     {

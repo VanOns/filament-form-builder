@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
+use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionCreated;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionDeleted;
@@ -138,7 +139,18 @@ class FormSubmission extends Model
                 formSubmission: $this,
                 notification: $notification
             ),
-            $this->form->notifications,
+            $this->form->notifications ?? [],
+        );
+    }
+
+    /**
+     * @return array<Integration>
+ */
+    public function getIntegrations(): array
+    {
+        return array_map(
+            fn (array $integration) => Integration::fromArray($this, $integration),
+            $this->form->integrations ?? [],
         );
     }
 

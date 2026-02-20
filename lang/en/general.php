@@ -59,4 +59,6 @@ return [
     'form_submitted_successfully' => 'Form submitted successfully',
     'form_redirect_example' => 'E.g. :url',
     'what_happens_after_submission' => 'What should happen after submission?',
+    'integration' => 'Integration',
+    'integrations' => 'Integrations',
 ];

@@ -9,13 +9,13 @@ interface HasNotifications
 {
     public static function hasNotifications(): bool;
 
-    public static function triggerNotifications(FormSubmission $submission): void;
-
     /**
      * @param FormSubmission $submission
      * @return array<EmailNotification>
      */
     public static function getNotifications(FormSubmission $submission): array;
+
+    public static function triggerNotifications(FormSubmission $submission): void;
 
     public static function sendNotifications(FormSubmission $submission): void;
 

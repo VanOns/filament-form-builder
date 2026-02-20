@@ -14,6 +14,11 @@ trait HasNotifications
         return true;
     }
 
+    public static function getNotifications(FormSubmission $submission): array
+    {
+        return $submission->getNotifications();
+    }
+
     public static function triggerNotifications(FormSubmission $submission): void
     {
         if (!self::hasNotifications()) {
@@ -21,11 +26,6 @@ trait HasNotifications
         }
 
         self::sendNotifications($submission);
-    }
-
-    public static function getNotifications(FormSubmission $submission): array
-    {
-        return $submission->getNotifications();
     }
 
     public static function sendNotifications(FormSubmission $submission): void

@@ -8,6 +8,9 @@ return [
         \VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm::class => 'Custom',
         \VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm::class => 'Contact',
     ],
+    'integrations' => [
+        // Insert integrations here
+    ],
     'rate-limit-hour' => 60,
     'email_notification_enabled' => false,
     'form-middleware' => ['web'],

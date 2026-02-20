@@ -56,4 +56,9 @@ return [
     'no_settings' => 'Geen instellingen',
     'heading_level' => 'Kopniveau',
     'text' => 'Tekst',
+    'form_submitted_successfully' => 'Formulier succesvol verzonden',
+    'form_redirect_example' => 'Bijv. :url',
+    'what_happens_after_submission' => 'Wat moet er gebeuren na verzending?',
+    'integration' => 'Integratie',
+    'integrations' => 'Integraties',
 ];

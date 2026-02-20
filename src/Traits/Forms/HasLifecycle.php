@@ -15,5 +15,6 @@ trait HasLifecycle
     public static function afterSubmissionCreated(FormSubmission $submission): void
     {
         self::triggerNotifications($submission);
+        self::triggerIntegrations($submission);
     }
 }
