@@ -29,17 +29,6 @@ trait HasModifiers
     }
 
     /**
-     * Hook to perform actions after a form submission is created.
-     *
-     * @param FormSubmission $submission
-     * @return void
-     */
-    public static function afterSubmissionCreated(FormSubmission $submission): void
-    {
-        //
-    }
-
-    /**
      * Modify the data shown in the Filament resource detail view.
      *
      * @param array<string, mixed> $data

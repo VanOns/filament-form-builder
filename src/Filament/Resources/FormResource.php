@@ -155,6 +155,7 @@ class FormResource extends Resource
     {
         return Section::make(__('filament-form-builder::general.email_notifications'))
             ->collapsible()
+            ->visible(self::hasNotificationsEnabled(...))
             ->schema([
                 Repeater::make('notifications')
                     ->label(__('filament-form-builder::general.email_notifications'))
@@ -332,5 +333,15 @@ class FormResource extends Resource
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    public static function hasNotificationsEnabled(Get $get): bool
+    {
+        $template = $get('template');
+        if ((isset($template) && is_subclass_of($template, FilamentForm::class))) {
+            return $template::hasNotifications();
+        }
+
+        return false;
     }
 }

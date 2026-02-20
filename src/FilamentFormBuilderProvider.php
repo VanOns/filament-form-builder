@@ -5,11 +5,8 @@ namespace VanOns\FilamentFormBuilder;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionCreated;
-use VanOns\FilamentFormBuilder\Listeners\FormSubmission\SendFormSubmissionNotification;
 use VanOns\FilamentFormBuilder\View\Components\Form;
 
 class FilamentFormBuilderProvider extends ServiceProvider
@@ -27,7 +24,6 @@ class FilamentFormBuilderProvider extends ServiceProvider
         $this->hasViews();
         $this->hasRoutes();
         $this->hasRateLimiter();
-        $this->hasEvents();
     }
 
     public function hasMigrations(): void
@@ -84,14 +80,6 @@ class FilamentFormBuilderProvider extends ServiceProvider
                 return Limit::perHour($limit)
                     ->by($request->user()?->id ?: $request->ip());
             }
-        );
-    }
-
-    public function hasEvents(): void
-    {
-        Event::listen(
-            FormSubmissionCreated::class,
-            SendFormSubmissionNotification::class,
         );
     }
 }
