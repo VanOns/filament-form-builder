@@ -77,6 +77,7 @@ class ViewFormSubmission extends ViewRecord
 
         if (empty($integrationResponses)) {
             return Section::make(__('filament-form-builder::general.integration_responses'))
+                ->hidden(empty(Integration::getIntegrations()))
                 ->icon('heroicon-o-server-stack')
                 ->iconSize(IconSize::ExtraLarge)
                 ->description(__('filament-form-builder::general.no_integrations'));
@@ -130,8 +131,6 @@ class ViewFormSubmission extends ViewRecord
         return Section::make(__('filament-form-builder::general.integration_responses'))
             ->icon('heroicon-o-server-stack')
             ->iconSize(IconSize::ExtraLarge)
-            ->columnSpanFull()
-            ->columns()
             ->description(__('filament-form-builder::general.integration_responses_description'))
             ->schema($entries);
     }

@@ -40,15 +40,20 @@ class Integration
      */
     public static function getOptionList(): array
     {
-        /** @var array<class-string<static>> $integrations */
-        $integrations = config('filament-form-builder.integrations', []);
-
-        return collect($integrations)
+        return collect(self::getIntegrations())
             ->mapWithKeys(function (string $integration): array {
                 /** @var class-string<static> $integration */
                 return [$integration => $integration::label()];
             })
             ->toArray();
+    }
+
+    /**
+     * @return array<class-string<static>>
+     */
+    public static function getIntegrations(): array
+    {
+        return config('filament-form-builder.integrations', []);
     }
 
     public function handle(): void
