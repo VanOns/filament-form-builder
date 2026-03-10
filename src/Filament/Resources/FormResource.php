@@ -33,6 +33,7 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\Actions\ModalAction;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormBuilder;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
+use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
 class FormResource extends Resource
 {
@@ -90,9 +91,7 @@ class FormResource extends Resource
                     ->required()
                     ->label(__('filament-form-builder::general.template'))
                     ->searchable()
-                    ->options([
-                        ...self::getFormTemplates(),
-                    ])
+                    ->options(FormComponent::getTemplates())
                     ->live()
                     ->columnSpan(1),
                 TextInput::make('title')
@@ -354,15 +353,6 @@ class FormResource extends Resource
     }
 
     /**
-     * @return array<string, string>
-     */
-    protected static function getFormTemplates(): array
-    {
-        return collect(config('filament-form-builder.templates'))
-            ->toArray();
-    }
-
-    /**
      * @return Builder<FormModel>
      */
     public static function getEloquentQuery(): Builder
@@ -385,6 +375,10 @@ class FormResource extends Resource
 
     public static function hasIntegrationsEnabled(Get $get): bool
     {
+        if (empty(Integration::getIntegrations())) {
+            return false;
+        }
+
         $template = $get('template');
         if ((isset($template) && is_subclass_of($template, FilamentForm::class))) {
             return $template::hasIntegrations();
