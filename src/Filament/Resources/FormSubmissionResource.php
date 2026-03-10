@@ -12,6 +12,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
+use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -104,11 +106,22 @@ class FormSubmissionResource extends Resource
                 Actions\ForceDeleteAction::make(),
                 Actions\RestoreAction::make(),
             ])
+            ->headerActions([
+                Actions\ExportAction::make()
+                    ->label(__('filament-form-builder::general.export_form_submissions'))
+                    ->visible(config('filament-form-builder.enable_export_action') === true)
+                    ->exporter(FormSubmissionExporter::class),
+            ])
             ->toolbarActions([
                 Actions\BulkActionGroup::make([
                     Actions\DeleteBulkAction::make(),
                     Actions\ForceDeleteBulkAction::make(),
                     Actions\RestoreBulkAction::make(),
+                    Actions\ExportBulkAction::make()
+                        ->beforeFormFilled(fn (Collection $records) => FormSubmissionExporter::$selectedRecords = $records)
+                        ->label(__('filament-form-builder::general.export_form_submissions'))
+                        ->visible(config('filament-form-builder.enable_export_action') === true)
+                        ->exporter(FormSubmissionExporter::class),
                 ]),
             ]);
     }

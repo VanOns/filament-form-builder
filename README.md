@@ -645,3 +645,8 @@ To enable dynamic visibility in the custom form builder, you need to import the 
 // app.js
 import '../../vendor/van-ons/filament-form-builder/resources/js/form-builder.js';
 ```
+
+## Export Form Submissions
+Because the Export action required extra steps, it is not enabled by default.
+You can enable the Export action in the `filament-form-builder.php` config file. For this to work, you need to follow the steps in the FilamentPHP documentation:
+[Export Action](https://filamentphp.com/docs/4.x/actions/export)

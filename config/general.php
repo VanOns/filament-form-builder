@@ -33,4 +33,5 @@ return [
         'secret' => env('RECAPTCHA_SECRET', ''),
         'key' => env('RECAPTCHA_KEY', ''),
     ],
+    'enable_export_action' => false,
 ];

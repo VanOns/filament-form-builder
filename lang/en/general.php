@@ -71,4 +71,5 @@ return [
     'response' => 'Response',
     'key' => 'Key',
     'value' => 'Value',
+    'export_form_submissions' => 'Export form submissions',
 ];
