@@ -11,7 +11,7 @@ trait HasIntegrations
 
     public static function hasIntegrations(): bool
     {
-        return true;
+        return !empty(Integration::getIntegrations());
     }
 
     public static function getIntegrations(FormSubmission $submission): array

@@ -11,7 +11,7 @@ trait HasNotifications
 {
     public static function hasNotifications(): bool
     {
-        return true;
+        return config('filament-form-builder.email_notification_enabled') === true;
     }
 
     public static function getNotifications(FormSubmission $submission): array

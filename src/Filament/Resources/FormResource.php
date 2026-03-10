@@ -67,7 +67,6 @@ class FormResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        $groupColumns = fn (Get $get) => (self::hasIntegrationsEnabled($get) && self::hasNotificationsEnabled($get)) ? 2 : 1;
         return $schema
             ->components([
                 static::getGeneralSection()
@@ -79,7 +78,9 @@ class FormResource extends Resource
                 Group::make([
                     static::getEmailNotificationSection(),
                     static::getIntegrationsSections(),
-                ])->columnSpanFull()->columns($groupColumns(...)),
+                ])->columnSpanFull()->columns([
+                    'xl' => 2,
+                ]),
             ]);
     }
 
@@ -375,10 +376,6 @@ class FormResource extends Resource
 
     public static function hasIntegrationsEnabled(Get $get): bool
     {
-        if (empty(Integration::getIntegrations())) {
-            return false;
-        }
-
         $template = $get('template');
         if ((isset($template) && is_subclass_of($template, FilamentForm::class))) {
             return $template::hasIntegrations();
