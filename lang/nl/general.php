@@ -71,4 +71,5 @@ return [
     'response' => 'Reactie',
     'key' => 'Sleutel',
     'value' => 'Waarde',
+    'export_form_submissions' => 'Exporteer formulier inzendingen',
 ];
