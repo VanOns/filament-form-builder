@@ -28,8 +28,15 @@ trait HasResponses
     public function responseData(): array
     {
         return [
-            'response' => $this->response ?? 'No response',
+            'response' => $this->flattenResponse(),
             'success' => $this->success ?? 'Unknown',
         ];
+    }
+
+    protected function flattenResponse(): array
+    {
+        return collect($this->response ?? [
+            'message' => 'No response provided.',
+        ])->dot()->all();
     }
 }
