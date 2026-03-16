@@ -44,6 +44,8 @@ return [
         'subject' => 'Subject',
         'content' => 'Content',
         'sender' => 'Sender',
+        'sender_hint' => 'Leave empty to use the default sender email.',
+        'sender_callout' => 'Ensure that the sender email is correctly configured in the mail provider (e.g., Mandrill, Brevo) to avoid delivery issues.',
         'receivers' => 'Receivers',
         'email_or_field' => 'Email or field',
         'email_or_field_hint' => 'Add email address or choose a field with an email address.',
