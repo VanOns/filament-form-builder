@@ -7,9 +7,11 @@ use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Enums\VisibilityType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Helpers\FieldHelper;
@@ -26,6 +28,13 @@ class FormBuilder extends Field
                 ->extraItemActions([
                     static::getVisibilityAction(),
                 ])
+                ->afterStateHydrated(static function (Component $component, ?array $rawState): void {
+                    $component->rawState(
+                        collect($rawState ?? [])
+                            ->mapWithKeys(fn ($itemData) => [(string) Str::uuid() => $itemData])
+                            ->toArray(),
+                    );
+                })
                 ->cloneable()
                 ->itemLabel(function (?array $state) {
                     $class = $state['fieldType'] ?? null;
