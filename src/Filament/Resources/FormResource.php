@@ -10,6 +10,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -196,11 +197,15 @@ class FormResource extends Resource
                             ->columnSpanFull()
                             ->label(__('filament-form-builder::general.notifications.content'))
                             ->required(),
+                        Callout::make(__('filament-form-builder::general.notifications.sender_callout'))
+                            ->warning()
+                            ->columnSpanFull(),
                         TextInput::make('sender')
+                            ->columnSpan(2)
+                            ->helperText(__('filament-form-builder::general.notifications.sender_hint'))
                             ->label(__('filament-form-builder::general.notifications.sender'))
-                            ->placeholder('example@email.com')
-                            ->email()
-                            ->required(),
+                            ->placeholder(config('mail.from.address', 'email@example.com'))
+                            ->email(),
                         Repeater::make('receivers')
                             ->columnStart(1)
                             ->columnSpanFull()

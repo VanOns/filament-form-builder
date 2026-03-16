@@ -44,6 +44,8 @@ return [
         'subject' => 'Onderwerp',
         'content' => 'Content',
         'sender' => 'Afzender',
+        'sender_hint' => 'Laat leeg om de standaard afzender e-mail te gebruiken.',
+        'sender_callout' => 'Zorg ervoor dat het afzender e-mailadres correct is geconfigureerd in de e-mailprovider (bijv. Mandrill, Brevo) om bezorgproblemen te voorkomen.',
         'receivers' => 'Ontvangers',
         'email_or_field' => 'Email of veld',
         'email_or_field_hint' => 'Voeg een e-mailadres toe of kies een veld met een e-mailadres.',

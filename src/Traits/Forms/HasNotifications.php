@@ -43,6 +43,7 @@ trait HasNotifications
                     emailSubject: $notification->subject,
                     emailContent: $notification->content,
                     formSubmission: $submission,
+                    sender: $notification->sender,
                 ));
         }
     }

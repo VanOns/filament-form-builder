@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Mail\FormSubmission;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -16,15 +17,17 @@ class FormSubmissionCreatedMail extends Mailable implements ShouldQueue
     use SerializesModels;
 
     public function __construct(
-        public string $emailSubject,
-        public string $emailContent,
+        public string         $emailSubject,
+        public string         $emailContent,
         public FormSubmission $formSubmission,
+        public ?string         $sender = null,
     ) {
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
+            from: !empty($this->sender) ? new Address($this->sender) : null,
             subject: $this->emailSubject,
         );
     }
