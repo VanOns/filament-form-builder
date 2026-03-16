@@ -11,6 +11,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Callout;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -27,6 +28,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
@@ -169,6 +171,13 @@ class FormResource extends Resource
                     ->columns(3)
                     ->collapsed()
                     ->default([])
+                    ->afterStateHydrated(static function (Component $component, ?array $rawState): void {
+                        $component->rawState(
+                            collect($rawState ?? [])
+                                ->mapWithKeys(fn ($itemData) => [(string) Str::uuid() => $itemData])
+                                ->toArray(),
+                        );
+                    })
                     ->extraItemActions([
                         ModalAction::make('placeholders')
                             ->hidden(fn (?FormModel $record) => is_null($record))
@@ -207,6 +216,7 @@ class FormResource extends Resource
                             ->placeholder(config('mail.from.address', 'email@example.com'))
                             ->email(),
                         Repeater::make('receivers')
+                            ->reorderable(false)
                             ->columnStart(1)
                             ->columnSpanFull()
                             ->label(__('filament-form-builder::general.notifications.receivers'))
@@ -243,6 +253,13 @@ class FormResource extends Resource
                     ->collapsed()
                     ->reactive()
                     ->default([])
+                    ->afterStateHydrated(static function (Component $component, ?array $rawState): void {
+                        $component->rawState(
+                            collect($rawState ?? [])
+                                ->mapWithKeys(fn ($itemData) => [(string) Str::uuid() => $itemData])
+                                ->toArray(),
+                        );
+                    })
                     ->schema([
                         Select::make('class')
                             ->label(__('filament-form-builder::general.integration'))

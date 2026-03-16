@@ -5,7 +5,9 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class SelectField extends FormField
@@ -66,6 +68,13 @@ class SelectField extends FormField
                 ->columnSpanFull()
                 ->label(__('filament-form-builder::fields.options'))
                 ->columns()
+                ->afterStateHydrated(static function (Component $component, ?array $rawState): void {
+                    $component->rawState(
+                        collect($rawState ?? [])
+                            ->mapWithKeys(fn ($itemData) => [(string) Str::uuid() => $itemData])
+                            ->toArray(),
+                    );
+                })
                 ->schema([
                     TextInput::make('value')
                         ->required(),
