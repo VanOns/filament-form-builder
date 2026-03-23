@@ -76,6 +76,8 @@ class FormResource extends Resource
                     ->columnSpanFull(),
                 static::getCustomSection()
                     ->columnSpanFull(),
+                static::getSettingsSection()
+                    ->columnSpanFull(),
                 static::getSubmitNotificationSection()
                     ->columnSpanFull(),
                 Group::make([
@@ -85,6 +87,28 @@ class FormResource extends Resource
                     'xl' => 2,
                 ]),
             ]);
+    }
+
+    public static function getSettingsSection(): Section
+    {
+        return Section::make(__('filament-form-builder::general.settings'))
+            ->statePath('settings')
+            ->visible(function (Get $get): bool {
+                $template = $get('template');
+
+                return isset($template)
+                    && is_subclass_of($template, FilamentForm::class)
+                    && !empty($template::settings());
+            })
+            ->schema(function (Get $get): array {
+                $template = $get('template');
+
+                if (!isset($template) || !is_subclass_of($template, FilamentForm::class)) {
+                    return [];
+                }
+
+                return $template::settings();
+            });
     }
 
     public static function getGeneralSection(): Section

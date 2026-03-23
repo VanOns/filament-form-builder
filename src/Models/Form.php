@@ -22,6 +22,7 @@ use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
  * @property string|class-string<FilamentForm> $template
  * @property array<string, mixed> $custom
  * @property array<int, mixed> $notifications
+ * @property array<string, mixed> $settings
  * @property string $submit_notification_type
  * @property string $submit_notification_content
  * @property Carbon|null $created_at
@@ -57,6 +58,7 @@ class Form extends Model
             'custom' => 'array',
             'notifications' => 'array',
             'integrations' => 'array',
+            'settings' => 'array',
         ];
     }
 
