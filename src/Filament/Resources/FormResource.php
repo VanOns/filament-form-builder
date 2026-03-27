@@ -89,7 +89,8 @@ class FormResource extends Resource
                             ->icon('heroicon-o-cog-6-tooth')
                             ->visible(self::hasSettings(...))
                             ->schema([
-                                static::getSettingsSection(),
+                                static::getSettingsSection()
+                                    ->columns(),
                             ]),
                         Tabs\Tab::make(__('filament-form-builder::general.email_notification'))
                             ->icon('heroicon-o-bell-alert')
