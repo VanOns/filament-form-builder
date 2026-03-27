@@ -92,6 +92,8 @@ class FormResource extends Resource
     public static function getSettingsSection(): Section
     {
         return Section::make(__('filament-form-builder::general.settings'))
+            ->description(__('filament-form-builder::general.settings_explanation'))
+            ->icon('heroicon-o-cog-6-tooth')
             ->statePath('settings')
             ->visible(function (Get $get): bool {
                 $template = $get('template');
@@ -153,6 +155,8 @@ class FormResource extends Resource
     public static function getSubmitNotificationSection(): Section
     {
         return Section::make(__('filament-form-builder::general.submit_notification'))
+            ->description(__('filament-form-builder::general.submit_notification_explanation'))
+            ->icon('heroicon-o-paper-airplane')
             ->schema([
                 ToggleButtons::make('submit_notification_type')
                     ->required()
@@ -186,7 +190,9 @@ class FormResource extends Resource
     public static function getEmailNotificationSection(): Section
     {
         return Section::make(__('filament-form-builder::general.email_notifications'))
+            ->description(__('filament-form-builder::general.email_notification_explanation'))
             ->visible(self::hasNotificationsEnabled(...))
+            ->icon('heroicon-o-bell-alert')
             ->schema([
                 Repeater::make('notifications')
                     ->label(__('filament-form-builder::general.email_notifications'))
