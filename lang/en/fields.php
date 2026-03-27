@@ -14,6 +14,7 @@ return [
     'large' => 'Large',
     'rows' => 'Rows',
     'input_type' => 'Input type',
+    'field_type' => 'Field type',
     'helper_texts' => [
         'submitter_email' => 'Use the key `submitter_email` to use this field as submitter email address.',
     ],
