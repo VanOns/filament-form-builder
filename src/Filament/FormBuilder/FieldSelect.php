@@ -15,6 +15,7 @@ class FieldSelect extends Select
             ->toArray();
 
         $this->options($fields)
+            ->label(__('filament-form-builder::fields.field_type'))
             ->placeholder(__('filament-form-builder::fields.form_builder_placeholder'))
             ->reactive()
             ->helperText(function (?string $state) {

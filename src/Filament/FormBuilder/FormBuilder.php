@@ -24,6 +24,7 @@ class FormBuilder extends Field
     {
         $this->schema([
             Repeater::make('fields')
+                ->label(__('filament-form-builder::fields.fields'))
                 ->default([])
                 ->extraItemActions([
                     static::getVisibilityAction(),

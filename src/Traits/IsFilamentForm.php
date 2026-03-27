@@ -14,6 +14,7 @@ use VanOns\FilamentFormBuilder\Traits\Forms\HasPlaceholders;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasRecaptcha;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasResponses;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasRules;
+use VanOns\FilamentFormBuilder\Traits\Forms\HasSettings;
 
 trait IsFilamentForm
 {
@@ -28,6 +29,7 @@ trait IsFilamentForm
     use HasLifecycle;
     use HasNotifications;
     use HasIntegrations;
+    use HasSettings;
 
     public function __construct(public Form $form)
     {

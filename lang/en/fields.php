@@ -14,6 +14,7 @@ return [
     'large' => 'Large',
     'rows' => 'Rows',
     'input_type' => 'Input type',
+    'field_type' => 'Field type',
     'helper_texts' => [
         'submitter_email' => 'Use the key `submitter_email` to use this field as submitter email address.',
     ],
@@ -29,4 +30,5 @@ return [
     'multiple_uploads' => 'Multiple uploads',
     'form_force_deletion_warning' => 'Deleting this field will also delete all associated form submissions.',
     'form_deletion_warning' => 'After this action, the form will still be stored in the database.',
+    'fields' => 'Fields',
 ];

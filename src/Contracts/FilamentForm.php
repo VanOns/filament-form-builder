@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Contracts;
 
+use Filament\Schemas\Components\Component;
 use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -97,4 +98,12 @@ interface FilamentForm extends HasNotifications, HasIntegrations
      * @return array<string, mixed>
      */
     public static function modifyResourceDataUsing(array $data, FormSubmission $submission): array;
+
+    /**
+     * Return additional Filament form components rendered in the admin settings section.
+     * Values are stored in the `settings` JSON column on the Form model.
+     *
+     * @return array<Component>
+     */
+    public static function settings(): array;
 }

@@ -14,6 +14,7 @@ return [
     'large' => 'Groot',
     'rows' => 'Rijen',
     'input_type' => 'Invoertype',
+    'field_type' => 'Veldtype',
     'helper_texts' => [
         'submitter_email' => 'Gebruik de key `submitter_email` om dit veld als indiener e-mailadres te gebruiken.',
     ],
@@ -29,4 +30,5 @@ return [
     'multiple_uploads' => 'Meerdere uploads',
     'form_force_deletion_warning' => 'Het verwijderen van dit veld zal ook alle bijbehorende formulierinzendingen verwijderen.',
     'form_deletion_warning' => 'Na deze actie wordt het formulier nog steeds in de database opgeslagen.',
+    'fields' => 'Velden',
 ];

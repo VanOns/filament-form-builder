@@ -47,6 +47,6 @@ trait HasVisibility
 
     public static function hasVisibilitySettings(): bool
     {
-        return true;
+        return config('filament-form-builder.field_visibility_settings') === true;
     }
 }
