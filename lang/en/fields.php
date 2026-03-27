@@ -29,4 +29,5 @@ return [
     'multiple_uploads' => 'Multiple uploads',
     'form_force_deletion_warning' => 'Deleting this field will also delete all associated form submissions.',
     'form_deletion_warning' => 'After this action, the form will still be stored in the database.',
+    'fields' => 'Fields',
 ];

@@ -14,6 +14,7 @@ use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
@@ -72,20 +73,37 @@ class FormResource extends Resource
     {
         return $schema
             ->components([
-                static::getGeneralSection()
-                    ->columnSpanFull(),
-                static::getCustomSection()
-                    ->columnSpanFull(),
-                static::getSettingsSection()
-                    ->columnSpanFull(),
-                static::getSubmitNotificationSection()
-                    ->columnSpanFull(),
-                Group::make([
-                    static::getEmailNotificationSection(),
-                    static::getIntegrationsSections(),
-                ])->columnSpanFull()->columns([
-                    'xl' => 2,
-                ]),
+                Tabs::make()
+                    ->columnSpanFull()
+                    ->contained(false)
+                    ->tabs([
+                        Tabs\Tab::make(__('filament-form-builder::general.general'))
+                            ->icon('heroicon-o-pencil-square')
+                            ->schema([
+                                static::getGeneralSection(),
+                                static::getCustomSection(),
+                                static::getSubmitNotificationSection()
+                                    ->hidden(fn (Get $get) => empty($get('template'))),
+                            ]),
+                        Tabs\Tab::make(__('filament-form-builder::general.settings'))
+                            ->icon('heroicon-o-cog-6-tooth')
+                            ->visible(self::hasSettings(...))
+                            ->schema([
+                                static::getSettingsSection(),
+                            ]),
+                        Tabs\Tab::make(__('filament-form-builder::general.email_notification'))
+                            ->icon('heroicon-o-bell-alert')
+                            ->visible(self::hasNotificationsEnabled(...))
+                            ->schema([
+                                static::getEmailNotificationSection(),
+                            ]),
+                        Tabs\Tab::make(__('filament-form-builder::general.integrations'))
+                            ->icon('heroicon-o-server-stack')
+                            ->visible(self::hasIntegrationsEnabled(...))
+                            ->schema([
+                                static::getIntegrationsSection(),
+                            ]),
+                    ]),
             ]);
     }
 
@@ -95,13 +113,6 @@ class FormResource extends Resource
             ->description(__('filament-form-builder::general.settings_explanation'))
             ->icon('heroicon-o-cog-6-tooth')
             ->statePath('settings')
-            ->visible(function (Get $get): bool {
-                $template = $get('template');
-
-                return isset($template)
-                    && is_subclass_of($template, FilamentForm::class)
-                    && !empty($template::settings());
-            })
             ->schema(function (Get $get): array {
                 $template = $get('template');
 
@@ -134,19 +145,10 @@ class FormResource extends Resource
 
     public static function getCustomSection(): Section
     {
-        $visible = function (array $state) {
-            if (!$template = $state['template']) {
-                return false;
-            }
-
-            return class_exists($template)
-                && is_subclass_of($template, FilamentForm::class)
-                && $template::isCustom();
-        };
-
         return Section::make(__('filament-form-builder::general.custom_form'))
-            ->collapsible()
-            ->visible(fn (array $state) => $visible($state))
+            ->description(__('filament-form-builder::general.custom_form_explanation'))
+            ->icon('heroicon-o-cube')
+            ->visible(self::hasCustomFields(...))
             ->schema([
                 FormBuilder::make('custom'),
             ])->columnSpanFull();
@@ -194,11 +196,17 @@ class FormResource extends Resource
             ->visible(self::hasNotificationsEnabled(...))
             ->icon('heroicon-o-bell-alert')
             ->schema([
+                Callout::make(__('filament-form-builder::general.notifications.sender_callout'))
+                    ->warning()
+                    ->columnSpanFull(),
                 Repeater::make('notifications')
                     ->label(__('filament-form-builder::general.email_notifications'))
                     ->hiddenLabel()
                     ->columnSpanFull()
                     ->columns(3)
+                    ->grid([
+                        '2xl' => 2,
+                    ])
                     ->collapsed()
                     ->default([])
                     ->afterStateHydrated(static function (Component $component, ?array $rawState): void {
@@ -236,9 +244,6 @@ class FormResource extends Resource
                             ->columnSpanFull()
                             ->label(__('filament-form-builder::general.notifications.content'))
                             ->required(),
-                        Callout::make(__('filament-form-builder::general.notifications.sender_callout'))
-                            ->warning()
-                            ->columnSpanFull(),
                         TextInput::make('sender')
                             ->columnSpan(2)
                             ->helperText(__('filament-form-builder::general.notifications.sender_hint'))
@@ -265,12 +270,11 @@ class FormResource extends Resource
             ])->columns();
     }
 
-    public static function getIntegrationsSections(): Section
+    public static function getIntegrationsSection(): Section
     {
         $options = fn () => Integration::getOptionList();
         return Section::make(__('filament-form-builder::general.integrations'))
             ->description(__('filament-form-builder::general.integrations_explanation'))
-            ->visible(self::hasIntegrationsEnabled(...))
             ->icon('heroicon-o-server-stack')
             ->iconSize(IconSize::ExtraLarge)
             ->schema([
@@ -279,7 +283,7 @@ class FormResource extends Resource
                     ->hiddenLabel()
                     ->itemLabel(fn (array $state) => isset($state['class']) ? ($options()[$state['class']] ?? $state['class']) : __('filament-form-builder::general.integration'))
                     ->columnSpanFull()
-                    ->columns(3)
+                    ->columns()
                     ->collapsed()
                     ->reactive()
                     ->default([])
@@ -296,7 +300,6 @@ class FormResource extends Resource
                             ->hiddenLabel()
                             ->required()
                             ->reactive()
-                            ->columnSpan(2)
                             ->options($options),
 
                         Group::make(self::getIntegrationSchema(...))
@@ -450,5 +453,25 @@ class FormResource extends Resource
         return [
             ...$schema ?? [],
         ];
+    }
+
+    public static function hasSettings(Get $get): bool
+    {
+        $template = $get('template');
+
+        return isset($template)
+            && is_subclass_of($template, FilamentForm::class)
+            && !empty($template::settings());
+    }
+
+    public static function hasCustomFields(array $state): bool
+    {
+        if (!$template = $state['template']) {
+            return false;
+        }
+
+        return class_exists($template)
+            && is_subclass_of($template, FilamentForm::class)
+            && $template::isCustom();
     }
 }

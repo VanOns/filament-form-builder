@@ -34,4 +34,5 @@ return [
         'key' => env('RECAPTCHA_KEY', ''),
     ],
     'enable_export_action' => false,
+    'field_visibility_settings' => true,
 ];

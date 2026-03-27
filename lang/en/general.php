@@ -17,6 +17,7 @@ return [
     'submit_notification_explanation' => 'Redirect or show message after form submission.',
     'submissions' => 'Submissions',
     'last_submission' => 'Last submission',
+    'notifications_label' => 'Notifications',
     'notification_receiver_count' => 'Notification receiver count',
     'email_notifications' => 'Email notifications',
     'email_notification' => 'Email notification',
@@ -77,4 +78,5 @@ return [
     'value' => 'Value',
     'export_form_submissions' => 'Export form submissions',
     'settings_explanation' => 'Configure settings for this form.',
+    'custom_form_explanation' => 'Build a custom form with the fields you need.',
 ];

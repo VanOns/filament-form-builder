@@ -17,6 +17,7 @@ return [
     'submit_notification_explanation' => 'Redirect of toon bericht na het indienen van het formulier.',
     'submissions' => 'Inzendingen',
     'last_submission' => 'Laatste inzending',
+    'notifications_label' => 'Notificaties',
     'notification_receiver_count' => 'Aantal notificatie ontvangers',
     'email_notifications' => 'E-mail notificaties',
     'email_notification' => 'E-mail notificatie',
@@ -77,4 +78,5 @@ return [
     'value' => 'Waarde',
     'export_form_submissions' => 'Exporteer formulier inzendingen',
     'settings_explanation' => 'Configureer instellingen voor dit formulier.',
+    'custom_form_explanation' => 'Bouw een aangepast formulier met de velden die je nodig hebt.',
 ];
