@@ -2,10 +2,10 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
-use Illuminate\Support\Facades\Mail;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
-use VanOns\FilamentFormBuilder\Mail\FormSubmission\FormSubmissionCreatedMail;
+use VanOns\FilamentFormBuilder\Jobs\SendFormNotificationJob;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
+use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
 
 trait HasNotifications
 {
@@ -38,13 +38,26 @@ trait HasNotifications
     public static function sendNotification(EmailNotification $notification, FormSubmission $submission): void
     {
         foreach ($notification->receivers as $receiver) {
-            Mail::to($receiver)
-                ->send(new FormSubmissionCreatedMail(
-                    emailSubject: $notification->subject,
-                    emailContent: $notification->content,
-                    formSubmission: $submission,
+            try {
+                $log = FormSubmissionNotificationLog::create([
+                    'form_submission_id' => $submission->id,
+                    'notification_subject' => $notification->subject,
+                    'sender' => $notification->sender,
+                    'recipient' => $receiver,
+                    'status' => 'queued',
+                ]);
+
+                SendFormNotificationJob::dispatch(
+                    notificationLogId: $log->id,
+                    subject: $notification->subject,
+                    content: $notification->content,
                     sender: $notification->sender,
-                ));
+                    receiver: $receiver,
+                    formSubmission: $submission,
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -57,6 +58,14 @@ class FormSubmission extends Model
     public function form(): BelongsTo
     {
         return $this->belongsTo(Form::class);
+    }
+
+    /**
+     * @return HasMany<FormSubmissionNotificationLog, $this>
+     */
+    public function notificationLogs(): HasMany
+    {
+        return $this->hasMany(FormSubmissionNotificationLog::class);
     }
 
     /**

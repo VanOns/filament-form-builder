@@ -68,6 +68,7 @@ class ViewFormSubmission extends ViewRecord
                     ]),
 
                 $this->getIntegrationsSection($record),
+                $this->getNotificationLogsSection($record),
             ]);
     }
 
@@ -132,6 +133,90 @@ class ViewFormSubmission extends ViewRecord
             ->icon('heroicon-o-server-stack')
             ->iconSize(IconSize::ExtraLarge)
             ->description(__('filament-form-builder::general.integration_responses_description'))
+            ->schema($entries);
+    }
+
+    public function getNotificationLogsSection(FormSubmission $record): Section
+    {
+        $logs = $record->notificationLogs()->orderBy('created_at')->get();
+
+        if ($logs->isEmpty()) {
+            return Section::make(__('filament-form-builder::general.notification_logs'))
+                ->hidden(!config('filament-form-builder.email_notification_enabled'))
+                ->icon('heroicon-o-envelope')
+                ->iconSize(IconSize::ExtraLarge)
+                ->description(__('filament-form-builder::general.no_notification_logs'));
+        }
+
+        $entries = [];
+
+        foreach ($logs as $log) {
+            $color = match ($log->status) {
+                'sent' => 'success',
+                'failed' => 'danger',
+                default => 'gray',
+            };
+
+            $schema = [
+                TextEntry::make('notification_subject_' . $log->id)
+                    ->label(__('filament-form-builder::general.notifications.subject'))
+                    ->state($log->notification_subject),
+                TextEntry::make('sender_' . $log->id)
+                    ->label(__('filament-form-builder::general.sender'))
+                    ->state($log->sender ?? __('filament-form-builder::general.default_sender')),
+                TextEntry::make('recipient_' . $log->id)
+                    ->label(__('filament-form-builder::general.recipient'))
+                    ->state($log->recipient),
+                TextEntry::make('status_' . $log->id)
+                    ->label(__('filament-form-builder::general.status'))
+                    ->badge()
+                    ->color($color)
+                    ->state(match ($log->status) {
+                        'sent' => __('filament-form-builder::general.success'),
+                        'failed' => __('filament-form-builder::general.failed'),
+                        default => __('filament-form-builder::general.queued'),
+                    }),
+            ];
+
+            if ($log->sent_at) {
+                $schema[] = TextEntry::make('sent_at_' . $log->id)
+                    ->label(__('filament-form-builder::general.sent_at'))
+                    ->state($log->sent_at)
+                    ->dateTime();
+            }
+
+            if ($log->failed_at) {
+                $schema[] = TextEntry::make('failed_at_' . $log->id)
+                    ->label(__('filament-form-builder::general.failed_at'))
+                    ->state($log->failed_at)
+                    ->dateTime();
+            }
+
+            if ($log->error) {
+                $schema[] = TextEntry::make('error_' . $log->id)
+                    ->label(__('filament-form-builder::general.error'))
+                    ->state($log->error)
+                    ->color('danger');
+            }
+
+            $entries[] = Section::make($log->notification_subject)
+                ->description($log->recipient)
+                ->collapsed()
+                ->icon(match ($log->status) {
+                    'sent' => 'heroicon-o-check-circle',
+                    'failed' => 'heroicon-o-x-circle',
+                    default => 'heroicon-o-clock',
+                })
+                ->iconColor($color)
+                ->schema($schema)
+                ->columns()
+                ->collapsible();
+        }
+
+        return Section::make(__('filament-form-builder::general.notification_logs'))
+            ->icon('heroicon-o-envelope')
+            ->iconSize(IconSize::ExtraLarge)
+            ->description(__('filament-form-builder::general.notification_logs_description'))
             ->schema($entries);
     }
 }
