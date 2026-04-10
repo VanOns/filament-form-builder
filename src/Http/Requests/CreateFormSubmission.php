@@ -77,8 +77,9 @@ class CreateFormSubmission extends FormRequest
      */
     public function validationData(): array
     {
-        if ($template = $this->getForm()->template) {
-            return $template::modifyDataBeforeValidation($this->all());
+        $form = $this->getForm();
+        if ($template = $form->template) {
+            return $template::modifyDataBeforeValidation($this->all(), $form);
         }
 
         return $this->all();

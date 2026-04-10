@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
+use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 trait HasModifiers
@@ -12,7 +13,7 @@ trait HasModifiers
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    public static function modifyDataBeforeValidation(array $data): array
+    public static function modifyDataBeforeValidation(array $data, Form $form): array
     {
         return $data;
     }
@@ -23,7 +24,7 @@ trait HasModifiers
      * @param array $data
      * @return array
      */
-    public static function modifyDataUsing(array $data): array
+    public static function modifyDataUsing(array $data, Form $form): array
     {
         return $data;
     }

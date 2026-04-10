@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Contracts;
 
 use Filament\Schemas\Components\Component;
 use Illuminate\Support\HtmlString;
+use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 interface FilamentForm extends HasNotifications, HasIntegrations
@@ -72,7 +73,7 @@ interface FilamentForm extends HasNotifications, HasIntegrations
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    public static function modifyDataBeforeValidation(array $data): array;
+    public static function modifyDataBeforeValidation(array $data, Form $form): array;
 
     /**
      * Modify the form data before it is processed.
@@ -80,7 +81,7 @@ interface FilamentForm extends HasNotifications, HasIntegrations
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    public static function modifyDataUsing(array $data): array;
+    public static function modifyDataUsing(array $data, Form $form): array;
 
     /**
      * Hook to perform actions after a form submission is created.

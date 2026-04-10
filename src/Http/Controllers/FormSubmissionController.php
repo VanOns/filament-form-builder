@@ -29,9 +29,9 @@ class FormSubmissionController
         /** @var FilamentForm $template */
         $template = $form->template;
 
-        $data = $template::modifyDataUsing($data);
+        $data = $template::modifyDataUsing($data, $form);
 
-        $submitterEmail = $request->get('submitter_email');
+        $submitterEmail = $request->input('submitter_email');
         if (empty($submitterEmail)) {
             if (!empty($emailData = Arr::only($data, static::getPossibleEmailFields()))) {
                 $submitterEmail = head($emailData);
