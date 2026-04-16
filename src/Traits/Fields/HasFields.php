@@ -8,7 +8,6 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 
 trait HasFields
 {
@@ -25,23 +24,17 @@ trait HasFields
      */
     protected static function getDefaultFields(): array
     {
-        $getKey = function (Get $get, ?string $state) {
-            $key = \Str::snake($get('key') ?? $state ?? '');
-            $prefix = FormField::$keyPrefix;
-            return empty($key)
-                ? null
-                : __('filament-form-builder::fields.key') . ": {$prefix}{$key}";
-        };
-
         return [
             TextInput::make('label')
                 ->reactive()
-                ->helperText($getKey(...))
+                ->helperText(static::getKeyHelperText(...))
                 ->label(__('filament-form-builder::fields.label')),
             TextInput::make('key')
                 ->required()
                 ->reactive()
                 ->visible(fn (Get $get) => $get('set_key'))
+                ->rules([static::getKeyValidationRule()])
+                ->validationMessages(['not_regex' => __('filament-form-builder::fields.key_invalid_characters')])
                 ->label(__('filament-form-builder::fields.key')),
             Group::make([
                 Checkbox::make('required')
