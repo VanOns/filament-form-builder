@@ -24,7 +24,7 @@ trait HasAttributes
     /**
      * @param array<string, string|null>|null $attributes
      */
-    public function getAttributes(array $attributes = null, bool $withRequired = true): string
+    public function getAttributes(?array $attributes = null, bool $withRequired = true): string
     {
         return AttributeHelper::arrayToString($attributes ?? $this->getAttributesList($withRequired));
     }
