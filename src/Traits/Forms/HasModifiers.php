@@ -21,8 +21,8 @@ trait HasModifiers
     /**
      * Modify the form data before it is processed.
      *
-     * @param array $data
-     * @return array
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     public static function modifyDataUsing(array $data, Form $form): array
     {

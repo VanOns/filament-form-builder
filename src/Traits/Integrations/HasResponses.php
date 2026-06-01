@@ -4,9 +4,15 @@ namespace VanOns\FilamentFormBuilder\Traits\Integrations;
 
 trait HasResponses
 {
+    /**
+     * @var array<string, mixed>|null
+     */
     public ?array $response = null;
     public ?bool $success = null;
 
+    /**
+     * @param null|string|array<string, mixed> $response
+     */
     public function setResponse(null|string|array $response): static
     {
         if (is_string($response)) {
@@ -25,6 +31,9 @@ trait HasResponses
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function responseData(): array
     {
         return [
@@ -33,6 +42,9 @@ trait HasResponses
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function flattenResponse(): array
     {
         return collect($this->response ?? [
