@@ -19,6 +19,7 @@ return (new PhpCsFixer\Config)
         'explicit_string_variable' => true,
         'method_chaining_indentation' => true,
         'no_unused_imports' => true,
+        'ordered_imports' => true,
         'single_quote' => true,
         'trailing_comma_in_multiline' => true,
         'phpdoc_line_span' => true,
