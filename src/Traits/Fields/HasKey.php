@@ -10,7 +10,9 @@ trait HasKey
     public ?string $key;
     public static string $keyPrefix = 'key_';
 
-    /** @var array<string> */
+    /**
+     * @var array<string>
+     */
     public static array $disallowedKeyCharacters = ['.', '*', ' '];
 
     protected function generateKey(): string
