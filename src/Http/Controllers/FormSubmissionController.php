@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -49,10 +50,12 @@ class FormSubmissionController
             return $response;
         }
 
-        if ($form->submit_notification_type === SubmitNotificationType::URL->value && !empty($form->submit_notification_content)) {
-            $callBackUrl = $form->submit_notification_content;
+        if ($form->submit_notification_type === SubmitNotificationType::URL->value) {
+            $callBackUrl = FilamentFormBuilderPlugin::resolveRedirectUrl($form->submit_notification_content, $form);
 
-            return redirect($callBackUrl);
+            if (!empty($callBackUrl)) {
+                return redirect($callBackUrl);
+            }
         }
 
         return back(Response::HTTP_CREATED)->with([
