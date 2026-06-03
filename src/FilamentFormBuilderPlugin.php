@@ -14,7 +14,7 @@ use VanOns\FilamentFormBuilder\Models\Form;
 
 class FilamentFormBuilderPlugin implements Plugin
 {
-    protected static ?Closure $redirectFieldUsing = null;
+    protected static ?Closure $redirectSchemaUsing = null;
 
     protected static ?Closure $resolveRedirectUrlUsing = null;
 
@@ -24,11 +24,13 @@ class FilamentFormBuilderPlugin implements Plugin
     }
 
     /**
-     * Override the redirect URL field. Default is a plain URL TextInput.
+     * Override the redirect URL branch schema. Default is a single URL TextInput.
+     *
+     * @param  Closure(): array<Component>  $callback
      */
-    public static function redirectFieldUsing(Closure $callback): void
+    public static function redirectSchemaUsing(Closure $callback): void
     {
-        static::$redirectFieldUsing = $callback;
+        static::$redirectSchemaUsing = $callback;
     }
 
     /**
@@ -39,18 +41,23 @@ class FilamentFormBuilderPlugin implements Plugin
         static::$resolveRedirectUrlUsing = $callback;
     }
 
-    public static function getRedirectField(): Component
+    /**
+     * @return array<Component>
+     */
+    public static function getRedirectSchema(): array
     {
-        if (static::$redirectFieldUsing !== null) {
-            return (static::$redirectFieldUsing)();
+        if (static::$redirectSchemaUsing !== null) {
+            return (static::$redirectSchemaUsing)();
         }
 
-        return TextInput::make('submit_notification_content')
-            ->label(__('filament-form-builder::general.url'))
-            ->required()
-            ->placeholder(__('filament-form-builder::general.form_redirect_example', ['url' => 'https://example.com/form-confirmation']))
-            ->suffixIcon(Heroicon::OutlinedLink)
-            ->columnSpanFull();
+        return [
+            TextInput::make('submit_notification_url')
+                ->label(__('filament-form-builder::general.url'))
+                ->required()
+                ->placeholder(__('filament-form-builder::general.form_redirect_example', ['url' => 'https://example.com/form-confirmation']))
+                ->suffixIcon(Heroicon::OutlinedLink)
+                ->columnSpanFull(),
+        ];
     }
 
     public static function resolveRedirectUrl(mixed $stored, Form $form): ?string

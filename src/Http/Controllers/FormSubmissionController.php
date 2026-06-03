@@ -51,7 +51,7 @@ class FormSubmissionController
         }
 
         if ($form->submit_notification_type === SubmitNotificationType::URL->value) {
-            $callBackUrl = FilamentFormBuilderPlugin::resolveRedirectUrl($form->submit_notification_content, $form);
+            $callBackUrl = FilamentFormBuilderPlugin::resolveRedirectUrl($form->submit_notification_url, $form);
 
             if (!empty($callBackUrl)) {
                 return redirect($callBackUrl);

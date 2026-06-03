@@ -25,7 +25,8 @@ use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
  * @property array<int, mixed> $notifications
  * @property array<string, mixed> $settings
  * @property string $submit_notification_type
- * @property string|array<string, mixed> $submit_notification_content
+ * @property string $submit_notification_content
+ * @property string|array<string, mixed>|null $submit_notification_url
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -60,7 +61,7 @@ class Form extends Model
             'notifications' => 'array',
             'integrations' => 'array',
             'settings' => 'array',
-            'submit_notification_content' => RedirectUrl::class,
+            'submit_notification_url' => RedirectUrl::class,
         ];
     }
 

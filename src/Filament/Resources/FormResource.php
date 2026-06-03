@@ -16,7 +16,6 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\IconSize;
@@ -169,21 +168,16 @@ class FormResource extends Resource
                     ->default(SubmitNotificationType::URL)
                     ->live()
                     ->columnSpan(1)
-                    ->grouped()
-                    ->afterStateUpdated(fn (Set $set) => $set('submit_notification_content', null)),
-                Group::make([
-                    FilamentFormBuilderPlugin::getRedirectField()
-                        ->visible(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::URL),
-                ])->columnSpanFull(),
-                // Built only for the Content type so the rich editor never tries to
-                // parse a stored redirect URL (or array) as rich-text content.
-                Group::make(fn (Get $get): array => $get('submit_notification_type') === SubmitNotificationType::Content ? [
-                    RichEditor::make('submit_notification_content')
-                        ->label(__('filament-form-builder::general.content'))
-                        ->required()
-                        ->placeholder(__('filament-form-builder::general.form_submitted_successfully'))
-                        ->columnSpanFull(),
-                ] : [])->columnSpanFull(),
+                    ->grouped(),
+                Group::make(FilamentFormBuilderPlugin::getRedirectSchema())
+                    ->visible(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::URL)
+                    ->columnSpanFull(),
+                RichEditor::make('submit_notification_content')
+                    ->label(__('filament-form-builder::general.content'))
+                    ->required()
+                    ->placeholder(__('filament-form-builder::general.form_submitted_successfully'))
+                    ->visible(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::Content)
+                    ->columnSpanFull(),
             ])->columns();
     }
 
