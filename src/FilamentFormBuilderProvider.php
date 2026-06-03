@@ -6,31 +6,31 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\ServiceProvider;
+use Spatie\LaravelPackageTools\Package;
+use Spatie\LaravelPackageTools\PackageServiceProvider;
 use VanOns\FilamentFormBuilder\View\Components\Form;
 
-class FilamentFormBuilderProvider extends ServiceProvider
+class FilamentFormBuilderProvider extends PackageServiceProvider
 {
-    public function register(): void
+    public function configurePackage(Package $package): void
     {
+        // discoversMigrations() auto-finds every file in database/migrations and,
+        // on publish, strips the timestamp prefix to match any already-published
+        // migration by name, reusing that file instead of creating a duplicate.
+        // This is what fixes `vendor:publish` recreating all migrations each run.
+        $package
+            ->name('filament-form-builder')
+            ->discoversMigrations();
     }
 
-    public function boot(): void
+    public function packageBooted(): void
     {
-        $this->hasMigrations();
         $this->hasTranslations();
         $this->hasConfig();
         $this->hasViewComponents();
         $this->hasViews();
         $this->hasRoutes();
         $this->hasRateLimiter();
-    }
-
-    public function hasMigrations(): void
-    {
-        $this->publishesMigrations([
-            __DIR__.'/../database/migrations' => database_path('migrations'),
-        ], 'filament-form-builder-migrations');
     }
 
     public function hasTranslations(): void
