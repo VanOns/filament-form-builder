@@ -16,7 +16,6 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\IconSize;
@@ -36,6 +35,7 @@ use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Actions\ModalAction;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormBuilder;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
 use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
@@ -168,25 +168,16 @@ class FormResource extends Resource
                     ->default(SubmitNotificationType::URL)
                     ->live()
                     ->columnSpan(1)
-                    ->grouped()
-                    ->afterStateUpdated(fn (Set $set) => $set('submit_notification_content', null)),
-                Group::make(function (Get $get) {
-                    $isType = fn (SubmitNotificationType $type) => $get('submit_notification_type') === $type;
-
-                    return [
-                        $isType(SubmitNotificationType::URL) ? TextInput::make('submit_notification_content')
-                            ->label(__('filament-form-builder::general.url'))
-                            ->required()
-                            ->placeholder(__('filament-form-builder::general.form_redirect_example', ['url' => 'https://example.com/form-confirmation']))
-                            ->suffixIcon(Heroicon::OutlinedLink)
-                            ->columnSpanFull() : null,
-                        $isType(SubmitNotificationType::Content) ? RichEditor::make('submit_notification_content')
-                            ->label(__('filament-form-builder::general.content'))
-                            ->required()
-                            ->placeholder(__('filament-form-builder::general.form_submitted_successfully'))
-                            ->columnSpanFull() : null,
-                    ];
-                })->columnSpanFull(),
+                    ->grouped(),
+                Group::make(FilamentFormBuilderPlugin::getRedirectSchema())
+                    ->visible(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::URL)
+                    ->columnSpanFull(),
+                RichEditor::make('submit_notification_content')
+                    ->label(__('filament-form-builder::general.content'))
+                    ->required()
+                    ->placeholder(__('filament-form-builder::general.form_submitted_successfully'))
+                    ->visible(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::Content)
+                    ->columnSpanFull(),
             ])->columns();
     }
 

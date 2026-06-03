@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use VanOns\FilamentFormBuilder\Casts\RedirectUrl;
 use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
 use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
@@ -25,6 +26,7 @@ use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
  * @property array<string, mixed> $settings
  * @property string $submit_notification_type
  * @property string $submit_notification_content
+ * @property string|array<string, mixed>|null $submit_notification_url
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -59,6 +61,7 @@ class Form extends Model
             'notifications' => 'array',
             'integrations' => 'array',
             'settings' => 'array',
+            'submit_notification_url' => RedirectUrl::class,
         ];
     }
 
