@@ -1,6 +1,4 @@
-# Filament Form Builder
-
-## Contents
+# Table of contents
 
 1. [Introduction](introduction.md)
 2. [Compatibility](compatibility.md)
