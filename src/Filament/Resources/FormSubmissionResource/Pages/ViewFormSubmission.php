@@ -43,9 +43,7 @@ class ViewFormSubmission extends ViewRecord
                     ->schema([
                         TextEntry::make('form.title')
                             ->label(__('filament-form-builder::general.form_title'))
-                            ->url(function (FormSubmission $record) {
-                                return FormResource::getUrl('edit', ['record' => $record->form]);
-                            }),
+                            ->url(fn (FormSubmission $record) => FormResource::editOrViewUrl($record->form)),
                         TextEntry::make('created_at')
                             ->label(__('filament-form-builder::general.created_at'))
                             ->dateTime(),
