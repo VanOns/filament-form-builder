@@ -136,6 +136,39 @@ You can register your component in the `templates` array.
 The key must be the component's class, the value is the label that the admin
 will see in the templates dropdown in the Filament Resource.
 
+### Modifying submission data
+
+A form template may override these hooks to transform submission data. They run
+at different stages and affect different outputs — choose the right one:
+
+| Hook                                                               | When it runs                    | Affects                                              |
+|--------------------------------------------------------------------|---------------------------------|------------------------------------------------------|
+| `modifyDataBeforeValidation(array $data, Form $form)`              | Before validation               | Validated input                                      |
+| `modifyDataUsing(array $data, Form $form)`                         | Before the submission is stored | Stored `data`                                        |
+| `modifyDataValues(array $data, FormSubmission $submission)`        | When rendering values           | **Both** the detail view **and** notification emails |
+| `modifyResourceDataUsing(array $data, FormSubmission $submission)` | When rendering the detail view  | Detail view **only**                                 |
+
+`modifyDataValues()` formats stored values into human-readable output while
+keeping the original field-name keys, so it applies to both the Filament detail
+view and the notification emails. This is the hook you want for value formatting
+(e.g. mapping an enum value to its label):
+
+```php
+public static function modifyDataValues(array $data, FormSubmission $submission): array
+{
+    return [
+        ...$data,
+        'property_type' => static::getOptions('property_type')[$data['property_type']] ?? null,
+    ];
+}
+```
+
+> **Note:** `modifyResourceDataUsing()` rewrites the keys into human labels and
+> is used by the detail view only. Do **not** put value formatting here if you
+> also want it reflected in emails — use `modifyDataValues()` instead. By default
+> `modifyResourceDataUsing()` already runs your `modifyDataValues()` output through
+> key formatting, so overriding it is rarely needed.
+
 ### Using a form
 
 To use a form simply add the provided component in your blade view, and give it
