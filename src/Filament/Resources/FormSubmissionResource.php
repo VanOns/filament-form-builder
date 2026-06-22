@@ -10,7 +10,6 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
@@ -23,15 +22,12 @@ class FormSubmissionResource extends Resource
 
     protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
-    /**
-     * @return Builder<FormSubmission>
-     */
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
-            ])->with(['form' => fn (BelongsTo $q) => $q->withTrashed()]);
+            ])->with(['form' => fn ($q) => $q->withTrashed()]);
     }
 
     public static function getModelLabel(): string

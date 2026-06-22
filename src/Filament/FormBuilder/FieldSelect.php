@@ -5,13 +5,14 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 
 class FieldSelect extends Select
 {
     protected function setUp(): void
     {
-        $fields = collect(config('filament-form-builder.fields', []))
-            ->mapWithKeys(fn ($field) => [$field => $field::label()])
+        $fields = collect((array) config('filament-form-builder.fields', []))
+            ->mapWithKeys(fn (FormField $field): array => [$field->getKey() => $field->label()])
             ->toArray();
 
         $this->options($fields)

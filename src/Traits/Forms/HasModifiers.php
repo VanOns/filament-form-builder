@@ -21,9 +21,9 @@ trait HasModifiers
     /**
      * Modify the form data before it is processed.
      *
-     * @param array $data
+     * @param array<string, mixed> $data
      * @param Form $form
-     * @return array
+     * @return array<string, mixed>
      */
     public static function modifyDataUsing(array $data, Form $form): array
     {
@@ -32,10 +32,6 @@ trait HasModifiers
 
     /**
      * Modify the submission values while keeping the original field-name keys.
-     *
-     * Use this to turn stored values into human-readable output (e.g. mapping an
-     * enum value to its label). It is applied to both the Filament resource detail
-     * view and the notification emails, so formatting stays consistent across both.
      *
      * @param array<string, mixed> $data
      * @param FormSubmission $submission

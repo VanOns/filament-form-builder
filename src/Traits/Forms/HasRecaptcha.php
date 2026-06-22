@@ -11,6 +11,9 @@ trait HasRecaptcha
         return $this->recaptcha ?? false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getRecaptchaRules(): array
     {
         return $this->hasRecaptcha() && RecaptchaService::checkEnabled()

@@ -12,6 +12,9 @@ trait HasRules
         return [];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getDefaultRules(): array
     {
         return [

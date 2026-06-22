@@ -7,6 +7,9 @@ use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 trait HasIntegrations
 {
+    /**
+     * @var array<int, array<string, mixed>>
+     */
     protected static array $integrationResponses = [];
 
     public static function hasIntegrations(): bool

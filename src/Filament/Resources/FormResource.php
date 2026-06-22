@@ -409,9 +409,6 @@ class FormResource extends Resource
         ];
     }
 
-    /**
-     * @return Builder<FormModel>
-     */
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
@@ -442,7 +439,7 @@ class FormResource extends Resource
 
     /**
      * @param array<string, mixed> $state
-     * @return array<string, string>
+     * @return array<int, Component>
      */
     public static function getIntegrationSchema(array $state): array
     {
@@ -465,6 +462,9 @@ class FormResource extends Resource
             && !empty($template::settings());
     }
 
+    /**
+     * @param array<string, mixed> $state
+     */
     public static function hasCustomFields(array $state): bool
     {
         if (!$template = $state['template']) {
