@@ -22,9 +22,22 @@ trait HasModifiers
      * Modify the form data before it is processed.
      *
      * @param array<string, mixed> $data
+     * @param Form $form
      * @return array<string, mixed>
      */
     public static function modifyDataUsing(array $data, Form $form): array
+    {
+        return $data;
+    }
+
+    /**
+     * Modify the submission values while keeping the original field-name keys.
+     *
+     * @param array<string, mixed> $data
+     * @param FormSubmission $submission
+     * @return array<string, mixed>
+     */
+    public static function modifyDataValues(array $data, FormSubmission $submission): array
     {
         return $data;
     }
@@ -40,7 +53,7 @@ trait HasModifiers
     {
         return $submission->getFormattedData(
             formatKeys: true,
-            data: $data
+            data: static::modifyDataValues($data, $submission),
         );
     }
 }

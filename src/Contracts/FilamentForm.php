@@ -92,6 +92,16 @@ interface FilamentForm extends HasNotifications, HasIntegrations
     public static function afterSubmissionCreated(FormSubmission $submission): void;
 
     /**
+     * Modify the submission values while keeping the original field-name keys.
+     * Applied to both the resource detail view and notification emails.
+     *
+     * @param array<string, mixed> $data
+     * @param FormSubmission $submission
+     * @return array<string, mixed>
+     */
+    public static function modifyDataValues(array $data, FormSubmission $submission): array;
+
+    /**
      * Modify the data shown in the Filament resource detail view.
      *
      * @param array<string, mixed> $data

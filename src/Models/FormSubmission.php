@@ -100,6 +100,22 @@ class FormSubmission extends Model
     }
 
     /**
+     * Apply the form template's value formatting while keeping the original
+     * field-name keys (used by notification emails, where keys map to placeholders).
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function modifyDataValuesUsing(array $data): array
+    {
+        $template = $this->form->template;
+        if (is_subclass_of($template, FilamentForm::class)) {
+            return $template::modifyDataValues($data, $this);
+        }
+        return $data;
+    }
+
+    /**
      * @param bool $formatKeys
      * @param array<string, mixed>|null $data
      * @return array<string>

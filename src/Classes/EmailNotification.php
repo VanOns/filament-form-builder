@@ -145,7 +145,10 @@ class EmailNotification
 
         return [
             ...$placeholders,
-            ...$this->formSubmission->getFormattedData(),
+            ...$this->formSubmission->getFormattedData(
+                formatKeys: false,
+                data: $this->formSubmission->modifyDataValuesUsing($this->formSubmission->data),
+            ),
             'submitter_email' => $this->formSubmission->submitter_email,
         ];
     }
