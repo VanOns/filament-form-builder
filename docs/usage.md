@@ -54,10 +54,11 @@ at different stages and affect different outputs — choose the right one:
 | `modifyDataValues(array $data, FormSubmission $submission)`        | When rendering values           | **Both** the detail view **and** notification emails |
 | `modifyResourceDataUsing(array $data, FormSubmission $submission)` | When rendering the detail view  | Detail view **only**                                 |
 
-`modifyDataValues()` formats stored values into human-readable output while
-keeping the original field-name keys, so it applies to both the Filament detail
-view and the notification emails. This is the hook you want for value formatting
-(e.g. mapping an enum value to its label):
+`modifyDataValues()` is the hook for formatting stored values into human-readable
+output while keeping the original field-name keys. By default it returns the data
+unchanged. Override it to apply your own formatting. When you do, the formatting
+applies to both the Filament detail view and the notification emails. This is the
+hook you want for value formatting (e.g. mapping an enum value to its label):
 
 ```php
 public static function modifyDataValues(array $data, FormSubmission $submission): array
