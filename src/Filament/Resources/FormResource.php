@@ -9,6 +9,7 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Component;
@@ -16,10 +17,13 @@ use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\IconSize;
+use Filament\Support\Enums\TextSize;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -28,12 +32,10 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Actions\ModalAction;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormBuilder;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
@@ -97,6 +99,7 @@ class FormResource extends Resource
                             ->icon('heroicon-o-bell-alert')
                             ->visible(self::hasNotificationsEnabled(...))
                             ->schema([
+                                static::getPlaceholdersSection(),
                                 static::getEmailNotificationSection(),
                             ]),
                         Tabs\Tab::make(__('filament-form-builder::general.integrations'))
@@ -209,19 +212,6 @@ class FormResource extends Resource
                                 ->toArray(),
                         );
                     })
-                    ->extraItemActions([
-                        ModalAction::make('placeholders')
-                            ->hidden(fn (?FormModel $record) => is_null($record))
-                            ->modalContent(function (Get $get, ?FormModel $record) {
-                                /**
-                                 * @var null|string|class-string<FilamentForm> $template
-                                 */
-                                $template = $get('template');
-                                return (isset($template) && is_subclass_of($template, FilamentForm::class))
-                                    ? $record?->getFormComponent()->getPlaceholdersHtmlString()
-                                    : new HtmlString(__('filament-form-builder::general.unknown'));
-                            }),
-                    ])
                     ->itemLabel(function (array $state) {
                         if ($subject = $state['subject'] ?? null) {
                             return "{$subject} - " . __('filament-form-builder::general.email_notification');
@@ -268,6 +258,39 @@ class FormResource extends Resource
                             ),
                     ]),
             ])->columns();
+    }
+
+    public static function getPlaceholdersSection(): Section
+    {
+        return Section::make(__('filament-form-builder::general.placeholders'))
+            ->description(__('filament-form-builder::general.placeholders_explanation'))
+            ->icon('heroicon-o-list-bullet')
+            ->collapsed()
+            ->collapsible()
+            ->visible(fn (?FormModel $record) => !is_null($record))
+            ->schema([
+                Text::make(__('filament-form-builder::general.placeholders_copy_hint'))
+                    ->color('gray')
+                    ->size(TextSize::Small),
+                TextEntry::make('placeholders')
+                    ->hiddenLabel()
+                    ->badge()
+                    ->copyable()
+                    ->fontFamily(FontFamily::Mono)
+                    ->placeholder(__('filament-form-builder::general.unknown'))
+                    ->state(function (Get $get, ?FormModel $record): array {
+                        /**
+                         * @var null|string|class-string<FilamentForm> $template
+                         */
+                        $template = $get('template');
+                        return (isset($template) && is_subclass_of($template, FilamentForm::class))
+                            ? $record?->getFormComponent()->getPlaceholderList() ?? []
+                            : [];
+                    }),
+                Text::make(__('filament-form-builder::general.placeholders_receivers_hint'))
+                    ->color('gray')
+                    ->size(TextSize::Small),
+            ]);
     }
 
     public static function getIntegrationsSection(): Section

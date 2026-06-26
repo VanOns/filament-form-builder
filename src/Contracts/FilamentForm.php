@@ -3,7 +3,6 @@
 namespace VanOns\FilamentFormBuilder\Contracts;
 
 use Filament\Schemas\Components\Component;
-use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -41,11 +40,11 @@ interface FilamentForm extends HasNotifications, HasIntegrations
     public function getPlaceholders(): array;
 
     /**
-     * Returns an HTML string with the placeholders formatted for display.
+     * Returns the available placeholders formatted for display.
      *
-     * @return HtmlString
+     * @return array<int, string>
      */
-    public function getPlaceholdersHtmlString(): HtmlString;
+    public function getPlaceholderList(): array;
 
     /**
      * @return array<string, string>

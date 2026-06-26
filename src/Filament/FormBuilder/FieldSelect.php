@@ -10,11 +10,11 @@ class FieldSelect extends Select
 {
     protected function setUp(): void
     {
-        /** @var array<int, class-string<Fields\FormField>> $configured */
-        $configured = (array) config('filament-form-builder.fields', []);
-
-        $fields = collect($configured)
-            ->mapWithKeys(fn (string $field): array => [$field => $field::label()])
+        $fields = collect((array) config('filament-form-builder.fields', []))
+            ->mapWithKeys(
+                /** @param class-string<FormField> $field */
+                fn (string $field): array => [$field => $field::label()]
+            )
             ->toArray();
 
         $this->options($fields)

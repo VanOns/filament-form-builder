@@ -2,8 +2,6 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
-use Illuminate\Support\HtmlString;
-
 trait HasPlaceholders
 {
     /**
@@ -46,22 +44,20 @@ trait HasPlaceholders
     }
 
     /**
-     * Returns an HTML string with the placeholders formatted for display.
+     * Returns the available placeholders formatted for display.
      *
-     * @return HtmlString
+     * @return array<int, string>
      */
-    public function getPlaceholdersHtmlString(): HtmlString
+    public function getPlaceholderList(): array
     {
         $formPlaceholders = [
             ...array_keys($this->getPlaceholders()),
             ...$this->getDefaultPlaceholders(),
         ];
 
-        $placeholders = array_map(
+        return array_map(
             fn ($value) => '{{ $' . $value . ' }}',
             $formPlaceholders
         );
-
-        return new HtmlString('<p>' . __('filament-form-builder::general.you_can_use_placeholders') . '<br/><br/>' . implode('<br/>', $placeholders));
     }
 }
