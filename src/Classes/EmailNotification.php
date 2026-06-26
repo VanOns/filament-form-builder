@@ -34,7 +34,7 @@ class EmailNotification
         $this->content = $this->replacePlaceholders($notification['content'] ?? '');
         $this->content = $this->sanitizeContent($this->content);
         $this->sender = $notification['sender'] ?? '';
-        $this->senderName = $notification['senderName'] ?? '';
+        $this->senderName = $this->replacePlaceholders($notification['senderName'] ?? '');
         $this->receivers = $this->parseReceivers(
             $notification['receivers'] ?? []
         );
