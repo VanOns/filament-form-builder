@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
+use Throwable;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Jobs\SendFormNotificationJob;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -54,8 +55,9 @@ trait HasNotifications
                     sender: $notification->sender,
                     receiver: $receiver,
                     formSubmission: $submission,
+                    senderName: $notification->senderName,
                 );
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 report($e);
             }
         }

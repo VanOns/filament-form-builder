@@ -5,7 +5,6 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 
 class FieldSelect extends Select
 {

@@ -13,6 +13,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
@@ -226,12 +227,19 @@ class FormResource extends Resource
                             ->columnSpanFull()
                             ->label(__('filament-form-builder::general.notifications.content'))
                             ->required(),
-                        TextInput::make('sender')
-                            ->columnSpan(2)
-                            ->helperText(__('filament-form-builder::general.notifications.sender_hint'))
-                            ->label(__('filament-form-builder::general.notifications.sender'))
-                            ->placeholder(config('mail.from.address', 'email@example.com'))
-                            ->email(),
+                        Fieldset::make(__('filament-form-builder::general.notifications.sender'))
+                            ->columnSpanFull()
+                            ->schema([
+                                TextInput::make('sender')
+                                    ->helperText(__('filament-form-builder::general.notifications.sender_hint'))
+                                    ->label(__('filament-form-builder::general.notifications.email'))
+                                    ->placeholder(config('mail.from.address', 'email@example.com'))
+                                    ->email(),
+                                TextInput::make('senderName')
+                                    ->helperText(__('filament-form-builder::general.notifications.name_hint'))
+                                    ->label(__('filament-form-builder::general.notifications.name'))
+                                    ->placeholder(config('mail.from.name')),
+                            ]),
                         Repeater::make('receivers')
                             ->reorderable(false)
                             ->columnStart(1)

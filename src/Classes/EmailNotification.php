@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Classes;
 
+use Exception;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Str;
@@ -15,6 +16,7 @@ class EmailNotification
     public string $subject;
     public string $content;
     public string $sender = '';
+    public string $senderName = '';
     /**
      * @var array<string>
      */
@@ -32,6 +34,7 @@ class EmailNotification
         $this->content = $this->replacePlaceholders($notification['content'] ?? '');
         $this->content = $this->sanitizeContent($this->content);
         $this->sender = $notification['sender'] ?? '';
+        $this->senderName = $notification['senderName'] ?? '';
         $this->receivers = $this->parseReceivers(
             $notification['receivers'] ?? []
         );
@@ -164,7 +167,7 @@ class EmailNotification
             if (is_subclass_of($template, FilamentForm::class)) {
                 return $this->formSubmission->form->getFormComponent()->getPlaceholders();
             }
-        } catch (\Exception) {
+        } catch (Exception) {
             return [];
         }
 

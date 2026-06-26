@@ -27,6 +27,7 @@ class SendFormNotificationJob implements ShouldQueue
         public ?string $sender,
         public string $receiver,
         public FormSubmission $formSubmission,
+        public ?string $senderName = null,
     ) {
     }
 
@@ -38,6 +39,7 @@ class SendFormNotificationJob implements ShouldQueue
                 emailContent: $this->content,
                 formSubmission: $this->formSubmission,
                 sender: $this->sender,
+                senderName: $this->senderName,
             ));
 
         FormSubmissionNotificationLog::find($this->notificationLogId)?->update([

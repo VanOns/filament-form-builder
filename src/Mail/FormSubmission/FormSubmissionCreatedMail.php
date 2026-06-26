@@ -18,13 +18,14 @@ class FormSubmissionCreatedMail extends Mailable
         public string         $emailContent,
         public FormSubmission $formSubmission,
         public ?string         $sender = null,
+        public ?string         $senderName = null,
     ) {
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: !empty($this->sender) ? new Address($this->sender) : null,
+            from: !empty($this->sender) ? new Address($this->sender, $this->senderName ?: null) : null,
             subject: $this->emailSubject,
         );
     }
