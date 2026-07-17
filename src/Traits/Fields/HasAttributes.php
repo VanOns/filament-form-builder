@@ -6,6 +6,9 @@ use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
 
 trait HasAttributes
 {
+    /**
+     * @return array<string, string|null>
+     */
     public function getAttributesList(bool $withRequired = true): array
     {
         return array_filter([
@@ -18,7 +21,10 @@ trait HasAttributes
         ]);
     }
 
-    public function getAttributes(array $attributes = null, bool $withRequired = true): string
+    /**
+     * @param array<string, string|null>|null $attributes
+     */
+    public function getAttributes(?array $attributes = null, bool $withRequired = true): string
     {
         return AttributeHelper::arrayToString($attributes ?? $this->getAttributesList($withRequired));
     }

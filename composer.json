@@ -1,28 +1,49 @@
 {
     "name": "van-ons/filament-form-builder",
-    "description": "A form-builder plugin for FilamentPHP",
+    "description": "Add a customizable form builder to your Filament admin panel.",
+    "keywords": [
+        "laravel",
+        "filament",
+        "form-builder"
+    ],
+    "type": "library",
     "license": "MIT",
     "authors": [
         {
-            "name": "Patrick",
-            "email": "patrick@van-ons.nl"
+            "name": "Van Ons",
+            "email": "opensource@van-ons.nl"
         }
     ],
     "require": {
         "php": "^8.2",
-        "filament/filament": "^3.3"
+        "filament/filament": "^3.3",
+        "illuminate/contracts": "^11.28|^12.0",
+        "illuminate/support": "^11.28|^12.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^10.0",
-        "friendsofphp/php-cs-fixer": "dev-master",
-        "phpstan/phpstan": "2.1.x-dev"
+        "friendsofphp/php-cs-fixer": "^3.87",
+        "orchestra/testbench": "^9.0|^10.0",
+        "pestphp/pest": "^3.0|^4.0",
+        "pestphp/pest-plugin-laravel": "^3.0|^4.0",
+        "phpstan/phpstan": "^2.1"
+    },
+    "scripts": {
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=1G",
+        "format": "vendor/bin/php-cs-fixer fix",
+        "format:check": "vendor/bin/php-cs-fixer check",
+        "test": "vendor/bin/pest"
     },
     "autoload": {
         "psr-4": {
             "VanOns\\FilamentFormBuilder\\": "src/"
         }
     },
-    "extra" : {
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "extra": {
         "laravel": {
             "providers": [
                 "VanOns\\FilamentFormBuilder\\FilamentFormBuilderProvider"
@@ -30,8 +51,10 @@
         }
     },
     "minimum-stability": "dev",
-    "scripts": {
-        "fix": "vendor/bin/php-cs-fixer fix",
-        "analyse": "vendor/bin/phpstan analyse"
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
     }
 }

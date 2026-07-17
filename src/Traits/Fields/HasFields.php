@@ -8,6 +8,7 @@ use Filament\Forms\Components\Group;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 
 trait HasFields
@@ -26,7 +27,7 @@ trait HasFields
     protected static function getDefaultFields(): array
     {
         $getKey = function (Get $get, ?string $state) {
-            $key = \Str::snake($get('key') ?? $state ?? '');
+            $key = Str::snake($get('key') ?? $state ?? '');
             $prefix = FormField::$keyPrefix;
             return empty($key)
                 ? null
