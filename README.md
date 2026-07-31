@@ -2,9 +2,10 @@
 
 # Filament Form Builder
 
-[![Tests](https://github.com/VanOns/filament-form-builder/actions/workflows/run-tests.yml/badge.svg)](https://github.com/VanOns/filament-form-builder/actions/workflows/run-tests.yml)
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/van-ons/filament-form-builder.svg)](https://packagist.org/packages/van-ons/filament-form-builder)
-[![License](https://img.shields.io/packagist/l/van-ons/filament-form-builder.svg)](LICENSE.md)
+[![Latest version on GitHub](https://img.shields.io/github/release/VanOns/filament-form-builder.svg?style=flat-square)](https://github.com/VanOns/filament-form-builder/releases)
+[![Total downloads](https://img.shields.io/packagist/dt/van-ons/filament-form-builder.svg?style=flat-square)](https://packagist.org/packages/van-ons/filament-form-builder)
+[![GitHub issues](https://img.shields.io/github/issues/VanOns/filament-form-builder?style=flat-square)](https://github.com/VanOns/filament-form-builder/issues)
+[![License](https://img.shields.io/github/license/VanOns/filament-form-builder?style=flat-square)](https://github.com/VanOns/filament-form-builder/blob/main/LICENSE.md)
 
 Add a customizable form builder to your Filament admin panel.
 
