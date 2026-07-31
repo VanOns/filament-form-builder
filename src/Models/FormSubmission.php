@@ -119,7 +119,7 @@ class FormSubmission extends Model
                 formSubmission: $this,
                 notification: $notification
             ),
-            $this->form->notifications,
+            $this->form->notifications ?? [],
         );
     }
 }

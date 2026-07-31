@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Http\Controllers;
 
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
@@ -27,10 +28,8 @@ class FormSubmissionController
         $form = Form::query()->findOrFail($formId);
 
         $submitterEmail = $request->get('submitter_email');
-        if (empty($submitterEmail)) {
-            if (!empty($emailData = Arr::only($data, static::getPossibleEmailFields()))) {
-                $submitterEmail = head($emailData);
-            }
+        if (empty($submitterEmail) && !empty($emailData = Arr::only($data, static::getPossibleEmailFields()))) {
+            $submitterEmail = head($emailData);
         }
 
         FormSubmission::query()
@@ -83,10 +82,13 @@ class FormSubmissionController
             abort(404);
         }
 
-        $mimeType = Storage::disk($disk)->mimeType($filePath);
+        $filesystem = Storage::disk($disk);
+        $mimeType = $filesystem instanceof FilesystemAdapter
+            ? $filesystem->mimeType($filePath)
+            : 'application/octet-stream';
 
         return response(
-            Storage::disk($disk)->get($filePath),
+            $filesystem->get($filePath),
             200,
             [
                 'Content-Type' => $mimeType,

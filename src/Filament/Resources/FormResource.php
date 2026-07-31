@@ -296,7 +296,7 @@ class FormResource extends Resource
      */
     protected static function getFormTemplates(): array
     {
-        return collect(config('filament-form-builder.templates'))
+        return collect((array) config('filament-form-builder.templates'))
             ->toArray();
     }
 

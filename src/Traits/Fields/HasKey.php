@@ -18,9 +18,7 @@ trait HasKey
 
     public function getKey(): string
     {
-        $key = !isset($this->key)
-            ? $this->key = $this->generateKey()
-            : $this->key;
+        $key = $this->key ?? ($this->key = $this->generateKey());
 
         return static::$keyPrefix . $key;
     }
