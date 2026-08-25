@@ -3,7 +3,7 @@
 namespace VanOns\FilamentFormBuilder\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
+use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 class CreateFormSubmission extends FormRequest
@@ -38,15 +38,11 @@ class CreateFormSubmission extends FormRequest
     private function getFormRules(): array
     {
         $form = $this->getForm();
-        $template = $form->template;
 
         $rules = [];
 
         try {
-            if (is_subclass_of($template, FilamentForm::class)) {
-                /**
-                 * @var class-string<FilamentForm> $template
-                 */
+            if (TemplateHelper::isTemplate($form->template)) {
                 $rules = $form->getFormComponent()->getRules();
             }
 

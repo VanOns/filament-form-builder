@@ -6,7 +6,7 @@ use Exception;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Str;
-use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
+use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Mail\MailPanel;
@@ -161,10 +161,8 @@ class EmailNotification
      */
     protected function getPlaceholders(): array
     {
-        $template = $this->formSubmission->form->template;
-
         try {
-            if (is_subclass_of($template, FilamentForm::class)) {
+            if (TemplateHelper::isTemplate($this->formSubmission->form->template)) {
                 return $this->formSubmission->form->getFormComponent()->getPlaceholders();
             }
         } catch (Exception) {

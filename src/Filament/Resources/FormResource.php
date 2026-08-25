@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Filament\Resources;
 
 use BackedEnum;
 use Filament\Actions;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -34,11 +35,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\Integration;
-use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormBuilder;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
+use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
 use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
@@ -86,7 +87,7 @@ class FormResource extends Resource
                                 static::getGeneralSection(),
                                 static::getCustomSection(),
                                 static::getSubmitNotificationSection()
-                                    ->hidden(fn (Get $get) => empty($get('template'))),
+                                    ->hidden(fn (Get $get) => empty($get('template')) || empty(static::getSubmitNotificationTypes($get))),
                             ]),
                         Tabs\Tab::make(__('filament-form-builder::general.settings'))
                             ->icon('heroicon-o-cog-6-tooth')
@@ -119,9 +120,7 @@ class FormResource extends Resource
             ->icon('heroicon-o-cog-6-tooth')
             ->statePath('settings')
             ->schema(function (Get $get): array {
-                $template = $get('template');
-
-                if (!isset($template) || !is_subclass_of($template, FilamentForm::class)) {
+                if (!$template = TemplateHelper::resolve($get('template'))) {
                     return [];
                 }
 
@@ -168,19 +167,24 @@ class FormResource extends Resource
                 ToggleButtons::make('submit_notification_type')
                     ->required()
                     ->label(__('filament-form-builder::general.what_happens_after_submission'))
-                    ->options(SubmitNotificationType::class)
+                    ->options(static::getSubmitNotificationTypes(...))
+                    ->enum(SubmitNotificationType::class)
                     ->default(SubmitNotificationType::URL)
                     ->live()
                     ->columnSpan(1)
-                    ->grouped(),
+                    ->grouped()
+                    ->visible(fn (Get $get) => count(static::getSubmitNotificationTypes($get)) > 1),
+                Hidden::make('submit_notification_type')
+                    ->visible(fn (Get $get) => count(static::getSubmitNotificationTypes($get)) === 1)
+                    ->dehydrateStateUsing(fn (Get $get) => static::getSubmitNotificationType($get)),
                 Group::make(FilamentFormBuilderPlugin::getRedirectSchema())
-                    ->visible(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::URL)
+                    ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::URL->value)
                     ->columnSpanFull(),
                 RichEditor::make('submit_notification_content')
                     ->label(__('filament-form-builder::general.content'))
                     ->required()
                     ->placeholder(__('filament-form-builder::general.form_submitted_successfully'))
-                    ->visible(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::Content)
+                    ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::Content->value)
                     ->columnSpanFull(),
             ])->columns();
     }
@@ -279,11 +283,7 @@ class FormResource extends Resource
                     ->fontFamily(FontFamily::Mono)
                     ->placeholder(__('filament-form-builder::general.unknown'))
                     ->state(function (Get $get, ?FormModel $record): array {
-                        /**
-                         * @var null|string|class-string<FilamentForm> $template
-                         */
-                        $template = $get('template');
-                        return (isset($template) && is_subclass_of($template, FilamentForm::class))
+                        return TemplateHelper::isTemplate($get('template'))
                             ? $record?->getFormComponent()->getPlaceholderList() ?? []
                             : [];
                     }),
@@ -447,10 +447,50 @@ class FormResource extends Resource
             ]);
     }
 
+    /**
+     * The submit notification types the selected template allows.
+     *
+     * @return array<string, string>
+     */
+    public static function getSubmitNotificationTypes(Get $get): array
+    {
+        $template = TemplateHelper::resolve($get('template'));
+
+        $types = [];
+
+        foreach (SubmitNotificationType::cases() as $type) {
+            $allowed = !$template || match ($type) {
+                SubmitNotificationType::URL => $template::hasRedirect(),
+                SubmitNotificationType::Content => $template::hasNotificationMessage(),
+            };
+
+            if ($allowed) {
+                $types[$type->value] = $type->getLabel();
+            }
+        }
+
+        return $types;
+    }
+
+    /**
+     * The selected type, or the only type the template allows.
+     */
+    public static function getSubmitNotificationType(Get $get): ?string
+    {
+        $types = array_keys(static::getSubmitNotificationTypes($get));
+
+        if (count($types) === 1) {
+            return $types[0];
+        }
+
+        $state = $get('submit_notification_type');
+
+        return $state instanceof SubmitNotificationType ? $state->value : $state;
+    }
+
     public static function hasNotificationsEnabled(Get $get): bool
     {
-        $template = $get('template');
-        if ((isset($template) && is_subclass_of($template, FilamentForm::class))) {
+        if ($template = TemplateHelper::resolve($get('template'))) {
             return $template::hasNotifications();
         }
 
@@ -459,8 +499,7 @@ class FormResource extends Resource
 
     public static function hasIntegrationsEnabled(Get $get): bool
     {
-        $template = $get('template');
-        if ((isset($template) && is_subclass_of($template, FilamentForm::class))) {
+        if ($template = TemplateHelper::resolve($get('template'))) {
             return $template::hasIntegrations();
         }
 
@@ -485,11 +524,9 @@ class FormResource extends Resource
 
     public static function hasSettings(Get $get): bool
     {
-        $template = $get('template');
+        $template = TemplateHelper::resolve($get('template'));
 
-        return isset($template)
-            && is_subclass_of($template, FilamentForm::class)
-            && !empty($template::settings());
+        return $template && !empty($template::settings());
     }
 
     /**
@@ -497,12 +534,8 @@ class FormResource extends Resource
      */
     public static function hasCustomFields(array $state): bool
     {
-        if (!$template = $state['template']) {
-            return false;
-        }
+        $template = TemplateHelper::resolve($state['template'] ?? null);
 
-        return class_exists($template)
-            && is_subclass_of($template, FilamentForm::class)
-            && $template::isCustom();
+        return $template && $template::isCustom();
     }
 }

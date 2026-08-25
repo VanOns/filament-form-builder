@@ -110,6 +110,38 @@ interface FilamentForm extends HasNotifications, HasIntegrations
     public static function modifyResourceDataUsing(array $data, FormSubmission $submission): array;
 
     /**
+     * Whether the redirect URL is configurable in the admin.
+     */
+    public static function hasRedirect(): bool;
+
+    /**
+     * Whether the notification message is configurable in the admin.
+     */
+    public static function hasNotificationMessage(): bool;
+
+    /**
+     * Modify the redirect URL and/or notification message after a submission.
+     *
+     * @param FormSubmission $submission
+     * @return void
+     */
+    public function modifySubmitNotification(FormSubmission $submission): void;
+
+    /**
+     * Fill the redirect URL and notification message, then run the template hook.
+     *
+     * @param FormSubmission $submission
+     * @return static
+     */
+    public function resolveSubmitNotification(FormSubmission $submission): static;
+
+    public function getRedirectUrl(): ?string;
+
+    public function getNotificationMessage(): ?string;
+
+    public function getNotificationType(): ?string;
+
+    /**
      * Return additional Filament form components rendered in the admin settings section.
      * Values are stored in the `settings` JSON column on the Form model.
      *
