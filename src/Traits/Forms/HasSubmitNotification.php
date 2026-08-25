@@ -66,10 +66,17 @@ trait HasSubmitNotification
         return $this->notificationMessage;
     }
 
+    /**
+     * The type of the resolved notification, or null when there is nothing to show.
+     */
     public function getNotificationType(): ?string
     {
-        return filled($this->notificationMessage)
-            ? SubmitNotificationType::Content->value
-            : $this->form->submit_notification_type;
+        if (filled($this->getNotificationMessage())) {
+            return SubmitNotificationType::Content->value;
+        }
+
+        return filled($this->getRedirectUrl())
+            ? SubmitNotificationType::URL->value
+            : null;
     }
 }
