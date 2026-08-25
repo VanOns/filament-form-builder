@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Filament\Resources;
 
 use BackedEnum;
 use Filament\Actions;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -174,8 +175,9 @@ class FormResource extends Resource
                     ->live()
                     ->columnSpan(1)
                     ->grouped()
-                    ->hidden(fn (Get $get) => count(static::getSubmitNotificationTypes($get)) < 2)
-                    ->dehydratedWhenHidden()
+                    ->visible(fn (Get $get) => count(static::getSubmitNotificationTypes($get)) > 1),
+                Hidden::make('submit_notification_type')
+                    ->visible(fn (Get $get) => count(static::getSubmitNotificationTypes($get)) === 1)
                     ->dehydrateStateUsing(fn (Get $get) => static::getSubmitNotificationType($get)),
                 Group::make(FilamentFormBuilderPlugin::getRedirectSchema())
                     ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::URL->value)
