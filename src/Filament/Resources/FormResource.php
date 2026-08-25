@@ -370,7 +370,7 @@ class FormResource extends Resource
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->recordUrl(static::editOrViewUrl(...))
+            ->recordUrl(static::viewUrl(...))
             ->filters([
                 SelectFilter::make('template')
                     ->label(__('filament-form-builder::general.template'))
@@ -388,8 +388,7 @@ class FormResource extends Resource
                 TrashedFilter::make()->default('with_trashed'),
             ])
             ->recordActions([
-                Actions\ViewAction::make()
-                    ->visible(fn (FormModel $record) => !static::canEdit($record)),
+                Actions\ViewAction::make(),
                 Actions\EditAction::make(),
                 Actions\ForceDeleteAction::make()
                     ->modalDescription(__('filament-form-builder::fields.form_force_deletion_warning')),
@@ -425,9 +424,9 @@ class FormResource extends Resource
         ];
     }
 
-    public static function editOrViewUrl(FormModel $record): string
+    public static function viewUrl(FormModel $record): string
     {
-        return static::getUrl(static::canEdit($record) ? 'edit' : 'view', ['record' => $record]);
+        return static::getUrl('view', ['record' => $record]);
     }
 
     public static function getPages(): array
