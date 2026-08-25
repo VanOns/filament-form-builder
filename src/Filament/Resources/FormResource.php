@@ -86,7 +86,7 @@ class FormResource extends Resource
                                 static::getGeneralSection(),
                                 static::getCustomSection(),
                                 static::getSubmitNotificationSection()
-                                    ->hidden(fn (Get $get) => empty($get('template'))),
+                                    ->hidden(fn (Get $get) => empty($get('template')) || empty(static::getSubmitNotificationTypes($get))),
                             ]),
                         Tabs\Tab::make(__('filament-form-builder::general.settings'))
                             ->icon('heroicon-o-cog-6-tooth')
@@ -168,19 +168,23 @@ class FormResource extends Resource
                 ToggleButtons::make('submit_notification_type')
                     ->required()
                     ->label(__('filament-form-builder::general.what_happens_after_submission'))
-                    ->options(SubmitNotificationType::class)
+                    ->options(static::getSubmitNotificationTypes(...))
+                    ->enum(SubmitNotificationType::class)
                     ->default(SubmitNotificationType::URL)
                     ->live()
                     ->columnSpan(1)
-                    ->grouped(),
+                    ->grouped()
+                    ->hidden(fn (Get $get) => count(static::getSubmitNotificationTypes($get)) < 2)
+                    ->dehydratedWhenHidden()
+                    ->dehydrateStateUsing(fn (Get $get) => static::getSubmitNotificationType($get)),
                 Group::make(FilamentFormBuilderPlugin::getRedirectSchema())
-                    ->visible(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::URL)
+                    ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::URL->value)
                     ->columnSpanFull(),
                 RichEditor::make('submit_notification_content')
                     ->label(__('filament-form-builder::general.content'))
                     ->required()
                     ->placeholder(__('filament-form-builder::general.form_submitted_successfully'))
-                    ->visible(fn (Get $get) => $get('submit_notification_type') === SubmitNotificationType::Content)
+                    ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::Content->value)
                     ->columnSpanFull(),
             ])->columns();
     }
@@ -446,6 +450,48 @@ class FormResource extends Resource
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    /**
+     * The submit notification types the selected template allows.
+     *
+     * @return array<string, string>
+     */
+    public static function getSubmitNotificationTypes(Get $get): array
+    {
+        $template = $get('template');
+        $isTemplate = isset($template) && is_subclass_of($template, FilamentForm::class);
+
+        $types = [];
+
+        foreach (SubmitNotificationType::cases() as $type) {
+            $allowed = !$isTemplate || match ($type) {
+                SubmitNotificationType::URL => $template::hasRedirect(),
+                SubmitNotificationType::Content => $template::hasNotificationMessage(),
+            };
+
+            if ($allowed) {
+                $types[$type->value] = $type->getLabel();
+            }
+        }
+
+        return $types;
+    }
+
+    /**
+     * The selected type, or the only type the template allows.
+     */
+    public static function getSubmitNotificationType(Get $get): ?string
+    {
+        $types = array_keys(static::getSubmitNotificationTypes($get));
+
+        if (count($types) === 1) {
+            return $types[0];
+        }
+
+        $state = $get('submit_notification_type');
+
+        return $state instanceof SubmitNotificationType ? $state->value : $state;
     }
 
     public static function hasNotificationsEnabled(Get $get): bool

@@ -15,6 +15,7 @@ use VanOns\FilamentFormBuilder\Traits\Forms\HasRecaptcha;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasResponses;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasRules;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasSettings;
+use VanOns\FilamentFormBuilder\Traits\Forms\HasSubmitNotification;
 
 trait IsFilamentForm
 {
@@ -30,6 +31,7 @@ trait IsFilamentForm
     use HasNotifications;
     use HasIntegrations;
     use HasSettings;
+    use HasSubmitNotification;
 
     public function __construct(public Form $form)
     {

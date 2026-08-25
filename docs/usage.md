@@ -9,9 +9,11 @@ Each form has a "what happens after submission" section with two branches:
   column. The column is cast with `VanOns\FilamentFormBuilder\Casts\RedirectUrl`,
   so it may hold either a plain URL string or a structured (JSON) value.
 
-On submit, the controller resolves the URL via
+On submit, the controller resolves both branches through the form template
+(`$form->getFormComponent()->resolveSubmitNotification($submission)`): the URL via
 `FilamentFormBuilderPlugin::resolveRedirectUrl($form->submit_notification_url, $form)`
-and redirects to it.
+and the message from `submit_notification_content`. When a URL is present it
+redirects, otherwise the message is flashed back.
 
 ### Customizing the redirect field
 
@@ -39,8 +41,75 @@ FilamentFormBuilderPlugin::resolveRedirectUrlUsing(function (mixed $stored, Form
 ```
 
 Both hooks are optional; the defaults keep the plain URL `TextInput` and
-string passthrough. The resolver also runs when a template returns its own
-response (e.g. an Inertia redirect), so call `resolveRedirectUrl()` there too.
+string passthrough. Neither runs when a template returns its own response
+(e.g. an Inertia redirect), so call
+`$submission->form->getFormComponent()->resolveSubmitNotification($submission)`
+there to get the resolved values.
+
+### Modifying the redirect URL and message per submission
+
+A form template may override `modifySubmitNotification()` to change the redirect
+URL or the notification message based on the submission. The `$redirectUrl` and
+`$notificationMessage` properties hold the values configured on the form, so you
+can read, extend or replace them:
+
+```php
+public function modifySubmitNotification(FormSubmission $submission): void
+{
+    if (($submission->data['property_type'] ?? null) === 'rental') {
+        $this->redirectUrl = route('rental.thanks', ['submission' => $submission]);
+    }
+
+    // Or drop the redirect and show a message instead.
+    if (empty($this->redirectUrl)) {
+        $this->notificationMessage = __('Thanks :name!', ['name' => $submission->data['name']]);
+    }
+}
+```
+
+- `$redirectUrl` is only pre-filled when the form uses the **URL** branch, but a
+  template may set it on a **Content** form too — a non-empty URL always wins.
+- `$notificationMessage` is flashed as `submit_notification_content`; setting it
+  also flashes `submit_notification_type` as `content`, so the message renders
+  even on a URL form without a redirect.
+- The form model caches the template instance, so `$this->form` and both
+  properties are available in any instance method.
+
+### Hard-coding the redirect URL or message
+
+A template may also drop either branch from the admin, so editors can't
+configure it. Both default to `true`:
+
+```php
+public static function hasRedirect(): bool
+{
+    return false;
+}
+
+public static function hasNotificationMessage(): bool
+{
+    return true;
+}
+```
+
+- The type toggle only shows the allowed branches, and hides itself when only
+  one is left — that branch is then always used.
+- When a template allows neither, the whole submit notification section is
+  hidden and the stored values are left untouched.
+- A disabled branch is not read from the form on submit, so its property starts
+  as `null`. Set it in `modifySubmitNotification()`:
+
+```php
+public static function hasRedirect(): bool
+{
+    return false;
+}
+
+public function modifySubmitNotification(FormSubmission $submission): void
+{
+    $this->redirectUrl = route('thanks', ['submission' => $submission]);
+}
+```
 
 ### Modifying submission data
 
