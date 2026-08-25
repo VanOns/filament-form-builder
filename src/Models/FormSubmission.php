@@ -10,12 +10,12 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\Integration;
-use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionCreated;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionForceDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionRestored;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionUpdated;
+use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 
 /**
  * @property int $id
@@ -92,8 +92,7 @@ class FormSubmission extends Model
      */
     public function modifyFormattedKeyDataUsing(array $data): array
     {
-        $template = $this->form->template;
-        if (is_subclass_of($template, FilamentForm::class)) {
+        if ($template = TemplateHelper::resolve($this->form->template)) {
             return $template::modifyResourceDataUsing($data, $this);
         }
         return $this->getFormattedData(true);
@@ -108,8 +107,7 @@ class FormSubmission extends Model
      */
     public function modifyDataValuesUsing(array $data): array
     {
-        $template = $this->form->template;
-        if (is_subclass_of($template, FilamentForm::class)) {
+        if ($template = TemplateHelper::resolve($this->form->template)) {
             return $template::modifyDataValues($data, $this);
         }
         return $data;
@@ -185,8 +183,7 @@ class FormSubmission extends Model
         parent::boot();
 
         static::created(function (FormSubmission $submission) {
-            $template = $submission->form->template;
-            if (is_subclass_of($template, FilamentForm::class)) {
+            if ($template = TemplateHelper::resolve($submission->form->template)) {
                 $template::afterSubmissionCreated($submission);
             }
         });
