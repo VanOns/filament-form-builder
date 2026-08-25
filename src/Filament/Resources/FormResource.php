@@ -385,7 +385,7 @@ class FormResource extends Resource
                     })
                     ->multiple()
                     ->searchable(),
-                TrashedFilter::make()->default('with_trashed'),
+                TrashedFilter::make(),
             ])
             ->recordActions([
                 Actions\ViewAction::make()
