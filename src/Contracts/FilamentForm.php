@@ -148,4 +148,10 @@ interface FilamentForm extends HasNotifications, HasIntegrations
      * @return array<Component>
      */
     public static function settings(): array;
+
+    /**
+     * The number of grid columns the form is rendered with. Defaults to the
+     * `filament-form-builder.columns` config value.
+     */
+    public static function columns(): int;
 }

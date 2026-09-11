@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Traits;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Traits\Forms\CanBeCustom;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasAttributes;
+use VanOns\FilamentFormBuilder\Traits\Forms\HasColumns;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasIntegrations;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasLifecycle;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasMessages;
@@ -22,6 +23,7 @@ trait IsFilamentForm
     use HasRecaptcha;
     use HasPlaceholders;
     use CanBeCustom;
+    use HasColumns;
     use HasRules;
     use HasAttributes;
     use HasMessages;

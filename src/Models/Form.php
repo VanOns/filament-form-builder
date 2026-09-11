@@ -15,6 +15,7 @@ use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
+use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
 
 /**
@@ -109,6 +110,11 @@ class Form extends Model
         }
 
         return $this->formComponent = new $this->template($this);
+    }
+
+    public function getColumns(): int
+    {
+        return TemplateHelper::columns($this->template);
     }
 
     public function getWrapperAttributes(): string
