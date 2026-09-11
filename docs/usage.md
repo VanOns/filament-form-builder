@@ -145,3 +145,41 @@ public static function modifyDataValues(array $data, FormSubmission $submission)
 > `modifyResourceDataUsing()` already runs your `modifyDataValues()` output through
 > key formatting, so overriding it is rarely needed.
 
+
+## Form columns
+
+The number of grid columns a form is rendered with defaults to the `columns`
+config value (`2`). A form template may override it:
+
+```php
+public static function columns(): int
+{
+    return 3;
+}
+```
+
+Read it through the model with `$form->getColumns()` when rendering a form on
+the front end.
+
+### Field width
+
+A large field spans the full row, whatever the column count. Each custom field
+additionally carries a column span and an optional start column for anything in
+between. The "width" and "start column" selects appear on forms with more than
+2 columns — and hide again while "large" is checked, since large already means
+full width. On forms with up to 2 columns only the large checkbox shows, so
+existing projects keep working unchanged after an update. Set the
+`field_column_settings` config flag to `true` to offer the selects everywhere.
+
+When rendering, resolve a field's width with:
+
+```php
+$field->getColumnSpan($form->getColumns());  // int, 1..columns
+$field->getColumnStart($form->getColumns()); // int or null (auto)
+```
+
+`getColumnSpan()` returns the full column count for large fields and the stored
+span (default 1) otherwise, so both old and new data resolve through the same
+call. Both getters cap their value at the column count, and the span is also
+capped at the room left after the start column, so stored values never overflow
+the grid when a template later reduces its columns.
