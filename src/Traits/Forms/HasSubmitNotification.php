@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
+use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -43,9 +44,7 @@ trait HasSubmitNotification
      */
     public function resolveSubmitNotification(FormSubmission $submission): static
     {
-        $this->redirectUrl = static::hasRedirect() && $this->form->submit_notification_type === SubmitNotificationType::URL->value
-            ? FilamentFormBuilderPlugin::resolveRedirectUrl($this->form->submit_notification_url, $this->form)
-            : null;
+        $this->redirectUrl = $this->resolveRedirectUrl($submission);
 
         $this->notificationMessage = static::hasNotificationMessage()
             ? $this->form->submit_notification_content
@@ -54,6 +53,21 @@ trait HasSubmitNotification
         $this->modifySubmitNotification($submission);
 
         return $this;
+    }
+
+    /**
+     * The configured redirect target with the confirmation query string, or null
+     * when this form shows a message instead.
+     */
+    private function resolveRedirectUrl(FormSubmission $submission): ?string
+    {
+        if (!static::hasRedirect() || $this->form->submit_notification_type !== SubmitNotificationType::URL->value) {
+            return null;
+        }
+
+        $url = FilamentFormBuilderPlugin::resolveRedirectUrl($this->form->submit_notification_url, $this->form);
+
+        return SubmissionPlaceholders::make($submission)->appendQuery($url, $this->form->submit_notification_query);
     }
 
     public function getRedirectUrl(): ?string

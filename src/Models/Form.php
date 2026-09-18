@@ -27,6 +27,7 @@ use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
  * @property string $submit_notification_type
  * @property string $submit_notification_content
  * @property string|array<string, mixed>|null $submit_notification_url
+ * @property string|null $submit_notification_query
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at

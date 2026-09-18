@@ -180,6 +180,18 @@ class FormResource extends Resource
                 Group::make(FilamentFormBuilderPlugin::getRedirectSchema())
                     ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::URL->value)
                     ->columnSpanFull(),
+                // A sibling of the redirect group on purpose: an app can replace
+                // that group wholesale via FilamentFormBuilderPlugin::redirectSchemaUsing().
+                TextInput::make('submit_notification_query')
+                    ->label(__('filament-form-builder::general.submit_notification_query'))
+                    ->helperText(__('filament-form-builder::general.submit_notification_query_explanation'))
+                    ->placeholder('name={{ $key_name }}&form={{ $form_title }}')
+                    ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::URL->value)
+                    ->columnSpanFull(),
+                static::getPlaceholderListEntry()
+                    ->visible(fn (Get $get, ?FormModel $record) => $record !== null
+                        && static::getSubmitNotificationType($get) === SubmitNotificationType::URL->value)
+                    ->columnSpanFull(),
                 RichEditor::make('submit_notification_content')
                     ->label(__('filament-form-builder::general.content'))
                     ->required()
@@ -276,21 +288,30 @@ class FormResource extends Resource
                 Text::make(__('filament-form-builder::general.placeholders_copy_hint'))
                     ->color('gray')
                     ->size(TextSize::Small),
-                TextEntry::make('placeholders')
-                    ->hiddenLabel()
-                    ->badge()
-                    ->copyable()
-                    ->fontFamily(FontFamily::Mono)
-                    ->placeholder(__('filament-form-builder::general.unknown'))
-                    ->state(function (Get $get, ?FormModel $record): array {
-                        return TemplateHelper::isTemplate($get('template'))
-                            ? $record?->getFormComponent()->getPlaceholderList() ?? []
-                            : [];
-                    }),
+                static::getPlaceholderListEntry(),
                 Text::make(__('filament-form-builder::general.placeholders_receivers_hint'))
                     ->color('gray')
                     ->size(TextSize::Small),
             ]);
+    }
+
+    /**
+     * The copyable list of placeholders this form accepts. Shown wherever an
+     * editor may type them: the e-mail notification and the confirmation query.
+     */
+    public static function getPlaceholderListEntry(): TextEntry
+    {
+        return TextEntry::make('placeholders')
+            ->hiddenLabel()
+            ->badge()
+            ->copyable()
+            ->fontFamily(FontFamily::Mono)
+            ->placeholder(__('filament-form-builder::general.unknown'))
+            ->state(function (Get $get, ?FormModel $record): array {
+                return TemplateHelper::isTemplate($get('template'))
+                    ? $record?->getFormComponent()->getPlaceholderList() ?? []
+                    : [];
+            });
     }
 
     public static function getIntegrationsSection(): Section

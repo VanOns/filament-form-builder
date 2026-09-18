@@ -15,6 +15,22 @@ On submit, the controller resolves both branches through the form template
 and the message from `submit_notification_content`. When a URL is present it
 redirects, otherwise the message is flashed back.
 
+### Passing field data via the query string
+
+The URL branch has an optional query string, stored in
+`submit_notification_query`. An editor writes the parameters with the same
+placeholders the e-mail notification uses:
+
+```
+vestiging={{ $key_vestiging }}&form={{ $form_title }}
+```
+
+`SubmissionPlaceholders::appendQuery()` fills them in from the submission,
+URL-encodes the values and appends the result to the resolved redirect URL,
+keeping any query string or fragment that URL already carries. A placeholder
+without a value leaves its parameter empty. That same class backs the e-mail
+notification, so both understand exactly the same tags.
+
 ### Customizing the redirect field
 
 By default, the URL branch is a single URL `TextInput`. Register a custom schema

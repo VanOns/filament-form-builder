@@ -29,6 +29,8 @@ return [
     'email_address' => 'Email address',
     'submit_notification_content' => 'Content',
     'submit_notification_url' => 'URL',
+    'submit_notification_query' => 'Pass field data via query string',
+    'submit_notification_query_explanation' => 'Optional. Append the submitted values to the URL, for example name={{ $key_name }}&form={{ $form_title }}.',
     'submit_notification_type' => 'Submit notification type',
     'submit_notification_types' => [
         'url' => 'URL',

@@ -5,7 +5,6 @@ namespace VanOns\FilamentFormBuilder\Classes;
 use Exception;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -42,48 +41,13 @@ class EmailNotification
 
     public function replacePlaceholders(string $content): string
     {
-        $formData = $this->getFormSubmissionData(true);
-
-        $data = array_filter([
-            'all_fields' => str_contains($content, '$all_fields')
-                ? $this->getAllFieldsHtml($formData)
-                : null,
-            'form_title' => $this->formSubmission->form->title,
-            ...$formData,
-        ]);
-
-        $data = $this->includePlaceholdersWithoutKeyPrefix($data);
-
-        foreach ($data as $key => $value) {
-            $search = '$' . $key;
-            $content = str_replace("{{ {$search} }}", $value, $content);
-            $content = str_replace("{{{$search}}}", $value, $content);
+        // Only the mail renders every field as an HTML panel; the other
+        // placeholders are shared with the confirmation query string.
+        if (str_contains($content, '$all_fields') && ($allFields = $this->getAllFieldsHtml()) !== '') {
+            $content = str_replace(['{{ $all_fields }}', '{{$all_fields}}'], $allFields, $content);
         }
 
-        return $content;
-    }
-
-    /**
-     * To support older versions which didn't have the key prefix for custom fields. Add placeholders without the "key_" prefix.
-     *
-     * @param array<string, mixed> $placeholders
-     * @return array<string, mixed>
-     */
-    protected function includePlaceholdersWithoutKeyPrefix(array $placeholders): array
-    {
-        $prefix = 'key_';
-
-        $new = [];
-        foreach ($placeholders as $key => $value) {
-            if (str_starts_with($key, $prefix)) {
-                $newKey = Str::after($key, $prefix);
-                if (!array_key_exists($newKey, $placeholders)) {
-                    $new[$newKey] = $value;
-                }
-            }
-        }
-
-        return array_merge($placeholders, $new);
+        return SubmissionPlaceholders::make($this->formSubmission)->replace($content);
     }
 
     /**
@@ -149,7 +113,6 @@ class EmailNotification
         return [
             ...$placeholders,
             ...$this->formSubmission->getFormattedData(
-                formatKeys: false,
                 data: $this->formSubmission->modifyDataValuesUsing($this->formSubmission->data),
             ),
             'submitter_email' => $this->formSubmission->submitter_email,
