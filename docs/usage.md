@@ -183,3 +183,28 @@ span (default 1) otherwise, so both old and new data resolve through the same
 call. Both getters cap their value at the column count, and the span is also
 capped at the room left after the start column, so stored values never overflow
 the grid when a template later reduces its columns.
+
+### Laying the grid out in CSS
+
+You do not have to call the getters yourself. The shipped views already render
+`{{ $form->getWrapperAttributes() }}` on the form and
+`{{ $field->getWrapperAttributes() }}` on every field wrapper, and those now
+carry the placement — including in views a project published earlier. Two rules
+are enough to turn that into a grid:
+
+```css
+[data-form-builder-form] {
+    display: grid;
+    grid-template-columns: repeat(var(--form-builder-columns, 1), minmax(0, 1fr));
+}
+
+[data-form-builder-input-wrapper] {
+    grid-column: var(--form-builder-column-start, auto) / span var(--form-builder-column-span, 1);
+}
+```
+
+The same numbers are also available as `data-form-builder-columns`,
+`data-form-builder-column-span` and `data-form-builder-column-start` for
+projects that would rather select on attributes than custom properties. The
+package ships no CSS of its own, so nothing changes visually until you add
+rules like these.

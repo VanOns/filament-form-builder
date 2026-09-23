@@ -19,6 +19,24 @@ trait HasFields
     public ?string $description;
 
     /**
+     * The column count of the form this field belongs to, handed over when the
+     * form builds its fields. A field on its own falls back to the default.
+     */
+    protected ?int $gridColumns = null;
+
+    public function setGridColumns(int $columns): static
+    {
+        $this->gridColumns = $columns;
+
+        return $this;
+    }
+
+    public function getGridColumns(): int
+    {
+        return $this->gridColumns ?? TemplateHelper::defaultColumns();
+    }
+
+    /**
      * The number of grid columns the field spans. A large field is always full
      * width; the stored span only applies when it isn't large, capped so the
      * field never overflows the row it starts in.

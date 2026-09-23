@@ -36,6 +36,14 @@ class TemplateHelper
 
         return $class !== null
             ? $class::columns()
-            : (int) config('filament-form-builder.columns', 2);
+            : static::defaultColumns();
+    }
+
+    /**
+     * The configured column count, for anything without a template to ask.
+     */
+    public static function defaultColumns(): int
+    {
+        return (int) config('filament-form-builder.columns', 2);
     }
 }

@@ -23,6 +23,7 @@ trait HasCustomFields
                     }
                     /* @var FormField $fieldInstace */
                     $fieldInstace = new $type($field);
+                    $fieldInstace->setGridColumns($this->getColumns());
                     $fieldInstaces[] = $fieldInstace;
                 }
             }

@@ -119,9 +119,13 @@ class Form extends Model
 
     public function getWrapperAttributes(): string
     {
+        $columns = $this->getColumns();
+
         return AttributeHelper::arrayToString([
             'enctype' => 'multipart/form-data',
             'data-form-builder-form' => $this->id,
+            'data-form-builder-columns' => $columns,
+            'style' => "--form-builder-columns:{$columns}",
         ]);
     }
 }

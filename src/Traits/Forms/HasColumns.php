@@ -2,6 +2,8 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
+use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
+
 trait HasColumns
 {
     /**
@@ -10,6 +12,6 @@ trait HasColumns
      */
     public static function columns(): int
     {
-        return (int) config('filament-form-builder.columns', 2);
+        return TemplateHelper::defaultColumns();
     }
 }
