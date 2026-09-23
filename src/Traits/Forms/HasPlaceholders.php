@@ -50,14 +50,28 @@ trait HasPlaceholders
      */
     public function getPlaceholderList(): array
     {
-        $formPlaceholders = [
+        $formPlaceholders = array_unique([
+            ...$this->getFieldPlaceholders(),
             ...array_keys($this->getPlaceholders()),
             ...$this->getDefaultPlaceholders(),
-        ];
+        ]);
 
         return array_map(
             fn ($value) => '{{ $' . $value . ' }}',
-            $formPlaceholders
+            array_values($formPlaceholders)
         );
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function getFieldPlaceholders(): array
+    {
+        $inputs = array_filter(
+            $this->form->getFields(),
+            fn ($field) => $field::isInput()
+        );
+
+        return array_values(array_map(fn ($field) => $field->getKey(), $inputs));
     }
 }
