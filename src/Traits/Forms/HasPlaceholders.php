@@ -63,11 +63,9 @@ trait HasPlaceholders
     }
 
     /**
-     * The keys of the form's own fields, which are placeholders too. Without
-     * these the list only shows what the template declares, leaving an editor
-     * to guess how a field is spelled.
+     * The form's own field keys, which are placeholders too.
      *
-     * Filtering here rather than through `getFields(inputsOnly: true)`: that
+     * Filtered here rather than through `getFields(inputsOnly: true)`: that
      * result is cached on the form and the flag only counts on the first call,
      * so asking for a subset would hand the same subset to the renderer.
      *

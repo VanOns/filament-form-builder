@@ -73,8 +73,7 @@ it('still replaces the placeholders in an e-mail notification', function () {
     expect($notification->subject)->toBe('Inzending Contact')
         ->and($notification->content)->toBe('<p>Hoi Jesse, we hebben je bericht ontvangen.</p>')
         ->and($notification->senderName)->toBe('Contact')
-        // A receiver that names a field resolves to its value, anything else is
-        // used as typed.
+        // A receiver naming a field resolves to its value, anything else is used as typed.
         ->and($notification->receivers)->toBe(['Jesse', 'info@example.test']);
 });
 

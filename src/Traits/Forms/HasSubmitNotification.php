@@ -55,10 +55,6 @@ trait HasSubmitNotification
         return $this;
     }
 
-    /**
-     * The configured redirect target with the confirmation query string, or null
-     * when this form shows a message instead.
-     */
     private function resolveRedirectUrl(FormSubmission $submission): ?string
     {
         if (!static::hasRedirect() || $this->form->submit_notification_type !== SubmitNotificationType::URL->value) {

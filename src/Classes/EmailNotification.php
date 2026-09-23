@@ -41,8 +41,7 @@ class EmailNotification
 
     public function replacePlaceholders(string $content): string
     {
-        // Only the mail renders every field as an HTML panel; the other
-        // placeholders are shared with the confirmation query string.
+        // Only the mail renders every field as an HTML panel.
         if (str_contains($content, '$all_fields') && ($allFields = $this->getAllFieldsHtml()) !== '') {
             $content = str_replace(['{{ $all_fields }}', '{{$all_fields}}'], $allFields, $content);
         }

@@ -8,11 +8,9 @@ use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 /**
- * The placeholder values available for one submission, shared by everything that
- * writes them out: the e-mail notification and the confirmation query string.
- *
- * Keys are placeholder names without the `$`, so `key_naam` is written as
- * `{{ $key_naam }}` by an editor.
+ * The placeholder values for one submission, shared by the e-mail notification
+ * and the confirmation query string. Keys carry no `$`: an editor writes
+ * `key_naam` as `{{ $key_naam }}`.
  */
 class SubmissionPlaceholders
 {
@@ -31,9 +29,6 @@ class SubmissionPlaceholders
     }
 
     /**
-     * The submitted values plus the form-wide placeholders, with the template's
-     * fallbacks for fields that were left empty.
-     *
      * @return array<string, string>
      */
     public function values(): array
@@ -42,8 +37,8 @@ class SubmissionPlaceholders
             return $this->values;
         }
 
-        // Order matters: a submitted field wins from a template fallback, and
-        // from `form_title` when an editor named a field that way.
+        // Later keys win: a submitted field beats a template fallback, and
+        // `form_title` when an editor named a field that way.
         $values = array_filter([
             'form_title' => $this->formSubmission->form->title,
             ...$this->templatePlaceholders(),
@@ -57,12 +52,10 @@ class SubmissionPlaceholders
     }
 
     /**
-     * Replace every `{{ $placeholder }}` in a string. Pass an $escape callback to
-     * encode the values for their destination (URL, HTML, ...). Placeholders
-     * without a value are left untouched; the caller decides what to do with them.
-     *
-     * strtr walks the subject once and never looks at what it just inserted, so
-     * a placeholder that a visitor typed into a field stays literal text.
+     * Replace every `{{ $placeholder }}`, optionally escaping the values for
+     * their destination. Unknown ones are left to the caller. strtr never
+     * re-reads what it inserted, so a placeholder a visitor typed into a field
+     * stays literal text.
      *
      * @param  callable(string): string|null  $escape
      */
@@ -85,11 +78,9 @@ class SubmissionPlaceholders
     }
 
     /**
-     * Append a configured query string to a URL, with the placeholders filled in
-     * from this submission: `naam={{ $key_naam }}` becomes `?naam=Jesse`.
-     *
-     * Values are URL-encoded, a placeholder without a value leaves its parameter
-     * empty, and a query string or fragment the URL already carries stays intact.
+     * Append a configured query string, filled in and URL-encoded:
+     * `naam={{ $key_naam }}` becomes `?naam=Jesse`. A query string or fragment
+     * the URL already carries stays intact.
      */
     public function appendQuery(?string $url, ?string $query): ?string
     {
@@ -101,8 +92,7 @@ class SubmissionPlaceholders
 
         $query = $this->replace($query, rawurlencode(...));
 
-        // Drop the tags that had no value, so the parameter arrives empty
-        // instead of carrying the placeholder the editor typed.
+        // Unfilled tags leave their parameter empty rather than the raw placeholder.
         $query = trim(preg_replace('/{{\s*\$[^}]*}}/', '', $query) ?? $query, "?& \t\n\r\0\x0B");
 
         if ($query === '') {
@@ -117,8 +107,7 @@ class SubmissionPlaceholders
     }
 
     /**
-     * Fallback values the form template declares for its fields, so an empty
-     * field renders as "-" instead of nothing.
+     * Fallbacks the template declares, so an empty field renders as "-".
      *
      * @return array<string, string>
      */
@@ -136,8 +125,7 @@ class SubmissionPlaceholders
     }
 
     /**
-     * Forms built before the key prefix existed used `{{ $naam }}` where the data
-     * now holds `key_naam`. Register both spellings.
+     * Forms from before the `key_` prefix used `{{ $naam }}`, so register both.
      *
      * @param  array<string, mixed>  $values
      * @return array<string, mixed>

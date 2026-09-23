@@ -180,8 +180,8 @@ class FormResource extends Resource
                 Group::make(FilamentFormBuilderPlugin::getRedirectSchema())
                     ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::URL->value)
                     ->columnSpanFull(),
-                // A sibling of the redirect group on purpose: an app can replace
-                // that group wholesale via FilamentFormBuilderPlugin::redirectSchemaUsing().
+                // Outside the redirect group on purpose: an app can replace that
+                // group wholesale via FilamentFormBuilderPlugin::redirectSchemaUsing().
                 TextInput::make('submit_notification_query')
                     ->label(__('filament-form-builder::general.submit_notification_query'))
                     ->helperText(__('filament-form-builder::general.submit_notification_query_explanation'))
@@ -295,10 +295,6 @@ class FormResource extends Resource
             ]);
     }
 
-    /**
-     * The copyable list of placeholders this form accepts. Shown wherever an
-     * editor may type them: the e-mail notification and the confirmation query.
-     */
     public static function getPlaceholderListEntry(): TextEntry
     {
         return TextEntry::make('placeholders')
