@@ -41,3 +41,24 @@ it('getWrapperAttributes includes enctype and data-form-builder-form', function 
     expect($attributes)->toContain('enctype=multipart/form-data')
         ->and($attributes)->toContain("data-form-builder-form={$form->id}");
 });
+
+it('getWrapperAttributes carries the column count for CSS to lay out', function () {
+    config(['filament-form-builder.columns' => 3]);
+
+    $attributes = Form::create(['title' => 'Contact'])->getWrapperAttributes();
+
+    expect($attributes)->toContain('data-form-builder-columns=3')
+        ->and($attributes)->toContain('--form-builder-columns:3');
+});
+
+it('renders attributes without spaces, because they are written unquoted', function () {
+    config(['filament-form-builder.columns' => 3]);
+
+    $attributes = Form::create(['title' => 'Contact'])->getWrapperAttributes();
+
+    // AttributeHelper emits `key=value`; a space inside a value would end the
+    // attribute early and swallow the rest of the tag.
+    foreach (explode(' ', $attributes) as $pair) {
+        expect(substr_count($pair, '='))->toBeGreaterThan(0);
+    }
+});

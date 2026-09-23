@@ -25,4 +25,25 @@ class TemplateHelper
     {
         return static::isTemplate($template) ? $template : null;
     }
+
+    /**
+     * The number of grid columns for the given template, falling back to the
+     * configured default when the value isn't a template class.
+     */
+    public static function columns(mixed $template): int
+    {
+        $class = static::resolve($template);
+
+        return $class !== null
+            ? $class::columns()
+            : static::defaultColumns();
+    }
+
+    /**
+     * The configured column count, for anything without a template to ask.
+     */
+    public static function defaultColumns(): int
+    {
+        return (int) config('filament-form-builder.columns', 2);
+    }
 }

@@ -29,6 +29,33 @@ abstract class FormField
     use HasAttributes;
 
     /**
+     * The wrapper carries where the field sits in the form's grid, so a project
+     * can lay the form out from CSS alone without overriding any view.
+     *
+     * Values are written without spaces on purpose: AttributeHelper renders
+     * attributes unquoted, so a space would end the attribute early.
+     */
+    public function getWrapperAttributes(): string
+    {
+        $columns = $this->getGridColumns();
+        $span = $this->getColumnSpan($columns);
+        $start = $this->getColumnStart($columns);
+
+        $style = "--form-builder-column-span:{$span}";
+
+        if ($start !== null) {
+            $style .= ";--form-builder-column-start:{$start}";
+        }
+
+        return $this->getAttributes(array_filter([
+            'data-form-builder-input-wrapper' => $this->getKey(),
+            'data-form-builder-column-span' => (string) $span,
+            'data-form-builder-column-start' => $start !== null ? (string) $start : null,
+            'style' => $style,
+        ]));
+    }
+
+    /**
      * @param array<string, mixed> $data
      */
     public function __construct(array $data = [])
