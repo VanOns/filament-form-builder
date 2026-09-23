@@ -180,8 +180,6 @@ class FormResource extends Resource
                 Group::make(FilamentFormBuilderPlugin::getRedirectSchema())
                     ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::URL->value)
                     ->columnSpanFull(),
-                // Outside the redirect group on purpose: an app can replace that
-                // group wholesale via FilamentFormBuilderPlugin::redirectSchemaUsing().
                 TextInput::make('submit_notification_query')
                     ->label(__('filament-form-builder::general.submit_notification_query'))
                     ->helperText(__('filament-form-builder::general.submit_notification_query_explanation'))

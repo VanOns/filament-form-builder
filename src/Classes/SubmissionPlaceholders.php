@@ -7,11 +7,6 @@ use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
-/**
- * The placeholder values for one submission, shared by the e-mail notification
- * and the confirmation query string. Keys carry no `$`: an editor writes
- * `key_naam` as `{{ $key_naam }}`.
- */
 class SubmissionPlaceholders
 {
     /**
@@ -51,14 +46,6 @@ class SubmissionPlaceholders
         return $this->values = $this->withoutKeyPrefixAliases($values);
     }
 
-    /**
-     * Replace every `{{ $placeholder }}`, optionally escaping the values for
-     * their destination. Unknown ones are left to the caller. strtr never
-     * re-reads what it inserted, so a placeholder a visitor typed into a field
-     * stays literal text.
-     *
-     * @param  callable(string): string|null  $escape
-     */
     public function replace(string $subject, ?callable $escape = null): string
     {
         $replacements = [];
@@ -77,11 +64,6 @@ class SubmissionPlaceholders
         return $replacements === [] ? $subject : strtr($subject, $replacements);
     }
 
-    /**
-     * Append a configured query string, filled in and URL-encoded:
-     * `naam={{ $key_naam }}` becomes `?naam=Jesse`. A query string or fragment
-     * the URL already carries stays intact.
-     */
     public function appendQuery(?string $url, ?string $query): ?string
     {
         $query = trim((string) $query);

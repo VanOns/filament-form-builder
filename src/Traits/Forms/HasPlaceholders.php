@@ -63,12 +63,6 @@ trait HasPlaceholders
     }
 
     /**
-     * The form's own field keys, which are placeholders too.
-     *
-     * Filtered here rather than through `getFields(inputsOnly: true)`: that
-     * result is cached on the form and the flag only counts on the first call,
-     * so asking for a subset would hand the same subset to the renderer.
-     *
      * @return array<int, string>
      */
     protected function getFieldPlaceholders(): array
