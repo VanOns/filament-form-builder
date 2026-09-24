@@ -29,7 +29,7 @@ return [
     'email_address' => 'Emailadres',
     'submit_notification_content' => 'Content',
     'submit_notification_url' => 'URL',
-    'submit_notification_query' => 'Stuur veldgegevens door via querystring',
+    'submit_notification_query' => 'Querystring',
     'submit_notification_query_explanation' => 'Optioneel. Plak de ingevulde waarden achter de URL, bijvoorbeeld name={{ $key_name }}&form={{ $form_title }}.',
     'submit_notification_type' => 'Formulier notificatie type',
     'submit_notification_types' => [

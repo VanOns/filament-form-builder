@@ -18,8 +18,9 @@ redirects, otherwise the message is flashed back.
 ### Passing field data via the query string
 
 The URL branch has an optional query string, stored in
-`submit_notification_query`. An editor writes the parameters with the same
-placeholders the e-mail notification uses:
+`submit_notification_query`. Set the `submit_notification_query_enabled` config
+flag to `false` to hide the field. An editor writes the parameters with the
+same placeholders the e-mail notification uses:
 
 ```
 vestiging={{ $key_vestiging }}&form={{ $form_title }}
