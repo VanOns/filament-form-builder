@@ -19,8 +19,10 @@ redirects, otherwise the message is flashed back.
 
 The URL branch has an optional query string, stored in
 `submit_notification_query`. Set the `submit_notification_query_enabled` config
-flag to `false` to hide the field. An editor writes the parameters with the
-same placeholders the e-mail notification uses:
+flag to `false` to hide the field, or override `hasSubmitNotificationQuery()` on
+a template to drop it for that template alone. Either way a stored query string
+is no longer appended on submit. An editor writes the parameters with the same
+placeholders the e-mail notification uses:
 
 ```
 vestiging={{ $key_vestiging }}&form={{ $form_title }}
@@ -106,6 +108,16 @@ public static function hasRedirect(): bool
 public static function hasNotificationMessage(): bool
 {
     return true;
+}
+```
+
+A third toggle hides only the query string, leaving the URL itself editable. It
+defaults to the `submit_notification_query_enabled` config flag:
+
+```php
+public static function hasSubmitNotificationQuery(): bool
+{
+    return false;
 }
 ```
 
