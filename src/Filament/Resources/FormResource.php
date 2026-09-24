@@ -80,8 +80,11 @@ class FormResource extends Resource
                 Tabs::make()
                     ->columnSpanFull()
                     ->contained(false)
+                    ->persistTabInQueryString()
                     ->tabs([
                         Tabs\Tab::make(__('filament-form-builder::general.general'))
+                            ->id('general')
+                            ->key('general', isInheritable: false)
                             ->icon('heroicon-o-pencil-square')
                             ->schema([
                                 static::getGeneralSection(),
@@ -90,6 +93,8 @@ class FormResource extends Resource
                                     ->hidden(fn (Get $get) => empty($get('template')) || empty(static::getSubmitNotificationTypes($get))),
                             ]),
                         Tabs\Tab::make(__('filament-form-builder::general.settings'))
+                            ->id('settings')
+                            ->key('settings', isInheritable: false)
                             ->icon('heroicon-o-cog-6-tooth')
                             ->visible(self::hasSettings(...))
                             ->schema([
@@ -97,6 +102,8 @@ class FormResource extends Resource
                                     ->columns(),
                             ]),
                         Tabs\Tab::make(__('filament-form-builder::general.email_notification'))
+                            ->id('email-notification')
+                            ->key('email-notification', isInheritable: false)
                             ->icon('heroicon-o-bell-alert')
                             ->visible(self::hasNotificationsEnabled(...))
                             ->schema([
@@ -104,6 +111,8 @@ class FormResource extends Resource
                                 static::getEmailNotificationSection(),
                             ]),
                         Tabs\Tab::make(__('filament-form-builder::general.integrations'))
+                            ->id('integrations')
+                            ->key('integrations', isInheritable: false)
                             ->icon('heroicon-o-server-stack')
                             ->visible(self::hasIntegrationsEnabled(...))
                             ->schema([
