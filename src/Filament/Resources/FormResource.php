@@ -193,11 +193,11 @@ class FormResource extends Resource
                     ->label(__('filament-form-builder::general.submit_notification_query'))
                     ->helperText(__('filament-form-builder::general.submit_notification_query_explanation'))
                     ->placeholder('name={{ $key_name }}&form={{ $form_title }}')
-                    ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::URL->value)
+                    ->visible(static::hasSubmitNotificationQueryEnabled(...))
                     ->columnSpanFull(),
                 static::getPlaceholderListEntry()
                     ->visible(fn (Get $get, ?FormModel $record) => $record !== null
-                        && static::getSubmitNotificationType($get) === SubmitNotificationType::URL->value)
+                        && static::hasSubmitNotificationQueryEnabled($get))
                     ->columnSpanFull(),
                 RichEditor::make('submit_notification_content')
                     ->label(__('filament-form-builder::general.content'))
@@ -510,6 +510,19 @@ class FormResource extends Resource
         $state = $get('submit_notification_type');
 
         return $state instanceof SubmitNotificationType ? $state->value : $state;
+    }
+
+    public static function hasSubmitNotificationQueryEnabled(Get $get): bool
+    {
+        if (static::getSubmitNotificationType($get) !== SubmitNotificationType::URL->value) {
+            return false;
+        }
+
+        $template = TemplateHelper::resolve($get('template'));
+
+        return $template
+            ? $template::hasSubmitNotificationQuery()
+            : config('filament-form-builder.submit_notification_query_enabled', true) === true;
     }
 
     public static function hasNotificationsEnabled(Get $get): bool

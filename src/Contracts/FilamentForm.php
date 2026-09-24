@@ -120,6 +120,11 @@ interface FilamentForm extends HasNotifications, HasIntegrations
     public static function hasNotificationMessage(): bool;
 
     /**
+     * Whether the query string field is configurable in the admin.
+     */
+    public static function hasSubmitNotificationQuery(): bool;
+
+    /**
      * Modify the redirect URL and/or notification message after a submission.
      *
      * @param FormSubmission $submission

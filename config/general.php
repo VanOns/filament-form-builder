@@ -15,6 +15,7 @@ return [
     'field_column_settings' => false,
     'rate-limit-hour' => 60,
     'email_notification_enabled' => false,
+    'submit_notification_query_enabled' => true,
     'form-middleware' => ['web'],
     'form-uploads-middleware' => ['web', 'auth'],
     'form-uploads-disk' => 'private',

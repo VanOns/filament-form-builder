@@ -32,6 +32,15 @@ trait HasSubmitNotification
     }
 
     /**
+     * Whether the query string field is configurable in the admin. Disable it to
+     * keep submitted values out of the redirect URL.
+     */
+    public static function hasSubmitNotificationQuery(): bool
+    {
+        return config('filament-form-builder.submit_notification_query_enabled', true) === true;
+    }
+
+    /**
      * Modify the redirect URL and/or notification message after a submission.
      * Both properties hold the values configured on the form.
      */
@@ -63,7 +72,11 @@ trait HasSubmitNotification
 
         $url = FilamentFormBuilderPlugin::resolveRedirectUrl($this->form->submit_notification_url, $this->form);
 
-        return SubmissionPlaceholders::make($submission)->appendQuery($url, $this->form->submit_notification_query);
+        $query = static::hasSubmitNotificationQuery()
+            ? $this->form->submit_notification_query
+            : null;
+
+        return SubmissionPlaceholders::make($submission)->appendQuery($url, $query);
     }
 
     public function getRedirectUrl(): ?string
