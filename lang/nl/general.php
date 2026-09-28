@@ -87,6 +87,7 @@ return [
     'key' => 'Sleutel',
     'value' => 'Waarde',
     'export_form_submissions' => 'Exporteer formulier inzendingen',
+    'view_submissions_of_form' => 'Alle inzendingen van dit formulier',
     'settings_explanation' => 'Configureer instellingen voor dit formulier.',
     'custom_form_explanation' => 'Bouw een aangepast formulier met de velden die je nodig hebt.',
     'notification_logs' => 'Notificatielogboek',

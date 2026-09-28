@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Text;
@@ -38,6 +39,7 @@ use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormBuilder;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers\FormSubmissionsRelationManager;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
@@ -117,6 +119,17 @@ class FormResource extends Resource
                             ->visible(self::hasIntegrationsEnabled(...))
                             ->schema([
                                 static::getIntegrationsSection(),
+                            ]),
+                        Tabs\Tab::make(trans_choice('filament-form-builder::general.models.form-submission.label', 2))
+                            ->id('submissions')
+                            ->key('submissions', isInheritable: false)
+                            ->icon('heroicon-o-clipboard-document-check')
+                            ->visible(fn (?FormModel $record): bool => $record !== null)
+                            ->schema(fn (?FormModel $record): array => $record === null ? [] : [
+                                Livewire::make(FormSubmissionsRelationManager::class, [
+                                    'ownerRecord' => $record,
+                                    'pageClass' => Pages\EditForm::class,
+                                ])->columnSpanFull(),
                             ]),
                     ]),
             ]);
@@ -394,7 +407,7 @@ class FormResource extends Resource
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->recordUrl(static::viewUrl(...))
+            ->recordUrl(static::recordUrl(...))
             ->filters([
                 SelectFilter::make('template')
                     ->label(__('filament-form-builder::general.template'))
@@ -412,7 +425,10 @@ class FormResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                Actions\ViewAction::make(),
+                // Only where there is nothing to edit: next to an edit button it
+                // reads as "looking is all you may do".
+                Actions\ViewAction::make()
+                    ->visible(fn (FormModel $record): bool => ! static::canEdit($record)),
                 Actions\EditAction::make(),
                 Actions\ForceDeleteAction::make()
                     ->modalDescription(__('filament-form-builder::fields.form_force_deletion_warning')),
@@ -451,6 +467,17 @@ class FormResource extends Resource
     public static function viewUrl(FormModel $record): string
     {
         return static::getUrl('view', ['record' => $record]);
+    }
+
+    /**
+     * Where a link to a form should land: the edit page for anyone who may
+     * change it. The read-only page otherwise looks like a refusal.
+     */
+    public static function recordUrl(FormModel $record): string
+    {
+        return static::canEdit($record)
+            ? static::getUrl('edit', ['record' => $record])
+            : static::viewUrl($record);
     }
 
     public static function getPages(): array

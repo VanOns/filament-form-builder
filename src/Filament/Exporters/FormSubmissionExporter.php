@@ -7,6 +7,7 @@ use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Number;
+use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class FormSubmissionExporter extends Exporter
@@ -15,6 +16,13 @@ class FormSubmissionExporter extends Exporter
      * @var Collection<int, int> $selectedRecords
      */
     public static Collection $selectedRecords;
+
+    /**
+     * The form being exported, when the export runs from its own submissions
+     * page. Its fields decide the columns, so a form is not handed the keys of
+     * every other form on the site.
+     */
+    public static ?Form $form = null;
 
     protected static ?string $model = FormSubmission::class;
 
@@ -34,6 +42,16 @@ class FormSubmissionExporter extends Exporter
      */
     protected static function getAvailableDataExportColumns(): array
     {
+        if (static::$form !== null) {
+            $fields = static::$form->getSubmissionFields();
+
+            return array_map(
+                fn (string $key, string $label): ExportColumn => ExportColumn::make("data.{$key}")->label($label),
+                array_keys($fields),
+                array_values($fields),
+            );
+        }
+
         /** @var class-string<FormSubmission> $model */
         $model = static::$model;
 

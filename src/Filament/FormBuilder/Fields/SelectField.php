@@ -15,11 +15,40 @@ class SelectField extends FormField
     public static string $view = 'filament-form-builder::components.fields.select-field';
 
     /**
-     * @var array<string, string>
+     * @var array<int, array{value?: string, label?: string}>
      */
     public array $options = [];
     public ?bool $multiple = false;
     public ?string $placeholder;
+
+    /**
+     * @return array<string, string>
+     */
+    public function getFilterOptions(): array
+    {
+        $options = [];
+
+        foreach ($this->options as $option) {
+            $value = $option['value'] ?? null;
+
+            if ($value !== null && $value !== '') {
+                $options[$value] = $option['label'] ?? $value;
+            }
+        }
+
+        return $options;
+    }
+
+    public function formatSubmissionValue(mixed $value): mixed
+    {
+        $options = $this->getFilterOptions();
+
+        if (is_array($value)) {
+            return array_map(fn (mixed $item): mixed => $options[$item] ?? $item, $value);
+        }
+
+        return is_string($value) ? ($options[$value] ?? $value) : $value;
+    }
 
     /**
      * @return array<string, mixed>
