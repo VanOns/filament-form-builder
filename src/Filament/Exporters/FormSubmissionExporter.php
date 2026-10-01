@@ -38,24 +38,42 @@ class FormSubmissionExporter extends Exporter
     }
 
     /**
+     * The form's own fields first, in its order and under the labels the editor
+     * typed, then whatever else the submissions hold.
+     *
      * @return array<ExportColumn>
      */
     protected static function getAvailableDataExportColumns(): array
     {
-        if (static::$form !== null) {
-            $fields = static::$form->getSubmissionFields();
+        $columns = [];
 
-            return array_map(
-                fn (string $key, string $label): ExportColumn => ExportColumn::make("data.{$key}")->label($label),
-                array_keys($fields),
-                array_values($fields),
-            );
+        foreach (static::$form?->getSubmissionFields() ?? [] as $key => $label) {
+            $columns[$key] = ExportColumn::make("data.{$key}")->label($label);
         }
 
+        // A field that was renamed or removed still has answers under its old
+        // key. Going by the form alone would drop that column without a word.
+        foreach (static::submittedDataKeys() as $key) {
+            $columns[$key] ??= static::getExportColumn($key);
+        }
+
+        return array_values($columns);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected static function submittedDataKeys(): array
+    {
         /** @var class-string<FormSubmission> $model */
         $model = static::$model;
 
         $query = $model::query();
+
+        if (static::$form !== null) {
+            $query->where('form_id', static::$form->getKey());
+        }
+
         if (isset(static::$selectedRecords)) {
             $query->whereIn('id', static::$selectedRecords);
         }
@@ -64,7 +82,6 @@ class FormSubmissionExporter extends Exporter
             ->pluck('data')
             ->flatMap(fn ($data) => array_keys($data ?? []))
             ->unique()
-            ->map(fn ($key) => static::getExportColumn($key))
             ->values()
             ->all();
     }
