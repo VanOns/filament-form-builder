@@ -9,6 +9,17 @@ use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm;
 use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
+class LabelledContactForm extends ContactForm
+{
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return ['name' => 'Naam', 'message' => 'Bericht'];
+    }
+}
+
 function customForm(array $fields): Form
 {
     return Form::create([
@@ -76,9 +87,14 @@ it('shortens a label that is a whole paragraph', function () {
 });
 
 it('takes the columns of a template form from its declared labels', function () {
+    $form = Form::create(['title' => 'Contact', 'template' => LabelledContactForm::class]);
+
+    expect(columnMap($form))->toHaveKeys(['Naam', 'Bericht']);
+});
+
+it('falls back to the rule keys of a template that declares none', function () {
     $form = Form::create(['title' => 'Contact', 'template' => ContactForm::class]);
 
-    // ContactForm declares no attributes, so the rule keys stand in for them.
     expect(columnMap($form))->toHaveKeys(['Name', 'Company Name', 'Phone Number', 'Message']);
 });
 

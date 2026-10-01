@@ -114,18 +114,32 @@ class Form extends Model
      */
     public function getSubmissionFields(): array
     {
-        if ($this->isCustom()) {
-            $fields = [];
+        return $this->isCustom()
+            ? $this->getSubmissionCustomFields()
+            : $this->getSubmissionTemplateFields();
+    }
 
-            foreach ($this->getFields() as $field) {
-                if ($field::isInput()) {
-                    $fields = [...$fields, ...$field->getSubmissionColumns()];
-                }
+    /**
+     * @return array<string, string>
+     */
+    protected function getSubmissionCustomFields(): array
+    {
+        $fields = [];
+
+        foreach ($this->getFields() as $field) {
+            if ($field::isInput()) {
+                $fields = [...$fields, ...$field->getSubmissionColumns()];
             }
-
-            return $fields;
         }
 
+        return $fields;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function getSubmissionTemplateFields(): array
+    {
         $attributes = $this->getFormAttributes();
 
         if ($attributes !== []) {
