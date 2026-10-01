@@ -120,7 +120,7 @@ class FormResource extends Resource
                             ->schema([
                                 static::getIntegrationsSection(),
                             ]),
-                        Tabs\Tab::make(trans_choice('filament-form-builder::general.models.form-submission.label', 2))
+                        Tabs\Tab::make(__('filament-form-builder::general.submissions'))
                             ->id('submissions')
                             ->key('submissions', isInheritable: false)
                             ->icon('heroicon-o-clipboard-document-check')
