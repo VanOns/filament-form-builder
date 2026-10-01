@@ -12,6 +12,7 @@ use VanOns\FilamentFormBuilder\Traits\Fields\HasItemLabel;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasKey;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasLabel;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasRules;
+use VanOns\FilamentFormBuilder\Traits\Fields\HasSubmissionColumns;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasView;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasVisibility;
 
@@ -27,6 +28,7 @@ abstract class FormField
     use CanBeRequired;
     use HasVisibility;
     use HasAttributes;
+    use HasSubmissionColumns;
 
     /**
      * The wrapper carries where the field sits in the form's grid, so a project
@@ -70,40 +72,6 @@ abstract class FormField
     public static function isInput(): bool
     {
         return true;
-    }
-
-    /**
-     * The values this field can hold, for a submissions filter. A field with a
-     * fixed list of choices answers here; free text does not, and is searched.
-     *
-     * @return array<string, string> value => label
-     */
-    public function getFilterOptions(): array
-    {
-        return [];
-    }
-
-    /**
-     * How a submitted value reads in the submissions table. A field that stores
-     * something other than what the visitor saw — an option value, a record id —
-     * answers here, or the table shows the raw value.
-     */
-    public function formatSubmissionValue(mixed $value): mixed
-    {
-        return $value;
-    }
-
-    /**
-     * The submission keys this field fills, each with the label it reads under.
-     * Most fields fill one. A field that resolves something and writes several
-     * values answers with all of them, so each gets a column of its own and can
-     * be sorted on what it actually holds.
-     *
-     * @return array<string, string> key => label
-     */
-    public function getSubmissionColumns(): array
-    {
-        return [$this->getKey() => $this->getLabel()];
     }
 
     /**
