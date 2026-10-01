@@ -419,6 +419,7 @@ class FormResource extends Resource
                 Actions\RestoreAction::make(),
                 Actions\ActionGroup::make([
                     Actions\ReplicateAction::make()
+                        ->authorize(fn (?FormModel $record): bool => static::canCreate() && (!$record || static::canReplicate($record)))
                         ->modalWidth(Width::ExtraLarge)
                         ->form([
                             TextInput::make('title')
