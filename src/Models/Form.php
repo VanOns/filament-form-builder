@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Casts\RedirectUrl;
 use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
@@ -102,6 +103,60 @@ class Form extends Model
         }
 
         return $this->getFormComponent()->messages();
+    }
+
+    /**
+     * Key => label for everything a submission of this form can hold. Titles and
+     * text blocks are left out: they never reach `data`, so a column or an export
+     * heading for them would always be empty.
+     *
+     * @return array<string, string>
+     */
+    public function getSubmissionFields(): array
+    {
+        return $this->isCustom()
+            ? $this->getSubmissionCustomFields()
+            : $this->getSubmissionTemplateFields();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function getSubmissionCustomFields(): array
+    {
+        $fields = [];
+
+        foreach ($this->getFields() as $field) {
+            if ($field::isInput()) {
+                $fields = [...$fields, ...$field->getSubmissionColumns()];
+            }
+        }
+
+        return $fields;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function getSubmissionTemplateFields(): array
+    {
+        $attributes = $this->getFormAttributes();
+
+        if ($attributes !== []) {
+            return $attributes;
+        }
+
+        // A template that never declared its labels still has rules, and their
+        // keys are the fields.
+        $keys = [];
+
+        foreach (array_keys($this->getFormComponent()->rules()) as $key) {
+            if (! str_contains($key, '.') && ! str_contains($key, '*')) {
+                $keys[$key] = Str::headline($key);
+            }
+        }
+
+        return $keys;
     }
 
     public function getFormComponent(): FilamentForm

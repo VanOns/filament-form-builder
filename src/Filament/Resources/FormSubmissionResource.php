@@ -98,6 +98,14 @@ class FormSubmissionResource extends Resource
                     ->searchable(),
             ])
             ->recordActions([
+                // Over to that one form, where its own fields are columns.
+                Actions\Action::make('formSubmissions')
+                    ->label(__('filament-form-builder::general.view_submissions_of_form'))
+                    ->icon(Heroicon::OutlinedClipboardDocumentList)
+                    ->iconButton()
+                    ->tooltip(__('filament-form-builder::general.view_submissions_of_form'))
+                    ->visible(fn (FormSubmission $record): bool => $record->form !== null)
+                    ->url(fn (FormSubmission $record): string => FormResource::getUrl('edit', ['record' => $record->form, 'tab' => 'submissions'])),
                 Actions\EditAction::make(),
                 Actions\ForceDeleteAction::make(),
                 Actions\RestoreAction::make(),

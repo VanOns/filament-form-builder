@@ -87,6 +87,7 @@ return [
     'key' => 'Key',
     'value' => 'Value',
     'export_form_submissions' => 'Export form submissions',
+    'view_submissions_of_form' => 'All submissions of this form',
     'settings_explanation' => 'Configure settings for this form.',
     'custom_form_explanation' => 'Build a custom form with the fields you need.',
     'notification_logs' => 'Notification logs',

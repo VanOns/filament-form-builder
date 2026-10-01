@@ -56,7 +56,9 @@ trait HasCustomFields
     {
         $labels = [];
         foreach ($this->getFields() as $field) {
-            $labels[$field->getKey()] = $field->getLabel();
+            // Every key the field fills, not just its own: a field that writes
+            // several values would otherwise show them under their raw keys.
+            $labels = [...$labels, ...$field->getSubmissionColumns()];
         }
 
         return $labels;
