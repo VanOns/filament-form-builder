@@ -12,6 +12,7 @@ use VanOns\FilamentFormBuilder\Traits\Fields\HasItemLabel;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasKey;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasLabel;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasRules;
+use VanOns\FilamentFormBuilder\Traits\Fields\HasSubmissionColumns;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasView;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasVisibility;
 
@@ -27,6 +28,7 @@ abstract class FormField
     use CanBeRequired;
     use HasVisibility;
     use HasAttributes;
+    use HasSubmissionColumns;
 
     /**
      * The wrapper carries where the field sits in the form's grid, so a project
