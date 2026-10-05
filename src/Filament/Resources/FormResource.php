@@ -472,12 +472,12 @@ class FormResource extends Resource
     /**
      * Where a link to a form should land: the edit page for anyone who may
      * change it. The read-only page otherwise looks like a refusal.
+     *
+     * @param  array<string, mixed>  $parameters
      */
-    public static function recordUrl(FormModel $record): string
+    public static function recordUrl(FormModel $record, array $parameters = []): string
     {
-        return static::canEdit($record)
-            ? static::getUrl('edit', ['record' => $record])
-            : static::viewUrl($record);
+        return static::getUrl(static::canEdit($record) ? 'edit' : 'view', ['record' => $record, ...$parameters]);
     }
 
     public static function getPages(): array

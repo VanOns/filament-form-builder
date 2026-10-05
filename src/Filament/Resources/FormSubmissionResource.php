@@ -105,7 +105,7 @@ class FormSubmissionResource extends Resource
                     ->iconButton()
                     ->tooltip(__('filament-form-builder::general.view_submissions_of_form'))
                     ->visible(fn (FormSubmission $record): bool => $record->form !== null)
-                    ->url(fn (FormSubmission $record): string => FormResource::getUrl('edit', ['record' => $record->form, 'tab' => 'submissions'])),
+                    ->url(fn (FormSubmission $record): string => FormResource::recordUrl($record->form, ['tab' => 'submissions'])),
                 Actions\EditAction::make(),
                 Actions\ForceDeleteAction::make(),
                 Actions\RestoreAction::make(),
