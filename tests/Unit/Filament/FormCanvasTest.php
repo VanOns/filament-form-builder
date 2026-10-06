@@ -4,6 +4,8 @@ use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
 use Tests\Fixtures\ApplicationForm;
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextAreaField;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
@@ -11,6 +13,14 @@ use VanOns\FilamentFormBuilder\Models\Form;
 beforeEach(function () {
     $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
 });
+
+class FullRowField extends TextAreaField
+{
+    public static function minWidth(): FieldWidth
+    {
+        return FieldWidth::FULL;
+    }
+}
 
 function canvasForm(array $fields = [], array $attributes = []): Form
 {
@@ -45,7 +55,7 @@ it('adds a field at the spot it was dropped, full width and with its own key', f
         ->call('save');
 
     expect(savedFields($form))->sequence(
-        fn ($field) => $field->label->toBe('Voornaam')->key->toBe('voornaam')->type->toBe('text')->column_span->toBe(2),
+        fn ($field) => $field->label->toBe('Voornaam')->key->toBe('voornaam')->type->toBe('text')->column_span->toBe(12),
         fn ($field) => $field->label->toBe('Achternaam'),
     );
 });
@@ -55,7 +65,10 @@ it('gives a copy a key of its own', function () {
     $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
     $uuid = array_key_first($page->get('data.custom.fields'));
 
-    $page->callAction(onCanvas('clone', ['item' => $uuid]))->call('save');
+    $page->mountAction(onCanvas('clone', ['item' => $uuid]))
+        ->assertActionMounted(onCanvas('clone', ['item' => $uuid]))
+        ->callMountedAction()
+        ->call('save');
 
     expect(array_column(savedFields($form), 'key'))->toBe(['naam', 'naam_2']);
 });
@@ -92,18 +105,258 @@ it('takes conditions and notifications along when a key is renamed', function ()
         ->and($form->notifications[0]['receivers'])->toBe(['roepnaam']);
 });
 
-it('makes a field narrower and wider within the form columns', function () {
-    $form = canvasForm([['type' => 'text', 'label' => 'Naam', 'key' => 'naam', 'column_span' => 2]]);
+it('sets a field to the width picked for it', function () {
+    $form = canvasForm([['type' => 'text', 'label' => 'Naam', 'key' => 'naam']]);
     $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
     $uuid = array_key_first($page->get('data.custom.fields'));
 
-    $page->callAction(onCanvas('narrow', ['item' => $uuid]))->call('save');
-    expect(savedFields($form)[0]['column_span'])->toBe(1);
-    $page->assertActionDisabled(onCanvas('narrow', ['item' => $uuid]));
+    $page->callAction(onCanvas('resize', ['item' => $uuid, 'width' => 4]))->call('save');
+    expect(savedFields($form)[0]['column_span'])->toBe(4);
 
-    $page->callAction(onCanvas('widen', ['item' => $uuid]))->call('save');
-    expect(savedFields($form)[0]['column_span'])->toBe(2);
-    $page->assertActionDisabled(onCanvas('widen', ['item' => $uuid]));
+    $page->callAction(onCanvas('resize', ['item' => $uuid, 'width' => 5]))->call('save');
+    expect(savedFields($form)[0]['column_span'])->toBe(4);
+});
+
+/**
+ * @param  array<int, int>  $spans
+ * @param  array<int, string>  $types  field type by position, text otherwise
+ */
+function rowOf(array $spans, array $types = []): Form
+{
+    return canvasForm(array_map(
+        fn (int $span, int $index): array => ['type' => $types[$index] ?? 'text', 'label' => "Veld {$index}", 'key' => "veld_{$index}", 'column_span' => $span],
+        $spans,
+        array_keys($spans),
+    ), ['title' => 'Rij ' . implode('-', $spans) . ' ' . uniqid()]);
+}
+
+it('gives a new field the room left on the last row', function () {
+    $form = rowOf([6]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->callAction(onCanvas('add', ['type' => 'text']), data: ['label' => 'Achternaam'])
+        ->callAction(onCanvas('add', ['type' => 'text']), data: ['label' => 'Telefoon'])
+        ->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([6, 6, 12]);
+});
+
+it('fits a field dropped between two thirds into the third that is left', function () {
+    $form = rowOf([4, 4]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->callAction(onCanvas('add', ['type' => 'text', 'position' => 1]), data: ['label' => 'Tussenvoegsel'])
+        ->call('save');
+
+    expect(array_column(savedFields($form), 'key'))->toBe(['veld_0', 'tussenvoegsel', 'veld_1'])
+        ->and(array_column(savedFields($form), 'column_span'))->toBe([4, 4, 4]);
+});
+
+it('starts a field at the row it was dropped in front of when the row before is full', function () {
+    $form = rowOf([12, 9]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->callAction(onCanvas('add', ['type' => 'text', 'position' => 1]), data: ['label' => 'Huisnummer'])
+        ->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([12, 3, 9]);
+});
+
+/**
+ * @param  array<int, int>  $spans
+ * @param  array<int, string>  $types
+ * @return array<int, int>
+ */
+function resized(array $spans, int $field, int $width, array $types = []): array
+{
+    $form = rowOf($spans, $types);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    $uuid = array_keys($page->get('data.custom.fields'))[$field];
+
+    $page->callAction(onCanvas('resize', ['item' => $uuid, 'width' => $width]))->call('save');
+
+    return array_column(savedFields($form), 'column_span');
+}
+
+it('keeps a full row full when one of its fields changes width', function () {
+    expect(resized([4, 4, 4], 0, 6))->toBe([6, 3, 3])
+        ->and(resized([6, 6], 0, 3))->toBe([3, 9]);
+});
+
+it('narrows the rest of a row a widened field would overflow', function () {
+    expect(resized([6, 4], 0, 9))->toBe([9, 3]);
+});
+
+it('leaves the rest of a row that was not full alone while it still fits', function () {
+    expect(resized([4, 4], 0, 6))->toBe([6, 4]);
+});
+
+it('moves what no longer fits to a full row of its own below', function () {
+    expect(resized([4, 4, 4], 0, 8))->toBe([8, 4, 12])
+        ->and(resized([6, 6], 0, 12))->toBe([12, 12])
+        ->and(resized([3, 3, 3, 3], 0, 6))->toBe([6, 3, 3, 12]);
+});
+
+it('keeps the fields before a widened one on its row and moves the later ones on', function () {
+    $form = rowOf([4, 4, 4, 12]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    $uuid = array_keys($page->get('data.custom.fields'))[2];
+
+    $page->callAction(onCanvas('resize', ['item' => $uuid, 'width' => 8]))->call('save');
+
+    expect(array_column(savedFields($form), 'key'))->toBe(['veld_0', 'veld_2', 'veld_1', 'veld_3'])
+        ->and(array_column(savedFields($form), 'column_span'))->toBe([4, 8, 12, 12]);
+});
+
+it('takes the width a dropped field showed while it was dragged', function () {
+    $form = rowOf([6]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->callAction(onCanvas('add', ['type' => 'text', 'position' => 1, 'width' => 4]), data: ['label' => 'Achternaam'])
+        ->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([6, 4]);
+});
+
+it('keeps a field at the narrowest width its type works at', function () {
+    expect(resized([12], 0, 3, ['textarea']))->toBe([4])
+        ->and(resized([4, 4, 4], 0, 6, [1 => 'textarea']))->toBe([6, 6, 12])
+        ->and(resized([6, 6], 0, 8, [1 => 'textarea']))->toBe([8, 4]);
+});
+
+it('only offers the widths a field can take', function () {
+    $form = canvasForm([['type' => 'textarea', 'label' => 'Bericht', 'key' => 'bericht']]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSee('A third')
+        ->assertDontSee('A quarter');
+});
+
+it('shows only the width of a field that can take no other', function () {
+    config(['filament-form-builder.fields.full_row' => FullRowField::class]);
+
+    $form = canvasForm([['type' => 'full_row', 'label' => 'Toelichting', 'key' => 'toelichting']]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSeeHtml('<span class="ffb-canvas-item-span">1/1</span>')
+        ->assertDontSeeHtml('ffb-canvas-width-trigger');
+});
+
+it('gives a new field a row of its own where the room left is too narrow for it', function () {
+    $form = rowOf([9]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->callAction(onCanvas('add', ['type' => 'textarea']), data: ['label' => 'Bericht'])
+        ->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([9, 12]);
+});
+
+it('shares a full row with a field dropped against one of its fields, as the canvas showed', function () {
+    $form = rowOf([6, 6]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    [$first, $second] = array_keys($page->get('data.custom.fields'));
+
+    $page->callAction(
+        onCanvas('add', ['type' => 'text', 'position' => 1, 'width' => 4, 'spans' => [$first => 4, $second => 4]]),
+        data: ['label' => 'Tussenvoegsel'],
+    )->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([4, 4, 4]);
+});
+
+it('ignores a shared width that is none and keeps one at the field minimum', function () {
+    $form = rowOf([12, 12], [1 => 'textarea']);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    [$first, $second] = array_keys($page->get('data.custom.fields'));
+
+    $page->callAction(
+        onCanvas('add', ['type' => 'text', 'width' => 12, 'spans' => [$first => 5, $second => 3]]),
+        data: ['label' => 'Telefoon'],
+    )->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([12, 4, 12]);
+});
+
+it('closes up the row a field is deleted from', function () {
+    $form = rowOf([4, 4, 4]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    $uuid = array_keys($page->get('data.custom.fields'))[1];
+
+    $page->mountAction(onCanvas('delete', ['item' => $uuid]))->callMountedAction()->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([6, 6]);
+});
+
+it('spreads the room a field leaves as evenly as the row allows', function () {
+    $form = rowOf([6, 3, 3]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    $uuid = array_key_first($page->get('data.custom.fields'));
+
+    $page->mountAction(onCanvas('delete', ['item' => $uuid]))->callMountedAction()->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([6, 6]);
+});
+
+it('puts a copy next to its original, sharing the row when it is full', function () {
+    $copied = function (array $spans): array {
+        $form = rowOf($spans);
+        $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+
+        $page->callAction(onCanvas('clone', ['item' => array_key_first($page->get('data.custom.fields'))]))->call('save');
+
+        return array_column(savedFields($form), 'column_span');
+    };
+
+    expect($copied([6, 6]))->toBe([4, 4, 4])
+        ->and($copied([12]))->toBe([6, 6])
+        ->and($copied([4, 4]))->toBe([4, 4, 4])
+        ->and($copied([3, 3, 3, 3]))->toBe([3, 3, 3, 3, 12]);
+});
+
+it('moves a field to another row with the widths the canvas showed', function () {
+    $form = rowOf([4, 4, 4, 12]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    [$first, $second, $third, $fourth] = array_keys($page->get('data.custom.fields'));
+
+    $page->callAction(onCanvas('reorder', [
+        'items' => [$first, $third, $second, $fourth],
+        'spans' => [$first => 6, $third => 6, $second => 6, $fourth => 6],
+    ]))->call('save');
+
+    expect(array_column(savedFields($form), 'key'))->toBe(['veld_0', 'veld_2', 'veld_1', 'veld_3'])
+        ->and(array_column(savedFields($form), 'column_span'))->toBe([6, 6, 6, 6]);
+});
+
+it('keeps to halves when the project lays fields out in two columns', function () {
+    config(['filament-form-builder.layout' => 'two_columns']);
+
+    expect(resized([6, 6], 0, 4))->toBe([6, 6])
+        ->and(resized([12], 0, 6))->toBe([6]);
+
+    $form = rowOf([6, 6]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+
+    $page->callAction(onCanvas('clone', ['item' => array_key_first($page->get('data.custom.fields'))]))
+        ->callAction(onCanvas('add', ['type' => 'text']), data: ['label' => 'Telefoon'])
+        ->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([6, 6, 12, 12])
+        ->and(rowOf([4, 8])->getFields()[0]->getColumnSpan())->toBe(6);
+});
+
+it('offers no widths at all when every field takes a full row', function () {
+    config(['filament-form-builder.layout' => 'full_width']);
+
+    $form = rowOf([6, 6]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertDontSeeHtml('ffb-canvas-width-trigger')
+        ->callAction(onCanvas('add', ['type' => 'text', 'width' => 6]), data: ['label' => 'Telefoon'])
+        ->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([6, 6, 12])
+        ->and(array_map(fn ($field): int => $field->getColumnSpan(), $form->fresh()->getFields()))->toBe([12, 12, 12]);
 });
 
 it('reorders the fields the way they were dragged', function () {

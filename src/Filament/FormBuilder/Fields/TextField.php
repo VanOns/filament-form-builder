@@ -7,6 +7,7 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 
 class TextField extends FormField
 {
@@ -20,6 +21,11 @@ class TextField extends FormField
         $this->text = $text;
 
         return $this;
+    }
+
+    public static function minWidth(): FieldWidth
+    {
+        return FieldWidth::THIRD;
     }
 
     public static function icon(): string | BackedEnum

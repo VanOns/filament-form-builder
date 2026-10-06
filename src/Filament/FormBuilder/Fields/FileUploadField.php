@@ -6,6 +6,7 @@ use BackedEnum;
 use Filament\Forms\Components\Checkbox;
 use Filament\Schemas\Components\Component;
 use Filament\Support\Icons\Heroicon;
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 
 class FileUploadField extends FormField
 {
@@ -75,6 +76,11 @@ class FileUploadField extends FormField
                 'max:' . $this->getMaxSize(),
             ] : null,
         ]));
+    }
+
+    public static function minWidth(): FieldWidth
+    {
+        return FieldWidth::THIRD;
     }
 
     public static function icon(): string | BackedEnum

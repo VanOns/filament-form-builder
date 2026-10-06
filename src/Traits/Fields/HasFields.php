@@ -5,22 +5,16 @@ namespace VanOns\FilamentFormBuilder\Traits\Fields;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
-use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 
 trait HasFields
 {
     public null|int|string $column_span = null;
     public ?string $description = null;
 
-    /**
-     * The column count of the form this field belongs to, handed over when the
-     * form builds its fields. A field on its own falls back to the default.
-     */
-    protected ?int $gridColumns = null;
-
-    public function span(int $columns): static
+    public function span(int | FieldWidth $span): static
     {
-        $this->column_span = $columns;
+        $this->column_span = $span instanceof FieldWidth ? $span->value : $span;
 
         return $this;
     }
@@ -32,25 +26,23 @@ trait HasFields
         return $this;
     }
 
-    public function setGridColumns(int $columns): static
-    {
-        $this->gridColumns = $columns;
-
-        return $this;
-    }
-
-    public function getGridColumns(): int
-    {
-        return $this->gridColumns ?? FormTypeHelper::defaultColumns();
-    }
-
     /**
-     * Capped at the form's column count, so a form type that drops columns
-     * later never makes a stored field overflow its row.
+     * The narrowest this field type still works at. The builder offers nothing
+     * narrower, and a narrower stored width reads as this one.
      */
-    public function getColumnSpan(int $columns): int
+    public static function minWidth(): FieldWidth
     {
-        return max(1, min((int) ($this->column_span ?? 1), $columns));
+        return FieldWidth::QUARTER;
+    }
+
+    public function getWidth(): FieldWidth
+    {
+        return FieldWidth::fit($this->column_span, static::minWidth());
+    }
+
+    public function getColumnSpan(): int
+    {
+        return $this->getWidth()->value;
     }
 
     /**

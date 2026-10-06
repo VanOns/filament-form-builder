@@ -43,15 +43,6 @@ it('getWrapperAttributes includes enctype and data-form-builder-form', function 
         ->and($attributes)->toContain("data-form-builder-form=\"{$form->id}\"");
 });
 
-it('getWrapperAttributes carries the column count for CSS to lay out', function () {
-    config(['filament-form-builder.columns' => 3]);
-
-    $attributes = Form::create(['title' => 'Contact'])->getWrapperAttributes()->toHtml();
-
-    expect($attributes)->toContain('data-form-builder-columns="3"')
-        ->and($attributes)->toContain('--form-builder-columns:3');
-});
-
 it('returns only the input fields when asked, whatever was asked first', function () {
     $form = Form::create([
         'title' => 'Bellen',

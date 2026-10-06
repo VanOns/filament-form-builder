@@ -50,9 +50,4 @@ class FormTypeHelper
     {
         return array_map(fn (string $class): string => $class::getLabel(), static::all());
     }
-
-    public static function defaultColumns(): int
-    {
-        return (int) config('filament-form-builder.columns', 2);
-    }
 }

@@ -1,12 +1,14 @@
 @php
     use Filament\Support\Icons\Heroicon;
 
-    $span = $field->isHidden() ? $columns : $field->getColumnSpan($columns);
+    $width = $getCanvasWidth($field);
 @endphp
 
 <div
+    data-span="{{ $width->value }}"
+    data-minimum="{{ $field::minWidth()->value }}"
     @class(['ffb-canvas-item', 'ffb-canvas-item-fixed', 'ffb-canvas-item-hidden' => $field->isHidden()])
-    style="--ffb-span: {{ $span }}"
+    style="--ffb-span: {{ $width->value }}"
 >
     <div class="ffb-canvas-item-toolbar">
         <x-filament::icon :icon="$field::icon()" class="ffb-canvas-item-icon" />
@@ -23,7 +25,9 @@
             :title="__('filament-form-builder::general.canvas.fixed')"
             class="ffb-canvas-item-icon"
         />
-        <span class="ffb-canvas-item-span">{{ $span }}/{{ $columns }}</span>
+        @if ($canResize)
+            <span class="ffb-canvas-item-span">{{ $width->getLabel() }}</span>
+        @endif
     </div>
 
     <div class="ffb-canvas-item-preview">

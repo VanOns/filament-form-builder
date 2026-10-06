@@ -19,16 +19,14 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Forms\CustomFields;
 use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
-use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
 
 class FormCanvas extends Field
 {
     protected string $view = 'filament-form-builder::filament.form-canvas';
-
-    protected int | Closure | null $gridColumns = null;
 
     /**
      * @var array<int, FormField|CustomFields>|Closure
@@ -59,16 +57,8 @@ class FormCanvas extends Field
             fn (FormCanvas $component): Action => $component->getCloneAction(),
             fn (FormCanvas $component): Action => $component->getDeleteAction(),
             fn (FormCanvas $component): Action => $component->getReorderAction(),
-            fn (FormCanvas $component): Action => $component->getResizeAction('narrow', -1, Heroicon::OutlinedMinusSmall),
-            fn (FormCanvas $component): Action => $component->getResizeAction('widen', 1, Heroicon::OutlinedPlusSmall),
+            fn (FormCanvas $component): Action => $component->getResizeAction(),
         ]);
-    }
-
-    public function gridColumns(int | Closure | null $columns): static
-    {
-        $this->gridColumns = $columns;
-
-        return $this;
     }
 
     /**
@@ -95,11 +85,6 @@ class FormCanvas extends Field
         return $this;
     }
 
-    public function getGridColumns(): int
-    {
-        return max(1, (int) ($this->evaluate($this->gridColumns) ?? FormTypeHelper::defaultColumns()));
-    }
-
     /**
      * Whether an editor may add fields: on a canvas of its own, or where the
      * form type placed CustomFields::make().
@@ -122,7 +107,6 @@ class FormCanvas extends Field
      */
     public function getFixedFields(): array
     {
-        $columns = $this->getGridColumns();
         $before = [];
         $after = [];
         $isAfter = false;
@@ -131,9 +115,9 @@ class FormCanvas extends Field
             if ($field instanceof CustomFields) {
                 $isAfter = true;
             } elseif ($isAfter) {
-                $after[] = $field->setGridColumns($columns);
+                $after[] = $field;
             } else {
-                $before[] = $field->setGridColumns($columns);
+                $before[] = $field;
             }
         }
 
@@ -161,12 +145,11 @@ class FormCanvas extends Field
      */
     public function getItems(): array
     {
-        $columns = $this->getGridColumns();
         $items = [];
 
         foreach ($this->getRawState() ?? [] as $uuid => $data) {
             if ($type = FieldTypeHelper::resolve($data['type'] ?? null)) {
-                $items[$uuid] = (new $type($data))->setGridColumns($columns);
+                $items[$uuid] = new $type($data);
             }
         }
 
@@ -183,9 +166,14 @@ class FormCanvas extends Field
             ->action(function (array $arguments, array $data, FormCanvas $component): void {
                 $position = $arguments['position'] ?? null;
 
+                $component->resizeItems(is_array($arguments['spans'] ?? null) ? $arguments['spans'] : []);
                 $component->insertItem($component->withUniqueKey([
                     'type' => $arguments['type'],
-                    'column_span' => $component->getGridColumns(),
+                    'column_span' => $component->getNewFieldWidth(
+                        is_int($position) ? $position : null,
+                        $component->resolveFieldType($arguments['type'])::minWidth(),
+                        FieldWidth::tryFrom((int) ($arguments['width'] ?? 0)),
+                    )->value,
                     ...$data,
                 ]), is_int($position) ? $position : null);
             });
@@ -225,13 +213,25 @@ class FormCanvas extends Field
             ->color('gray')
             ->iconButton()
             ->size(Size::Small)
+            ->requiresConfirmation()
+            ->modalIcon(Heroicon::OutlinedDocumentDuplicate)
+            ->modalHeading(fn (array $arguments, FormCanvas $component): string => __('filament-form-builder::general.canvas.clone_heading', [
+                'label' => ($component->getItems()[$arguments['item'] ?? ''] ?? null)?->getLabel() ?? '',
+            ]))
+            ->modalDescription(__('filament-form-builder::general.canvas.clone_description'))
+            ->modalSubmitActionLabel(__('filament-forms::components.builder.actions.clone.label'))
             ->action(function (array $arguments, FormCanvas $component): void {
-                $items = $component->getRawState() ?? [];
-                $position = array_search($arguments['item'], array_keys($items), true);
+                $uuid = (string) ($arguments['item'] ?? '');
+                $item = ($component->getRawState() ?? [])[$uuid] ?? null;
 
-                if ($position !== false) {
-                    $component->insertItem($component->withUniqueKey($items[$arguments['item']]), $position + 1);
+                if ($item === null) {
+                    return;
                 }
+
+                ['position' => $position, 'width' => $width, 'spans' => $spans] = $component->getCopySlot($uuid);
+
+                $component->resizeItems($spans);
+                $component->insertItem($component->withUniqueKey([...$item, 'column_span' => $width->value]), $position);
             });
     }
 
@@ -250,11 +250,13 @@ class FormCanvas extends Field
             ->modalDescription(__('filament-form-builder::general.canvas.delete_description'))
             ->modalSubmitActionLabel(__('filament-forms::components.builder.actions.delete.label'))
             ->action(function (array $arguments, FormCanvas $component): void {
+                $uuid = (string) ($arguments['item'] ?? '');
+                $spans = $component->fillRowWithout($uuid);
                 $items = $component->getRawState() ?? [];
-                unset($items[$arguments['item']]);
+                unset($items[$uuid]);
 
                 $component->rawState($items);
-                $component->callAfterStateUpdated();
+                $component->resizeItems($spans);
             });
     }
 
@@ -268,33 +270,385 @@ class FormCanvas extends Field
                     [...array_flip($arguments['items'] ?? []), ...$items],
                     $items,
                 ));
-                $component->callAfterStateUpdated();
+                $component->resizeItems(is_array($arguments['spans'] ?? null) ? $arguments['spans'] : []);
             });
     }
 
-    public function getResizeAction(string $name, int $step, Heroicon $icon): Action
+    public function getResizeAction(): Action
     {
-        return Action::make($name)
-            ->label(__("filament-form-builder::general.canvas.{$name}"))
-            ->icon($icon)
-            ->color('gray')
-            ->iconButton()
-            ->size(Size::Small)
-            ->disabled(function (array $arguments, FormCanvas $component) use ($step): bool {
-                $columns = $component->getGridColumns();
-                $span = ($component->getItems()[$arguments['item'] ?? ''] ?? null)?->getColumnSpan($columns) ?? 1;
+        return Action::make('resize')
+            ->action(function (array $arguments, FormCanvas $component): void {
+                $uuid = (string) ($arguments['item'] ?? '');
+                $width = FieldWidth::tryFrom((int) ($arguments['width'] ?? 0));
+                $field = $component->getItems()[$uuid] ?? null;
 
-                return $span + $step < 1 || $span + $step > $columns;
-            })
-            ->action(function (array $arguments, FormCanvas $component) use ($step): void {
-                $columns = $component->getGridColumns();
-                $span = $component->getItems()[$arguments['item']]->getColumnSpan($columns);
+                if ($width === null || ! $width->isAvailable() || $field === null) {
+                    return;
+                }
 
-                $component->updateItem($arguments['item'], fn (array $item): array => [
-                    ...$item,
-                    'column_span' => max(1, min($columns, $span + $step)),
-                ]);
+                $width = FieldWidth::fit($width->value, $field::minWidth());
+
+                $straightened = $component->straightenRow($uuid, $width);
+
+                $component->resizeItems([$uuid => $width->value, ...$straightened['spans']]);
+                $component->moveAfterRow($straightened['pushed'], $straightened['row']);
             });
+    }
+
+    /**
+     * @param  array<mixed>  $spans  uuid => span; a span that is no width counts for nothing
+     */
+    protected function resizeItems(array $spans): void
+    {
+        $fields = $this->getItems();
+        $items = $this->getRawState() ?? [];
+
+        foreach ($spans as $uuid => $span) {
+            $width = FieldWidth::tryFrom((int) $span);
+
+            if ($width !== null && $width->isAvailable() && isset($fields[$uuid])) {
+                $items[$uuid]['column_span'] = FieldWidth::fit($width->value, $fields[$uuid]::minWidth())->value;
+            }
+        }
+
+        $this->rawState($items);
+        $this->callAfterStateUpdated();
+    }
+
+    /**
+     * The widths the picker offers a field: those the layout has, none below
+     * what its type works at.
+     *
+     * @return list<FieldWidth>
+     */
+    public function getWidthOptions(FormField $field): array
+    {
+        return array_values(array_filter(FieldWidth::available(), fn (FieldWidth $width): bool => $width->value >= $field::minWidth()->value));
+    }
+
+    /**
+     * A hidden field takes no room on the page, so it gets a row of its own here.
+     */
+    public function getCanvasWidth(FormField $field): FieldWidth
+    {
+        return $field->isHidden() ? FieldWidth::FULL : $field->getWidth();
+    }
+
+    /**
+     * A new field takes the room left on the row it lands on, so building a row
+     * needs no resizing. Where that room is too narrow it gets a row of its own.
+     * A width the canvas already showed while the field was dragged wins.
+     */
+    public function getNewFieldWidth(?int $position, FieldWidth $minimum, ?FieldWidth $shown = null): FieldWidth
+    {
+        if ($shown !== null && $shown->isAvailable()) {
+            return FieldWidth::fit($shown->value, $minimum);
+        }
+
+        [$before] = $this->getFixedFields();
+        $flow = $this->getFlow();
+        $position = count($before) + ($position ?? count($this->getItems()));
+
+        foreach ([$position - 1, $position] as $neighbour) {
+            foreach ($this->toRows($flow) as $row) {
+                $fill = FieldWidth::within(FieldWidth::FULL->value - array_sum(array_map(fn (int $index): int => $flow[$index]['span'], $row)), $minimum);
+
+                if (in_array($neighbour, $row, true) && $fill !== null) {
+                    return $fill;
+                }
+            }
+        }
+
+        return FieldWidth::FULL;
+    }
+
+    /**
+     * How the other fields on a resized field's row follow so the row stays
+     * full: they take the room left at widths closest to their own. Fields at
+     * the end that no longer fit move to a row of their own right below, which
+     * they fill. A row that was not full and still fits is left alone.
+     *
+     * @return array{spans: array<string, int>, pushed: list<string>, row: list<string>}
+     */
+    public function straightenRow(string $uuid, FieldWidth $width): array
+    {
+        $flow = $this->getFlow();
+
+        foreach ($this->toRows($flow) as $row) {
+            $entries = array_map(fn (int $index): array => $flow[$index], $row);
+            $self = array_search($uuid, array_column($entries, 'uuid'), true);
+
+            if ($self === false) {
+                continue;
+            }
+
+            $unchanged = ['spans' => [], 'pushed' => [], 'row' => array_values(array_filter(array_column($entries, 'uuid')))];
+            $used = array_sum(array_column($entries, 'span'));
+
+            if ($used < FieldWidth::FULL->value && $used - $entries[$self]['span'] + $width->value <= FieldWidth::FULL->value) {
+                return $unchanged;
+            }
+
+            $room = FieldWidth::FULL->value - $width->value;
+            $movable = [];
+
+            foreach ($entries as $index => $entry) {
+                if ($index === $self) {
+                    continue;
+                }
+
+                if ($entry['uuid'] === null) {
+                    $room -= $entry['span'];
+                } else {
+                    $movable[$entry['uuid']] = $entry;
+                }
+            }
+
+            for ($keep = count($movable); $keep >= 0; $keep--) {
+                $kept = array_slice($movable, 0, $keep, true);
+                $pushed = array_slice($movable, $keep, null, true);
+                $spans = $this->closestSpans(array_column($kept, 'span'), array_column($kept, 'min'), $room);
+                $below = $pushed === [] ? [] : $this->closestSpans(array_column($pushed, 'span'), array_column($pushed, 'min'), FieldWidth::FULL->value);
+
+                if ($spans !== null && $below !== null) {
+                    return [
+                        'spans' => [...array_combine(array_keys($kept), $spans), ...array_combine(array_keys($pushed), $below)],
+                        'pushed' => array_keys($pushed),
+                        'row' => $unchanged['row'],
+                    ];
+                }
+            }
+
+            return $unchanged;
+        }
+
+        return ['spans' => [], 'pushed' => [], 'row' => []];
+    }
+
+    /**
+     * Moves the given fields to right after the rest of their row, so they
+     * start a row of their own instead of pushing into the next one.
+     *
+     * @param  list<string>  $pushed
+     * @param  list<string>  $row
+     */
+    protected function moveAfterRow(array $pushed, array $row): void
+    {
+        if ($pushed === []) {
+            return;
+        }
+
+        $items = $this->getRawState() ?? [];
+        $order = array_values(array_diff(array_keys($items), $pushed));
+        $after = 0;
+
+        foreach (array_diff($row, $pushed) as $uuid) {
+            $after = max($after, (int) array_search($uuid, $order, true) + 1);
+        }
+
+        array_splice($order, $after, 0, $pushed);
+
+        $this->rawState(array_replace(array_flip($order), $items));
+        $this->callAfterStateUpdated();
+    }
+
+    /**
+     * Spans for the other fields on a field's row that fill the room it leaves,
+     * so the row stays full once the field is gone. Empty when a field from
+     * code shares the row, as that one cannot change width.
+     *
+     * @return array<string, int>
+     */
+    public function fillRowWithout(string $uuid): array
+    {
+        $flow = $this->getFlow();
+
+        foreach ($this->toRows($flow) as $row) {
+            $entries = array_map(fn (int $index): array => $flow[$index], $row);
+
+            if (! in_array($uuid, array_column($entries, 'uuid'), true)) {
+                continue;
+            }
+
+            $others = [];
+
+            foreach ($entries as $entry) {
+                if ($entry['uuid'] === null) {
+                    return [];
+                }
+
+                if ($entry['uuid'] !== $uuid) {
+                    $others[$entry['uuid']] = $entry;
+                }
+            }
+
+            $spans = $this->closestSpans(array_column($others, 'span'), array_column($others, 'min'), FieldWidth::FULL->value);
+
+            return $spans === null ? [] : array_combine(array_keys($others), $spans);
+        }
+
+        return [];
+    }
+
+    /**
+     * Where a copy goes: next to its original when the row has room or can be
+     * shared equally, otherwise on a row of its own below it.
+     *
+     * @return array{position: int, width: FieldWidth, spans: array<string, int>}
+     */
+    public function getCopySlot(string $uuid): array
+    {
+        [$before] = $this->getFixedFields();
+        $flow = $this->getFlow();
+        $count = count($this->getItems());
+        $position = (int) array_search($uuid, array_keys($this->getItems()), true) + 1;
+
+        foreach ($this->toRows($flow) as $row) {
+            $entries = array_map(fn (int $index): array => $flow[$index], $row);
+
+            if (! in_array($uuid, array_column($entries, 'uuid'), true)) {
+                continue;
+            }
+
+            $minimum = $flow[count($before) + $position - 1]['min'];
+            $fill = FieldWidth::within(FieldWidth::FULL->value - array_sum(array_column($entries, 'span')), FieldWidth::from($minimum));
+
+            if ($fill !== null) {
+                return ['position' => $position, 'width' => $fill, 'spans' => []];
+            }
+
+            $shared = FieldWidth::FULL->value % (count($entries) + 1) === 0
+                ? FieldWidth::tryFrom(intdiv(FieldWidth::FULL->value, count($entries) + 1))
+                : null;
+            $shared = $shared?->isAvailable() ? $shared : null;
+            $spans = [];
+
+            foreach ($entries as $entry) {
+                if ($shared === null || $entry['uuid'] === null || $entry['min'] > $shared->value || $minimum > $shared->value) {
+                    $shared = null;
+                    break;
+                }
+
+                $spans[$entry['uuid']] = $shared->value;
+            }
+
+            if ($shared !== null) {
+                return ['position' => $position, 'width' => $shared, 'spans' => $spans];
+            }
+
+            $afterRow = max($row) - count($before) + 1;
+
+            return ['position' => min(max($position, $afterRow), $count), 'width' => FieldWidth::FULL, 'spans' => []];
+        }
+
+        return ['position' => $position, 'width' => FieldWidth::FULL, 'spans' => []];
+    }
+
+    /**
+     * Everything on the canvas in order. Only the editor's own fields carry a
+     * uuid, as only they can be resized.
+     *
+     * @return list<array{uuid: ?string, span: int, min: int}>
+     */
+    protected function getFlow(): array
+    {
+        [$before, $after] = $this->getFixedFields();
+        $flow = [];
+
+        foreach ($before as $field) {
+            $flow[] = ['uuid' => null, 'span' => $this->getCanvasWidth($field)->value, 'min' => $field::minWidth()->value];
+        }
+
+        foreach ($this->getItems() as $uuid => $item) {
+            $flow[] = ['uuid' => $uuid, 'span' => $this->getCanvasWidth($item)->value, 'min' => $item::minWidth()->value];
+        }
+
+        foreach ($after as $field) {
+            $flow[] = ['uuid' => null, 'span' => $this->getCanvasWidth($field)->value, 'min' => $field::minWidth()->value];
+        }
+
+        return $flow;
+    }
+
+    /**
+     * Fields fill a row in order and move to the next when they do not fit.
+     *
+     * @param  list<array{uuid: ?string, span: int, min: int}>  $flow
+     * @return list<list<int>> the positions in the flow on each row
+     */
+    protected function toRows(array $flow): array
+    {
+        $rows = [];
+        $column = FieldWidth::FULL->value;
+
+        foreach ($flow as $index => $entry) {
+            if ($column + $entry['span'] > FieldWidth::FULL->value) {
+                $rows[] = [];
+                $column = 0;
+            }
+
+            $rows[count($rows) - 1][] = $index;
+            $column += $entry['span'];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The widths closest to the given spans that fill exactly the room, none
+     * below its minimum.
+     *
+     * @param  list<int>  $spans
+     * @param  list<int>  $minimums
+     * @return list<int>|null
+     */
+    protected function closestSpans(array $spans, array $minimums, int $room): ?array
+    {
+        $closest = null;
+        $score = [PHP_INT_MAX, PHP_INT_MAX];
+
+        foreach ($this->spanCombinations($minimums, $room) as $combination) {
+            $changes = array_map(fn (int $new, int $old): int => $new - $old, $combination, $spans);
+
+            // The smallest change overall, and of those the most evenly spread.
+            $candidate = [
+                array_sum(array_map(abs(...), $changes)),
+                array_sum(array_map(fn (int $change): int => $change ** 2, $changes)),
+            ];
+
+            if ($candidate < $score) {
+                $closest = $combination;
+                $score = $candidate;
+            }
+        }
+
+        return $closest;
+    }
+
+    /**
+     * @param  list<int>  $minimums
+     * @return list<list<int>>
+     */
+    protected function spanCombinations(array $minimums, int $room): array
+    {
+        if ($minimums === [] || $room <= 0) {
+            return $minimums === [] && $room === 0 ? [[]] : [];
+        }
+
+        $minimum = array_shift($minimums);
+        $combinations = [];
+
+        foreach (FieldWidth::available() as $width) {
+            if ($width->value < $minimum) {
+                continue;
+            }
+
+            foreach ($this->spanCombinations($minimums, $room - $width->value) as $rest) {
+                $combinations[] = [$width->value, ...$rest];
+            }
+        }
+
+        return $combinations;
     }
 
     /**

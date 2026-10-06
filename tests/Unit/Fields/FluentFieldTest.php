@@ -1,5 +1,6 @@
 <?php
 
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\CheckboxListField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\DropdownField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\EmailField;
@@ -14,7 +15,7 @@ it('builds the same field in code as the canvas stores', function () {
         ->description('Voor de bevestiging')
         ->placeholder('naam@domein.nl')
         ->required()
-        ->span(1);
+        ->span(FieldWidth::HALF);
 
     $fromCanvas = new EmailField([
         'key' => 'email',
@@ -22,7 +23,7 @@ it('builds the same field in code as the canvas stores', function () {
         'description' => 'Voor de bevestiging',
         'placeholder' => 'naam@domein.nl',
         'required' => true,
-        'column_span' => 1,
+        'column_span' => 6,
     ]);
 
     expect(get_object_vars($inCode))->toEqual(get_object_vars($fromCanvas))

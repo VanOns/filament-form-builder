@@ -41,7 +41,7 @@ abstract class FormField
      */
     public function getWrapperAttributes(): HtmlString
     {
-        $span = $this->getColumnSpan($this->getGridColumns());
+        $span = $this->getColumnSpan();
 
         return $this->getAttributes([
             'data-form-builder-input-wrapper' => $this->getKey(),

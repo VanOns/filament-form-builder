@@ -12,7 +12,6 @@ return [
     'integrations' => [
         // Insert integrations here
     ],
-    'columns' => 2,
     'rate-limit-hour' => 60,
     'email_notification_enabled' => true,
     'submit_notification_query_enabled' => true,
@@ -21,6 +20,9 @@ return [
     'form-uploads-disk' => 'local',
     'form-uploads-max-size' => 10240,
     'form-uploads-link-days' => 7,
+    // How freely fields sit side by side: 'flexible' (quarters, thirds and
+    // halves), 'two_columns' (halves only) or 'full_width' (one field a row).
+    'layout' => 'flexible',
     'fields' => [
         'title' => Fields\TitleField::class,
         'text_block' => Fields\TextField::class,

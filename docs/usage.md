@@ -20,6 +20,7 @@ type of your own extends `FormType` and returns its fields from `fields()`,
 built with the same field classes the canvas stores:
 
 ```php
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 use VanOns\FilamentFormBuilder\Forms\CustomFields;
 use VanOns\FilamentFormBuilder\Forms\FormType;
@@ -34,8 +35,8 @@ class VacancyApplication extends FormType
     public function fields(): array
     {
         return [
-            Fields\TextInputField::make('voornaam')->label('Voornaam')->required()->span(1),
-            Fields\TextInputField::make('achternaam')->label('Achternaam')->required()->span(1),
+            Fields\TextInputField::make('voornaam')->label('Voornaam')->required()->span(FieldWidth::HALF),
+            Fields\TextInputField::make('achternaam')->label('Achternaam')->required()->span(FieldWidth::HALF),
             Fields\TextInputField::make('vacature')->hidden()->default(request()->query('vacature')),
             CustomFields::make(),
             Fields\CheckboxField::make('privacy')->label('Ik ga akkoord met de privacyverklaring')->required(),
@@ -100,7 +101,7 @@ public function formatValues(array $values, FormSubmission $submission): array
 `formatDetails()` receives the answers as text under their labels, for the
 detail page only; put value formatting in `formatValues()` instead.
 
-A type may also override `columns()`, `settings()` (extra fields for the form's
+A type may also override `settings()` (extra fields for the form's
 settings tab, stored in its `settings` column), `messages()` (validation
 messages), and the admin toggles described below.
 
@@ -285,55 +286,89 @@ notification mail can link to them for someone without an account. Add middlewar
 to `form-uploads-middleware` to put the links behind a login as well.
 
 
-## Form columns
+## Field widths
 
-The number of grid columns a form is rendered with defaults to the `columns`
-config value (`2`). A form type may override it:
+Every form lays its fields out on a grid of 12 columns. A field takes one of six
+widths: a quarter, a third, a half, two thirds, three quarters or the full row.
+Rows fill up on their own, so three thirds share one row and two halves the
+next, and no more than four fields ever sit side by side.
+
+The `layout` config value decides how many of those widths a project offers:
+
+| `layout`      | Widths                     |
+|---------------|----------------------------|
+| `flexible`    | All six (the default)      |
+| `two_columns` | Halves and the full row    |
+| `full_width`  | The full row only          |
+
+It applies everywhere: the builder only offers those widths, and stored widths,
+including those set in code, round to the nearest one when a form is shown, so a
+third reads as a half in `two_columns`.
+
+In the builder, the width on a field's toolbar opens a picker with all six. A
+new field takes the room left on the row it lands on, so a field dropped next to
+two thirds becomes a third. Dropped against a field on a full row, it shares that
+row: next to one field both become halves, next to two all three become thirds.
+Dropped between two rows, or near the top or bottom edge of one, it gets a row of
+its own. Moving a field works the same way, and the row it leaves closes up. The
+canvas shows where the field lands and how wide everything becomes while it is
+dragged. In code, pass the width
+to `span()`:
 
 ```php
-public function columns(): int
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
+
+TextInputField::make('voornaam')->span(FieldWidth::HALF);
+```
+
+Rows stay full. When a field on a full row changes width, the others follow at
+the widths closest to their own: making the first of three thirds a half turns
+the other two into quarters. Fields at the end that no longer fit move to a row
+of their own right below, which they fill, so the rows below stay as they were.
+A field that is deleted or moved away leaves its room to the others on its row,
+and a copy shares its original's row or gets one of its own below.
+
+Each field type has a minimum width, below which the builder offers nothing: a
+third for titles, text blocks, text areas, uploads and checkboxes, half for
+reCAPTCHA, a quarter for the rest. A type of your own sets its own:
+
+```php
+public static function minWidth(): FieldWidth
 {
-    return 3;
+    return FieldWidth::HALF;
 }
 ```
 
-Read it through the model with `$form->getColumns()` when rendering a form on
-the front end.
-
-### Field width
-
-Each custom field spans a number of the form's columns, set with the − and +
-buttons on the field in the builder. A new field starts at full width. When
-rendering, resolve a field's width with:
-
-```php
-$field->getColumnSpan($form->getColumns()); // int, 1..columns
-```
-
-The span is capped at the column count, so a stored value never overflows the
-grid when a form type later reduces its columns.
+A field is stored with its span in columns (`column_span`, 3 to 12). A value
+that is no width of its own reads as the widest width that fits it, one below
+the minimum as the minimum, and an empty one as the full row.
+`$field->getWidth()` returns the `FieldWidth`, `$field->getColumnSpan()` the
+number of columns.
 
 ### Laying the grid out in CSS
 
-You do not have to call the getters yourself. The shipped views already render
-`{{ $form->getWrapperAttributes() }}` on the form and
-`{{ $field->getWrapperAttributes() }}` on every field wrapper, and those now
-carry the placement — including in views a project published earlier. Two rules
-are enough to turn that into a grid:
+The shipped views render `{{ $form->getWrapperAttributes() }}` on the form and
+`{{ $field->getWrapperAttributes() }}` on every field wrapper, which carries the
+span. Two rules turn that into the grid, and a third stacks the fields on a
+narrow screen:
 
 ```css
 [data-form-builder-form] {
     display: grid;
-    grid-template-columns: repeat(var(--form-builder-columns, 1), minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
 }
 
 [data-form-builder-input-wrapper] {
-    grid-column: span var(--form-builder-column-span, 1);
+    grid-column: span var(--form-builder-column-span, 12);
+}
+
+@media (max-width: 40rem) {
+    [data-form-builder-input-wrapper] {
+        grid-column: 1 / -1;
+    }
 }
 ```
 
-The same numbers are also available as `data-form-builder-columns` and
-`data-form-builder-column-span` for projects that would rather select on
-attributes than custom properties. The
-package ships no CSS of its own, so nothing changes visually until you add
-rules like these.
+The span is also available as `data-form-builder-column-span` for projects that
+would rather select on attributes than custom properties. The package ships no
+CSS of its own, so nothing changes visually until you add rules like these.

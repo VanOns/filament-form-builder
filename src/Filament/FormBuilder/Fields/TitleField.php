@@ -6,6 +6,7 @@ use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Support\Icons\Heroicon;
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 
 class TitleField extends FormField
 {
@@ -27,6 +28,11 @@ class TitleField extends FormField
         $this->headingLevel = $level;
 
         return $this;
+    }
+
+    public static function minWidth(): FieldWidth
+    {
+        return FieldWidth::THIRD;
     }
 
     public static function icon(): string | BackedEnum

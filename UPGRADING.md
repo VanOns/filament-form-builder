@@ -30,6 +30,7 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 | `templates`: class => label                  | `types`: name => class                                |
 | `fields`: a list of classes                  | `fields`: name => class                               |
 | `field_visibility_settings`                  | `field_conditions`                                    |
+| `columns`                                    | Removed, every form has a 12-column grid              |
 | `field_column_settings`                      | Removed, every field has a column span                |
 | `email_notification_enabled`: `false`        | `true`                                                |
 | `form-uploads-disk`: `private`               | `local`                                               |
@@ -60,7 +61,7 @@ code. See [Form types](docs/usage.md#form-types).
 | `afterSubmissionCreated(FormSubmission $s)`               | `afterSubmission(FormSubmission $s)`               |
 | `successResponse(FormSubmission $s)`                      | `response(FormSubmission $s)`                      |
 
-`columns()`, `settings()`, `messages()`, `hasRedirect()`, `hasNotificationMessage()`,
+`settings()`, `messages()`, `hasRedirect()`, `hasNotificationMessage()`,
 `hasSubmitNotificationQuery()`, `hasNotifications()` and `hasIntegrations()` keep their names.
 
 * On the model, `getFormComponent()` is `getType()`; `isCustom()`, `getCustomFormRules()`,
@@ -74,7 +75,10 @@ code. See [Form types](docs/usage.md#form-types).
 * `InputField` is split into `TextInputField`, `EmailField`, `PhoneField` and `NumberField`, and
   `SelectField` into `RadioField`, `CheckboxListField` and `DropdownField`.
 * Keys no longer get a `key_` prefix: a field labelled "Voornaam" posts and stores `voornaam`.
-* `large` and `column_start` are gone; a field only has `column_span`.
+* `large` and `column_start` are gone. A field only has `column_span`, now in columns of a fixed
+  12-column grid, limited to a quarter (3), a third (4), a half (6), two thirds (8), three quarters (9)
+  or the full row (12). `columns()` on a template is gone with the config value, and the form wrapper no
+  longer carries `data-form-builder-columns`; see [Field widths](docs/usage.md#field-widths) for the CSS.
 * `visibleWhenKey`, `visibleWhenType` and `visibleWhenValue` became a list of `conditions`
   (`key`, `operator`, `value`) with `conditionMatch` (`all` or `any`). `VisibilityType` is now
   `ConditionOperator` and `HasVisibility` is `HasConditions`.
@@ -90,7 +94,8 @@ Nothing converts the canvas data of v2 forms. For each item in `forms.custom['fi
   `checkbox_list` when `multiple` is set and `radio` otherwise.
 * Turn `visibleWhenKey`, `visibleWhenType` and `visibleWhenValue` into
   `conditions: [{key, operator, value}]`, without the `key_` prefix on `key`.
-* Replace `large: true` with a `column_span` of the form's column count.
+* Turn `column_span` into twelfths: on a 2-column form, 1 becomes 6 and 2 becomes 12. Replace
+  `large: true` with 12.
 
 Placeholders and receivers in e-mail notifications and the query string lose the prefix too:
 `{{ $key_voornaam }}` becomes `{{ $voornaam }}`. Submissions stored with v2 keep their `key_` keys, so

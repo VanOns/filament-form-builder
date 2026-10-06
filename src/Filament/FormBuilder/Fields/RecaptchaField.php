@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 use BackedEnum;
 use Filament\Schemas\Components\Text;
 use Filament\Support\Icons\Heroicon;
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Rules\RecaptchaRule;
 use VanOns\FilamentFormBuilder\Services\RecaptchaService;
 
@@ -20,6 +21,11 @@ class RecaptchaField extends FormField
         return RecaptchaService::checkEnabled()
             ? ['required', 'string', new RecaptchaRule()]
             : [];
+    }
+
+    public static function minWidth(): FieldWidth
+    {
+        return FieldWidth::HALF;
     }
 
     public static function icon(): string | BackedEnum

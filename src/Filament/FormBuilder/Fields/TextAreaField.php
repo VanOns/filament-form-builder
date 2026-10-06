@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 use BackedEnum;
 use Filament\Forms\Components\TextInput;
 use Filament\Support\Icons\Heroicon;
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 
 class TextAreaField extends FormField
 {
@@ -26,6 +27,11 @@ class TextAreaField extends FormField
         $this->rows = $rows;
 
         return $this;
+    }
+
+    public static function minWidth(): FieldWidth
+    {
+        return FieldWidth::THIRD;
     }
 
     public static function icon(): string | BackedEnum

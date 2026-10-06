@@ -178,7 +178,6 @@ class FormResource extends Resource
             ->schema([
                 FormCanvas::make('custom.fields')
                     ->hiddenLabel()
-                    ->gridColumns(fn (Get $get, ?FormModel $record): int => static::getFormType($get, $record)?->columns() ?? FormTypeHelper::defaultColumns())
                     ->fixedFields(fn (Get $get, ?FormModel $record): array => static::getFormType($get, $record)?->fields() ?? [])
                     ->afterKeyRenamed(static::renameKeyInNotifications(...)),
             ])->columnSpanFull();

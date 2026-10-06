@@ -120,7 +120,7 @@ class Form extends Model
             $fields = [...$fields, ...($field instanceof CustomFields ? $this->makeCustomFields() : [$field])];
         }
 
-        return array_map(fn (FormField $field): FormField => $field->setGridColumns($this->getColumns()), $fields);
+        return $fields;
     }
 
     /**
@@ -216,20 +216,11 @@ class Form extends Model
         return null;
     }
 
-    public function getColumns(): int
-    {
-        return $this->getType()->columns();
-    }
-
     public function getWrapperAttributes(): HtmlString
     {
-        $columns = $this->getColumns();
-
         return AttributeHelper::render([
             'enctype' => 'multipart/form-data',
             'data-form-builder-form' => $this->id,
-            'data-form-builder-columns' => $columns,
-            'style' => "--form-builder-columns:{$columns}",
         ]);
     }
 }

@@ -5,7 +5,6 @@ namespace VanOns\FilamentFormBuilder\Forms;
 use Filament\Schemas\Components\Component;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
-use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
 use VanOns\FilamentFormBuilder\Jobs\RunFormIntegrationsJob;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -63,11 +62,6 @@ class FormType
     public function extraValues(): array
     {
         return [];
-    }
-
-    public function columns(): int
-    {
-        return FormTypeHelper::defaultColumns();
     }
 
     /**
