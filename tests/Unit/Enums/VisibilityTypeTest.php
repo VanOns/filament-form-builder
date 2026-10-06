@@ -38,12 +38,12 @@ it('getRequiredRule returns required_unless for NOT_EQUALS', function () {
     expect(VisibilityType::NOT_EQUALS->getRequiredRule('field', 'yes'))->toBe('required_unless:field,yes');
 });
 
-it('getRequiredRule returns required_if with empty value for EMPTY', function () {
-    expect(VisibilityType::EMPTY->getRequiredRule('field', null))->toBe('required_if:field,');
+it('getRequiredRule returns required_without for EMPTY', function () {
+    expect(VisibilityType::EMPTY->getRequiredRule('field', null))->toBe('required_without:field');
 });
 
-it('getRequiredRule returns required_unless with empty value for NOT_EMPTY', function () {
-    expect(VisibilityType::NOT_EMPTY->getRequiredRule('field', null))->toBe('required_unless:field,');
+it('getRequiredRule returns required_with for NOT_EMPTY', function () {
+    expect(VisibilityType::NOT_EMPTY->getRequiredRule('field', null))->toBe('required_with:field');
 });
 
 it('toArray returns all four cases as value => label pairs', function () {

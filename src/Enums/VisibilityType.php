@@ -52,8 +52,8 @@ enum VisibilityType: string
         return match ($this) {
             self::EQUALS => "required_if:{$key},{$value}",
             self::NOT_EQUALS => "required_unless:{$key},{$value}",
-            self::EMPTY => "required_if:{$key},",
-            self::NOT_EMPTY => "required_unless:{$key},",
+            self::EMPTY => "required_without:{$key}",
+            self::NOT_EMPTY => "required_with:{$key}",
         };
     }
 

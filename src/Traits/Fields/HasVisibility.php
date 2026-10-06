@@ -31,7 +31,7 @@ trait HasVisibility
     {
         return $this->getVisibilityType()?->getRequiredRule(
             $this->visibleWhenKey,
-            $this->getVisibleWhenValue()
+            $this->visibleWhenValue
         );
     }
 
