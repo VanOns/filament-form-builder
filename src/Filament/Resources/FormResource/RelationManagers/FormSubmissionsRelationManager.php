@@ -6,7 +6,6 @@ use Filament\Actions;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Collection;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Filament\Tables\FormSubmissionColumns;
@@ -46,6 +45,7 @@ class FormSubmissionsRelationManager extends RelationManager
                     ->beforeFormFilled(function () use ($form): void {
                         FormSubmissionExporter::$form = $form;
                     })
+                    ->options(['form_id' => $form->getKey()])
                     ->exporter(FormSubmissionExporter::class),
             ])
             ->toolbarActions([
@@ -56,10 +56,10 @@ class FormSubmissionsRelationManager extends RelationManager
                     Actions\ExportBulkAction::make()
                         ->label(__('filament-form-builder::general.export_form_submissions'))
                         ->visible(config('filament-form-builder.enable_export_action') === true)
-                        ->beforeFormFilled(function (Collection $records) use ($form): void {
+                        ->beforeFormFilled(function () use ($form): void {
                             FormSubmissionExporter::$form = $form;
-                            FormSubmissionExporter::$selectedRecords = $records;
                         })
+                        ->options(['form_id' => $form->getKey()])
                         ->exporter(FormSubmissionExporter::class),
                 ]),
             ]);

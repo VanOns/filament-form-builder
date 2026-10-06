@@ -100,6 +100,8 @@ return [
     'failed_at' => 'Mislukt op',
     'error' => 'Fout',
     'queued' => 'In wachtrij',
+    'export_completed' => '{1} De export van de inzendingen is klaar: :count rij geëxporteerd.|[0,*] De export van de inzendingen is klaar: :count rijen geëxporteerd.',
+    'export_failed_rows' => '{1} :count rij kon niet worden geëxporteerd.|[0,*] :count rijen konden niet worden geëxporteerd.',
     'canvas' => [
         'fields' => 'Velden',
         'empty' => 'Sleep een veld hierheen, of klik op een veld om het toe te voegen.',

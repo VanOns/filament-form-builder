@@ -100,6 +100,8 @@ return [
     'failed_at' => 'Failed at',
     'error' => 'Error',
     'queued' => 'Queued',
+    'export_completed' => '{1} The submissions export is ready: :count row exported.|[0,*] The submissions export is ready: :count rows exported.',
+    'export_failed_rows' => '{1} :count row failed to export.|[0,*] :count rows failed to export.',
     'canvas' => [
         'fields' => 'Fields',
         'empty' => 'Drag a field here, or click a field to add it.',
