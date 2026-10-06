@@ -19,12 +19,12 @@ class FormSubmissionController
         int $formId,
         CreateFormSubmission $request
     ): mixed {
-        $data = $request->except(['submitter_email', '_token', 'g-recaptcha-response']);
+        $form = Form::query()->findOrFail($formId);
+
+        $data = Arr::except(Arr::only($request->all(), $form->getSubmittableKeys()), ['submitter_email']);
         if (!empty($request->allFiles())) {
             $data = array_merge($data, $this->mapFields($data));
         }
-
-        $form = Form::query()->findOrFail($formId);
 
         /** @var FilamentForm $template */
         $template = $form->template;

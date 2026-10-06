@@ -121,6 +121,26 @@ class Form extends Model
     }
 
     /**
+     * Anything else a visitor posts is dropped, so it never reaches the stored
+     * data, the notification mails or the export.
+     *
+     * @return array<int, string>
+     */
+    public function getSubmittableKeys(): array
+    {
+        if ($this->isCustom()) {
+            return array_keys($this->getSubmissionCustomFields());
+        }
+
+        $component = $this->getFormComponent();
+
+        return array_values(array_unique([
+            ...array_map(fn (string $key): string => Str::before($key, '.'), array_keys($component->rules())),
+            ...array_keys($component->attributes()),
+        ]));
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function getSubmissionCustomFields(): array

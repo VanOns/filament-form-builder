@@ -19,6 +19,11 @@ class FileUploadField extends FormField
         return parent::getKey();
     }
 
+    public function getSubmissionColumns(): array
+    {
+        return [$this->getOriginalKey() => $this->getLabel()];
+    }
+
     public function getKey(): string
     {
         $key = parent::getKey();

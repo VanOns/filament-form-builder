@@ -17,6 +17,11 @@ abstract class TestCase extends BaseTestCase
         ];
     }
 
+    protected function defineEnvironment($app): void
+    {
+        $app['config']->set('app.key', 'base64:' . base64_encode(str_repeat('a', 32)));
+    }
+
     protected function defineDatabaseMigrations(): void
     {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
