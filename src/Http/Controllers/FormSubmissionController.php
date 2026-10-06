@@ -9,7 +9,6 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use VanOns\FilamentFormBuilder\Classes\SubmissionFile;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -29,6 +28,7 @@ class FormSubmissionController
                 'form_id' => $form->id,
                 'data' => $data,
                 'files' => $files ?: null,
+                'field_snapshot' => $form->getFieldSnapshot(),
             ]);
 
         $type->afterSubmission($submission);
@@ -77,11 +77,11 @@ class FormSubmissionController
         $file = FormSubmission::query()->findOrFail($submissionId)->getFiles()[$key][$index] ?? abort(404);
         $disk = Storage::disk(FormSubmission::getFilesDisk());
 
-        if (!$disk instanceof FilesystemAdapter || !$disk->exists($file->path)) {
+        if (!$disk instanceof FilesystemAdapter || !$file->exists()) {
             abort(404);
         }
 
-        $inline = !$request->boolean('download') && SubmissionFile::isSafeInline($disk->mimeType($file->path) ?: null);
+        $inline = !$request->boolean('download') && $file->opensInBrowser();
 
         return $disk->response(
             $file->path,

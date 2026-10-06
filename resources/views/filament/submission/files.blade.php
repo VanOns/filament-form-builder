@@ -1,10 +1,10 @@
 @use('Filament\Support\Icons\Heroicon')
 @use('Illuminate\Support\Number')
+@use('VanOns\FilamentFormBuilder\Classes\SubmissionFile')
 
 <div class="ffb-files">
     @foreach ($files as $file)
         @php
-            $mimeType = $file->mimeType();
             $size = $file->size();
         @endphp
 
@@ -12,8 +12,8 @@
             <span class="ffb-file-thumb">
                 <x-filament::icon
                     :icon="match (true) {
-                        $mimeType !== null && str_starts_with($mimeType, 'image/') => Heroicon::OutlinedPhoto,
-                        $mimeType === 'application/pdf' => Heroicon::OutlinedDocumentText,
+                        $file->isImage() => Heroicon::OutlinedPhoto,
+                        $file->isPdf() => Heroicon::OutlinedDocumentText,
                         default => Heroicon::OutlinedDocument,
                     }"
                 />
@@ -35,7 +35,7 @@
                     @endif
 
                     @if ($file->extension() !== '')
-                        <x-filament::badge :color="$mimeType === 'application/pdf' ? 'danger' : 'gray'" size="sm">{{ $file->extension() }}</x-filament::badge>
+                        <x-filament::badge :color="$file->isPdf() ? 'danger' : 'gray'" size="sm">{{ $file->extension() }}</x-filament::badge>
                     @endif
                 </span>
             </div>
@@ -66,6 +66,6 @@
     @endforeach
 
     <p class="ffb-files-hint">
-        {{ trans_choice('filament-form-builder::general.submission.files_hint', $days = (int) config('filament-form-builder.form-uploads-link-days', 7), ['days' => $days]) }}
+        {{ trans_choice('filament-form-builder::general.submission.files_hint', $days = SubmissionFile::linkDays(), ['days' => $days]) }}
     </p>
 </div>

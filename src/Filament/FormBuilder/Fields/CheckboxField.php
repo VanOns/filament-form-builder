@@ -16,18 +16,30 @@ class CheckboxField extends FormField
     public static string $answerView = 'filament-form-builder::answers.boolean';
 
     /**
+     * What a ticked box can be stored as, so a filter can ask the database.
+     *
+     * @var list<string>
+     */
+    public const CHECKED_VALUES = ['1', 'true', 'on', 'yes'];
+
+    public static function isChecked(mixed $value): bool
+    {
+        return in_array(mb_strtolower((string) (is_scalar($value) ? $value : '')), static::CHECKED_VALUES, true);
+    }
+
+    /**
      * A ticked box is stored as "1"; people read yes or no.
      */
     public function formatSubmissionValue(mixed $value): mixed
     {
-        return filter_var($value, FILTER_VALIDATE_BOOLEAN)
+        return static::isChecked($value)
             ? __('filament-form-builder::fields.yes')
             : __('filament-form-builder::fields.no');
     }
 
     public function getFilterConstraints(): array
     {
-        return [AnswerConstraints::checkbox($this->getKey(), $this->getLabel())->icon(static::icon())];
+        return [AnswerConstraints::checkbox($this->getKey(), $this->getLabel())];
     }
 
     public static function paletteGroup(): string

@@ -20,6 +20,12 @@ class SubmissionFile implements Stringable
     ) {
     }
 
+    protected ?bool $exists = null;
+
+    protected ?int $size = null;
+
+    protected ?string $mimeType = null;
+
     /**
      * Whoever holds the link may download the file until it expires, so it can
      * travel in a notification mail to someone without an account.
@@ -41,26 +47,45 @@ class SubmissionFile implements Stringable
     {
         return URL::temporarySignedRoute(
             'filament-form-builder.form.download-file',
-            now()->addDays((int) config('filament-form-builder.form-uploads-link-days', 7)),
+            now()->addDays(static::linkDays()),
             ['submissionId' => $this->submission->getKey(), 'key' => $this->key, 'index' => $this->index, ...$query],
         );
     }
 
+    public static function linkDays(): int
+    {
+        return (int) config('filament-form-builder.form-uploads-link-days', 7);
+    }
+
     public function exists(): bool
     {
-        return $this->disk()->exists($this->path);
+        return $this->exists ??= $this->disk()->exists($this->path);
     }
 
     public function size(): ?int
     {
-        return $this->exists() ? $this->disk()->size($this->path) : null;
+        return $this->exists() ? ($this->size ??= $this->disk()->size($this->path)) : null;
     }
 
     public function mimeType(): ?string
     {
         $disk = $this->disk();
 
-        return $disk instanceof FilesystemAdapter && $this->exists() ? ($disk->mimeType($this->path) ?: null) : null;
+        if (!$disk instanceof FilesystemAdapter || !$this->exists()) {
+            return null;
+        }
+
+        return $this->mimeType ??= ($disk->mimeType($this->path) ?: null);
+    }
+
+    public function isImage(): bool
+    {
+        return str_starts_with((string) $this->mimeType(), 'image/');
+    }
+
+    public function isPdf(): bool
+    {
+        return $this->mimeType() === 'application/pdf';
     }
 
     public function extension(): string
@@ -68,18 +93,12 @@ class SubmissionFile implements Stringable
         return strtoupper(pathinfo($this->name, PATHINFO_EXTENSION));
     }
 
-    public function opensInBrowser(): bool
-    {
-        return static::isSafeInline($this->mimeType());
-    }
-
     /**
      * Only types that cannot run script on this domain open in the browser.
      */
-    public static function isSafeInline(?string $mimeType): bool
+    public function opensInBrowser(): bool
     {
-        return $mimeType === 'application/pdf'
-            || ($mimeType !== null && str_starts_with($mimeType, 'image/') && $mimeType !== 'image/svg+xml');
+        return $this->isPdf() || ($this->isImage() && $this->mimeType() !== 'image/svg+xml');
     }
 
     protected function disk(): Filesystem

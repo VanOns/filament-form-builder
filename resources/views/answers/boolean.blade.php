@@ -1,8 +1,9 @@
 @use('Filament\Support\Icons\Heroicon')
+@use('VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\CheckboxField')
 @use('VanOns\FilamentFormBuilder\Models\FormSubmission')
 
 @php
-    $checked = filter_var($raw, FILTER_VALIDATE_BOOLEAN);
+    $checked = CheckboxField::isChecked($raw);
 @endphp
 
 <span @class(['ffb-answer-boolean', 'ffb-answer-boolean-checked' => $checked])>

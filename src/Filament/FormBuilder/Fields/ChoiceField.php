@@ -52,21 +52,24 @@ abstract class ChoiceField extends FormField
 
     public function getFilterConstraints(): array
     {
-        return [
-            AnswerConstraints::choice($this->getKey(), $this->getLabel(), $this->getFilterOptions(), static::allowsMultiple())
-                ->icon(static::icon()),
-        ];
+        return [AnswerConstraints::choice($this->getKey(), $this->getLabel(), $this->getFilterOptions(), static::allowsMultiple())];
     }
 
     public function formatSubmissionValue(mixed $value): mixed
     {
-        $options = $this->getFilterOptions();
+        return static::toLabels($value, $this->getFilterOptions());
+    }
 
-        if (is_array($value)) {
-            return array_map(fn (mixed $item): mixed => $options[$item] ?? $item, $value);
-        }
+    /**
+     * A value, or each of a list, read as its option's label where it has one.
+     *
+     * @param  array<string, string>  $options  value => label
+     */
+    public static function toLabels(mixed $value, array $options): mixed
+    {
+        $label = fn (mixed $item): mixed => is_scalar($item) ? ($options[(string) $item] ?? $item) : $item;
 
-        return is_string($value) ? ($options[$value] ?? $value) : $value;
+        return is_array($value) ? array_map($label, $value) : $label($value);
     }
 
     /**

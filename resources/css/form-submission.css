@@ -38,11 +38,11 @@
     border-bottom: 1px solid var(--ffb-divider);
 }
 
-.ffb-answer:first-child {
+:is(.ffb-answer, .ffb-notification):first-child {
     padding-top: 0;
 }
 
-.ffb-answer:last-child {
+:is(.ffb-answer, .ffb-notification):last-child {
     padding-bottom: 0;
     border-bottom: 0;
 }
@@ -108,7 +108,8 @@
     white-space: pre-line;
 }
 
-.ffb-answer-badges {
+.ffb-answer-badges,
+.ffb-file-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 0.375rem;
@@ -219,12 +220,6 @@
     height: 0.875rem;
 }
 
-.ffb-file-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
-}
-
 .ffb-file-actions {
     display: flex;
     flex-shrink: 0;
@@ -253,15 +248,6 @@
     gap: 0.75rem;
     padding: 0.75rem 0;
     border-bottom: 1px solid var(--ffb-divider);
-}
-
-.ffb-notification:first-child {
-    padding-top: 0;
-}
-
-.ffb-notification:last-child {
-    padding-bottom: 0;
-    border-bottom: 0;
 }
 
 .ffb-notification-body {

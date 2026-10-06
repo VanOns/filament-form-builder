@@ -68,7 +68,7 @@ class FormSubmissionColumns
 
         foreach ($this->form->getFields(inputsOnly: true) as $field) {
             foreach ($field->getFilterConstraints() as $constraint) {
-                $constraints[$constraint->getName()] = $constraint;
+                $constraints[$constraint->getName()] = $constraint->icon($field::icon());
             }
         }
 

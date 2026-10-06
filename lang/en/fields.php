@@ -18,8 +18,6 @@ return [
     'column_start_auto' => 'Automatic',
     'rows' => 'Rows',
     'field_type' => 'Field type',
-    'helper_texts' => [
-    ],
     'advanced' => 'Advanced',
     'key_helper' => 'Leave empty to derive the key from the label. After that the key stays the same, even when the label changes.',
     'key_taken' => 'Another field in this form already uses this key.',

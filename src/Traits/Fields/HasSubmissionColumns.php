@@ -19,7 +19,7 @@ trait HasSubmissionColumns
 
     /**
      * The rules the submissions table can filter this field's answers by, one
-     * per column it fills.
+     * per column it fills. The table gives them the field type's icon.
      *
      * @return array<Constraint>
      */
@@ -28,7 +28,7 @@ trait HasSubmissionColumns
         $constraints = [];
 
         foreach ($this->getSubmissionColumns() as $key => $label) {
-            $constraints[] = AnswerConstraints::text($key, $label)->icon(static::icon());
+            $constraints[] = AnswerConstraints::text($key, $label);
         }
 
         return $constraints;

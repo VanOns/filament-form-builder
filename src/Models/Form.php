@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
-use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Casts\RedirectUrl;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
 use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
@@ -45,6 +44,11 @@ class Form extends Model
      * @var array<int, FormField>|null
      */
     protected ?array $fields = null;
+
+    /**
+     * @var array<string, string>|null
+     */
+    protected ?array $submissionFields = null;
 
     protected ?FormType $formType = null;
 
@@ -177,13 +181,17 @@ class Form extends Model
      */
     public function getSubmissionFields(): array
     {
+        if ($this->submissionFields !== null) {
+            return $this->submissionFields;
+        }
+
         $fields = [];
 
         foreach ($this->getFields(inputsOnly: true) as $field) {
             $fields = [...$fields, ...$field->getSubmissionColumns()];
         }
 
-        return [...$fields, ...$this->getType()->extraValues()];
+        return $this->submissionFields = [...$fields, ...$this->getType()->extraValues()];
     }
 
     /**
@@ -214,11 +222,12 @@ class Form extends Model
     public function getFieldSnapshot(): array
     {
         $snapshot = [];
+        $names = array_flip(FieldTypeHelper::all());
 
         foreach ($this->getFields(inputsOnly: true) as $field) {
             $snapshot[$field->getKey()] = [
                 'label' => $field->getLabel(),
-                'type' => FieldTypeHelper::nameOf($field::class) ?? $field::class,
+                'type' => $names[$field::class] ?? $field::class,
                 'columns' => $field->getSubmissionColumns(),
                 'options' => $field->getFilterOptions(),
             ];
@@ -229,11 +238,6 @@ class Form extends Model
         }
 
         return $snapshot;
-    }
-
-    public function findLabel(string $key): string
-    {
-        return $this->getSubmissionFields()[$key] ?? Str::headline($key);
     }
 
     /**

@@ -32,7 +32,7 @@ class FormSubmissionsRelationManager extends RelationManager
         return $table
             // The tab is already labelled; a heading would say it twice.
             ->heading(null)
-            ->modifyQueryUsing(fn ($query) => $query->withoutGlobalScopes([SoftDeletingScope::class]))
+            ->modifyQueryUsing(fn ($query) => $query->withoutGlobalScopes([SoftDeletingScope::class])->with('form'))
             ->defaultSort('created_at', 'desc')
             ->columns($columns->columns())
             ->filters($columns->filters(), layout: FiltersLayout::Modal)

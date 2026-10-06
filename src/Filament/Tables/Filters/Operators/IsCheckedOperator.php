@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Filament\Tables\Filters\Operators;
 use Filament\QueryBuilder\Constraints\Operators\Operator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\CheckboxField;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\Concerns\QueriesAnswers;
 
 class IsCheckedOperator extends Operator
@@ -42,7 +43,7 @@ class IsCheckedOperator extends Operator
         return $this->matchAnswer(
             $query,
             $qualifiedColumn,
-            fn (Builder $query) => $query->whereIn($this->answerText($query, $qualifiedColumn), ['1', 'true', 'on', 'yes']),
+            fn (Builder $query) => $query->whereIn($this->answerText($query, $qualifiedColumn), CheckboxField::CHECKED_VALUES),
         );
     }
 }

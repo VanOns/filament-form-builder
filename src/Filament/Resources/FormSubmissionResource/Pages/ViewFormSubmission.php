@@ -17,8 +17,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection;
 use VanOns\FilamentFormBuilder\Classes\Integration;
-use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
-use VanOns\FilamentFormBuilder\Classes\SubmissionFile;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -46,8 +44,6 @@ class ViewFormSubmission extends ViewRecord
     {
         /** @var FormSubmission $record */
         $record = $this->getRecord();
-        $answers = $record->getAnswers();
-        $files = array_merge(...array_values($record->getFiles()));
         $logs = $record->notificationLogs()->orderBy('created_at')->get();
 
         return $schema
@@ -56,10 +52,10 @@ class ViewFormSubmission extends ViewRecord
                 Grid::make(['lg' => 3])
                     ->columnSpanFull()
                     ->schema([
-                        $this->getAnswersSection($record, $answers['current'], $answers['removed'])
+                        $this->getAnswersSection($record)
                             ->columnSpan(['lg' => 2]),
                         Group::make([
-                            $this->getFilesSection($record, $files),
+                            $this->getFilesSection($record),
                             $this->getNotificationsSection($logs),
                             $this->getDetailsSection($record),
                             $this->getIntegrationsSection($record),
@@ -91,7 +87,7 @@ class ViewFormSubmission extends ViewRecord
                     ->icon(Heroicon::OutlinedCalendar)
                     ->dateTime('j F Y, H:i'),
                 TextEntry::make('notifications')
-                    ->label(__('filament-form-builder::general.submission.notifications'))
+                    ->label(__('filament-form-builder::general.notifications_label'))
                     ->icon(Heroicon::OutlinedPaperAirplane)
                     ->state(__('filament-form-builder::general.submission.notifications_sent', [
                         'sent' => $logs->where('status', 'sent')->count(),
@@ -101,12 +97,10 @@ class ViewFormSubmission extends ViewRecord
             ]);
     }
 
-    /**
-     * @param  list<SubmissionAnswer>  $current
-     * @param  list<SubmissionAnswer>  $removed
-     */
-    protected function getAnswersSection(FormSubmission $record, array $current, array $removed): Section
+    protected function getAnswersSection(FormSubmission $record): Section
     {
+        ['current' => $current, 'removed' => $removed] = $record->getAnswers();
+
         return Section::make(__('filament-form-builder::general.submission.answers'))
             ->icon(Heroicon::OutlinedDocumentText)
             ->afterHeader([
@@ -119,7 +113,7 @@ class ViewFormSubmission extends ViewRecord
                 Section::make(__('filament-form-builder::general.submission.removed'))
                     ->description(__('filament-form-builder::general.submission.removed_description'))
                     ->icon(Heroicon::OutlinedArchiveBox)
-                    ->afterHeader([Text::make((string) count($removed))->color('gray')])
+                    ->afterHeader([$this->getCount(count($removed))])
                     ->compact()
                     ->secondary()
                     ->hidden($removed === [])
@@ -130,14 +124,13 @@ class ViewFormSubmission extends ViewRecord
             ]);
     }
 
-    /**
-     * @param  list<SubmissionFile>  $files
-     */
-    protected function getFilesSection(FormSubmission $record, array $files): Section
+    protected function getFilesSection(FormSubmission $record): Section
     {
+        $files = array_merge(...array_values($record->getFiles()));
+
         return Section::make(__('filament-form-builder::general.files'))
             ->icon(Heroicon::OutlinedPaperClip)
-            ->afterHeader([Text::make((string) count($files))->color('gray')])
+            ->afterHeader([$this->getCount(count($files))])
             ->hidden($files === [])
             ->schema([
                 View::make('filament-form-builder::filament.submission.files')
@@ -150,9 +143,9 @@ class ViewFormSubmission extends ViewRecord
      */
     protected function getNotificationsSection(Collection $logs): Section
     {
-        return Section::make(__('filament-form-builder::general.submission.notifications'))
+        return Section::make(__('filament-form-builder::general.notifications_label'))
             ->icon(Heroicon::OutlinedEnvelope)
-            ->afterHeader([Text::make((string) $logs->count())->color('gray')])
+            ->afterHeader([$this->getCount($logs->count())])
             ->hidden($logs->isEmpty() && !config('filament-form-builder.email_notification_enabled'))
             ->schema([
                 View::make('filament-form-builder::filament.submission.notifications')
@@ -238,9 +231,14 @@ class ViewFormSubmission extends ViewRecord
         return Section::make(__('filament-form-builder::general.integration_responses'))
             ->icon(Heroicon::OutlinedServerStack)
             ->description(__('filament-form-builder::general.integration_responses_description'))
-            ->afterHeader([Text::make((string) count($entries))->color('gray')])
+            ->afterHeader([$this->getCount(count($entries))])
             ->collapsible()
             ->collapsed()
             ->schema($entries);
+    }
+
+    protected function getCount(int $count): Text
+    {
+        return Text::make((string) $count)->color('gray');
     }
 }

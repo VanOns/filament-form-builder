@@ -20,8 +20,8 @@ class ContainsAnyOperator extends IsOperator
     public function getLabel(): string
     {
         return __($this->isInverse()
-            ? 'filament-form-builder::general.filters.contains_any.label.inverse'
-            : 'filament-form-builder::general.filters.contains_any.label.direct');
+            ? 'filament-query-builder::query-builder.operators.text.contains.label.inverse'
+            : 'filament-query-builder::query-builder.operators.text.contains.label.direct');
     }
 
     public function getSummary(): string
@@ -31,11 +31,11 @@ class ContainsAnyOperator extends IsOperator
 
         return __(
             $this->isInverse()
-                ? 'filament-form-builder::general.filters.contains_any.summary.inverse'
-                : 'filament-form-builder::general.filters.contains_any.summary.direct',
+                ? 'filament-query-builder::query-builder.operators.text.contains.summary.inverse'
+                : 'filament-query-builder::query-builder.operators.text.contains.summary.direct',
             [
                 'attribute' => $constraint?->getAttributeLabel(),
-                'values' => Arr::join(
+                'text' => Arr::join(
                     Arr::only($options, $this->getValues()),
                     __('filament-query-builder::query-builder.operators.select.is.summary.values_glue.0'),
                     __('filament-query-builder::query-builder.operators.select.is.summary.values_glue.final'),

@@ -21,7 +21,7 @@ use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionForceDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionRestored;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionUpdated;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FileUploadField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\ChoiceField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
 
@@ -145,12 +145,12 @@ class FormSubmission extends Model
         $current = $this->form?->getSubmissionFields() ?? [];
 
         foreach ($this->field_snapshot ?? [] as $snapshot) {
-            foreach (array_keys($snapshot['columns']) as $key) {
-                if (! array_key_exists($key, $current) && array_key_exists($key, $values) && $snapshot['options'] !== []) {
-                    $values[$key] = is_array($values[$key])
-                        ? array_map(fn (mixed $item): mixed => $snapshot['options'][(string) $item] ?? $item, $values[$key])
-                        : ($snapshot['options'][(string) $values[$key]] ?? $values[$key]);
-                }
+            if ($snapshot['options'] === []) {
+                continue;
+            }
+
+            foreach (array_diff_key(array_intersect_key($values, $snapshot['columns']), $current) as $key => $value) {
+                $values[$key] = ChoiceField::toLabels($value, $snapshot['options']);
             }
         }
 
@@ -203,114 +203,101 @@ class FormSubmission extends Model
     /**
      * The answers for the detail page: one per field of the form as it is now,
      * and apart from those, what the submission holds for fields since removed.
-     * Files have a section of their own.
      *
      * @return array{current: list<SubmissionAnswer>, removed: list<SubmissionAnswer>}
      */
     public function getAnswers(): array
     {
-        $values = $this->getValues();
-        $raw = $this->data ?? [];
-        $handled = array_keys($this->getFiles());
         $current = [];
 
         foreach ($this->form?->getFields(inputsOnly: true) ?? [] as $field) {
             $columns = $field->getSubmissionColumns();
-            $handled = [...$handled, ...array_keys($columns)];
 
-            if ($field instanceof FileUploadField) {
-                continue;
-            }
-
-            $answer = $this->makeAnswer($field->getKey(), $field->getLabel(), $columns, $values, $raw, [
-                'icon' => $field::icon(),
-                'view' => $field->getAnswerView(),
-                'field' => $field,
-                'badge' => $field->isHidden() ? __('filament-form-builder::general.submission.hidden_field') : null,
-                'note' => count($columns) > 1 ? __('filament-form-builder::general.submission.columns', ['count' => count($columns)]) : null,
-            ]);
-
-            if ($answer !== null) {
-                $current[] = $answer;
-            }
+            $current[] = $this->makeAnswer(
+                $field->getKey(),
+                $field->getLabel(),
+                $columns,
+                $field::icon(),
+                view: $field->getAnswerView(),
+                field: $field,
+                badge: $field->isHidden() ? __('filament-form-builder::general.submission.hidden_field') : null,
+                note: count($columns) > 1 ? __('filament-form-builder::general.submission.columns', ['count' => count($columns)]) : null,
+            );
         }
 
         foreach ($this->form?->getType()->extraValues() ?? [] as $key => $label) {
-            $handled[] = $key;
-            $answer = $this->makeAnswer($key, $label, [$key => $label], $values, $raw, ['icon' => Heroicon::OutlinedCube]);
-
-            if ($answer !== null) {
-                $current[] = $answer;
-            }
+            $current[] = $this->makeAnswer($key, $label, [$key => $label], Heroicon::OutlinedCube);
         }
 
-        return ['current' => $current, 'removed' => $this->getRemovedAnswers($values, $raw, $handled)];
+        return ['current' => array_values(array_filter($current)), 'removed' => $this->getRemovedAnswers()];
     }
 
     /**
-     * @param  array<string, mixed>  $values
-     * @param  array<string, mixed>  $raw
-     * @param  array<int, string>  $handled
+     * What the submission holds for fields the form no longer has, under the
+     * label they had, or under its key where nothing kept one.
+     *
      * @return list<SubmissionAnswer>
      */
-    protected function getRemovedAnswers(array $values, array $raw, array $handled): array
+    public function getRemovedAnswers(): array
     {
+        $handled = [...$this->form?->getSubmissionFields() ?? [], ...$this->files ?? []];
         $removed = [];
 
         foreach ($this->field_snapshot ?? [] as $key => $snapshot) {
-            $columns = array_diff_key($snapshot['columns'], array_flip($handled));
+            $columns = array_diff_key($snapshot['columns'], $handled);
 
             if ($columns === []) {
                 continue;
             }
 
-            $handled = [...$handled, ...array_keys($columns)];
-            $type = FieldTypeHelper::resolve($snapshot['type']) ?? (is_string($snapshot['type']) && is_subclass_of($snapshot['type'], FormField::class) ? $snapshot['type'] : null);
+            $handled += $columns;
+            $type = FieldTypeHelper::resolve($snapshot['type'])
+                ?? (is_string($snapshot['type']) && is_a($snapshot['type'], FormField::class, true) ? $snapshot['type'] : null);
 
-            $answer = $this->makeAnswer((string) $key, $snapshot['label'], $columns, $values, $raw, [
-                'icon' => $type !== null ? $type::icon() : Heroicon::OutlinedQuestionMarkCircle,
-                'badge' => __('filament-form-builder::general.submission.removed_field'),
-                'note' => $type !== null ? __('filament-form-builder::general.submission.was', ['type' => mb_strtolower($type::getTypeLabel())]) : null,
-            ]);
-
-            if ($answer !== null) {
-                $removed[] = $answer;
-            }
+            $removed[] = $this->makeAnswer(
+                (string) $key,
+                $snapshot['label'],
+                $columns,
+                $type !== null ? $type::icon() : Heroicon::OutlinedQuestionMarkCircle,
+                badge: __('filament-form-builder::general.submission.removed_field'),
+                note: $type !== null ? __('filament-form-builder::general.submission.was', ['type' => mb_strtolower($type::getTypeLabel())]) : null,
+            );
         }
 
-        foreach ($values as $key => $value) {
-            if (in_array($key, $handled, true) || static::toText($value) === null) {
-                continue;
-            }
+        foreach (array_keys(array_diff_key($this->getValues(), $handled)) as $key) {
+            $label = Str::headline((string) $key);
 
-            $removed[] = new SubmissionAnswer(
-                key: (string) $key,
-                label: Str::headline((string) $key),
-                value: $value,
-                raw: $raw[$key] ?? null,
-                icon: Heroicon::OutlinedQuestionMarkCircle,
-                view: 'filament-form-builder::answers.text',
+            $removed[] = $this->makeAnswer(
+                (string) $key,
+                $label,
+                [$key => $label],
+                Heroicon::OutlinedQuestionMarkCircle,
                 badge: __('filament-form-builder::general.submission.unknown'),
                 note: __('filament-form-builder::general.submission.no_label'),
             );
         }
 
-        return $removed;
+        return array_values(array_filter($removed));
     }
 
     /**
      * One answer for a field and every value it holds, or null when it holds
-     * nothing.
+     * nothing. Files are left to a section of their own.
      *
      * @param  array<string, string>  $columns
-     * @param  array<string, mixed>  $values
-     * @param  array<string, mixed>  $raw
-     * @param  array{icon: string|BackedEnum, view?: string, field?: FormField, badge?: ?string, note?: ?string}  $display
      */
-    protected function makeAnswer(string $key, string $label, array $columns, array $values, array $raw, array $display): ?SubmissionAnswer
-    {
+    protected function makeAnswer(
+        string $key,
+        string $label,
+        array $columns,
+        string | BackedEnum $icon,
+        ?string $view = null,
+        ?FormField $field = null,
+        ?string $badge = null,
+        ?string $note = null,
+    ): ?SubmissionAnswer {
         $answered = array_filter(
-            array_intersect_key($values, $columns),
+            array_diff_key(array_intersect_key($this->getValues(), $columns), $this->files ?? []),
             fn (mixed $value): bool => static::toText($value) !== null,
         );
 
@@ -319,17 +306,18 @@ class FormSubmission extends Model
         }
 
         $isGrouped = count($columns) > 1;
+        $raw = $this->data ?? [];
 
         return new SubmissionAnswer(
             key: $key,
             label: $label,
             value: $isGrouped ? $answered : reset($answered),
             raw: $isGrouped ? array_intersect_key($raw, $columns) : ($raw[$key] ?? null),
-            icon: $display['icon'],
-            view: $display['view'] ?? ($isGrouped ? 'filament-form-builder::answers.columns' : 'filament-form-builder::answers.text'),
-            field: $display['field'] ?? null,
-            badge: $display['badge'] ?? null,
-            note: $display['note'] ?? null,
+            icon: $icon,
+            view: $view ?? ($isGrouped ? 'filament-form-builder::answers.columns' : 'filament-form-builder::answers.text'),
+            field: $field,
+            badge: $badge,
+            note: $note,
             columns: $isGrouped ? $columns : [],
         );
     }

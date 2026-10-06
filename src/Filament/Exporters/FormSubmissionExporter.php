@@ -6,6 +6,7 @@ use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
 use Illuminate\Support\Number;
+use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -27,22 +28,37 @@ class FormSubmissionExporter extends Exporter
     }
 
     /**
+     * @param  array<int, string>|null  $dataKeys  the keys an export across forms has columns for
      * @return array<ExportColumn>
      */
-    public static function getColumnsFor(?Form $form): array
+    public static function getColumnsFor(?Form $form, ?array $dataKeys = null): array
     {
         return [
             ExportColumn::make('form_id'),
             ExportColumn::make('form.title'),
-            ...static::getAvailableDataExportColumns($form),
+            ...static::getAvailableDataExportColumns($form, $dataKeys),
             ExportColumn::make('created_at'),
         ];
     }
 
+    /**
+     * Every chunk of the export builds these again, so an export across forms
+     * takes its keys from the columns that were picked instead of from every
+     * submission there is.
+     */
     public function getCachedColumns(): array
     {
-        return $this->cachedColumns ??= array_reduce(
-            static::getColumnsFor($this->getExportedForm()),
+        if (isset($this->cachedColumns)) {
+            return $this->cachedColumns;
+        }
+
+        $dataKeys = array_map(
+            fn (string $name): string => Str::after($name, 'data.'),
+            array_values(array_filter(array_keys($this->columnMap), fn (string $name): bool => str_starts_with($name, 'data.'))),
+        );
+
+        return $this->cachedColumns = array_reduce(
+            static::getColumnsFor($this->getExportedForm(), $dataKeys),
             function (array $carry, ExportColumn $column): array {
                 $carry[$column->getName()] = $column->exporter($this);
 
@@ -64,14 +80,15 @@ class FormSubmissionExporter extends Exporter
      * editor typed, and whatever else its submissions hold in one column. An
      * export across forms has a column for every key the submissions hold.
      *
+     * @param  array<int, string>|null  $dataKeys
      * @return array<ExportColumn>
      */
-    protected static function getAvailableDataExportColumns(?Form $form): array
+    protected static function getAvailableDataExportColumns(?Form $form, ?array $dataKeys = null): array
     {
         if ($form === null) {
             return array_map(
                 fn (string $key): ExportColumn => static::getExportColumn($key, str($key)->headline()->toString()),
-                static::submittedDataKeys(),
+                $dataKeys ?? static::submittedDataKeys(),
             );
         }
 
@@ -96,7 +113,7 @@ class FormSubmissionExporter extends Exporter
     {
         $lines = array_map(
             fn (SubmissionAnswer $answer): string => $answer->label . ': ' . FormSubmission::toText($answer->value),
-            $record->getAnswers()['removed'],
+            $record->getRemovedAnswers(),
         );
 
         $fields = $record->form?->getSubmissionFields() ?? [];

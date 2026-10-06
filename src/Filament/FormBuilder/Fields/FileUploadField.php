@@ -35,7 +35,7 @@ class FileUploadField extends FormField
 
     public function getFilterConstraints(): array
     {
-        return [AnswerConstraints::file($this->getOriginalKey(), $this->getLabel())->icon(static::icon())];
+        return [AnswerConstraints::file($this->getOriginalKey(), $this->getLabel())];
     }
 
     public function getKey(): string

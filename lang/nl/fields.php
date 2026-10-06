@@ -18,8 +18,6 @@ return [
     'column_start_auto' => 'Automatisch',
     'rows' => 'Rijen',
     'field_type' => 'Veldtype',
-    'helper_texts' => [
-    ],
     'advanced' => 'Geavanceerd',
     'key_helper' => 'Laat leeg om de key uit het label te maken. Daarna blijft de key vast, ook als het label verandert.',
     'key_taken' => 'Een ander veld in dit formulier gebruikt deze key al.',

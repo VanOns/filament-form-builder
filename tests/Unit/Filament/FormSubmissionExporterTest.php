@@ -118,6 +118,16 @@ it('gives the export job the columns of the modal, also for a field nobody answe
     expect($exporter->getCachedColumns())->toHaveKey('data.motivatie');
 });
 
+it('builds an export across forms from the columns that were picked', function () {
+    $form = formWithFields('Solliciteren', ['Voornaam']);
+    FormSubmission::create(['form_id' => $form->id, 'data' => ['voornaam' => 'Jesse', 'telefoon' => '0612345678']]);
+
+    $exporter = new FormSubmissionExporter(new Export(), ['data.voornaam' => 'Voornaam'], []);
+
+    expect($exporter->getCachedColumns())->toHaveKey('data.voornaam')
+        ->not->toHaveKey('data.telefoon');
+});
+
 it('reports how many submissions were exported', function () {
     $export = new Export(['total_rows' => 3, 'successful_rows' => 2]);
 
