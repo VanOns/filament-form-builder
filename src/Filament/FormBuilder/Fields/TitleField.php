@@ -15,6 +15,20 @@ class TitleField extends FormField
     public ?string $title = null;
     public ?string $headingLevel = 'h2';
 
+    public function title(?string $title): static
+    {
+        $this->title = $title;
+
+        return $this;
+    }
+
+    public function headingLevel(string $level): static
+    {
+        $this->headingLevel = $level;
+
+        return $this;
+    }
+
     public static function icon(): string | BackedEnum
     {
         return Heroicon::OutlinedH1;
@@ -39,7 +53,7 @@ class TitleField extends FormField
         ];
     }
 
-    protected function rules(): array
+    protected function fieldRules(): array
     {
         return [];
     }

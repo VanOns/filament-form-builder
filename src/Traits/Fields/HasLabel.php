@@ -9,7 +9,7 @@ trait HasLabel
 {
     public ?string $label = null;
 
-    public static function label(): string
+    public static function getTypeLabel(): string
     {
         $basename = class_basename(static::class);
 
@@ -20,8 +20,15 @@ trait HasLabel
         return ucfirst(Str::replace('-', ' ', Str::kebab($basename)));
     }
 
+    public function label(?string $label): static
+    {
+        $this->label = $label;
+
+        return $this;
+    }
+
     public function getLabel(): string
     {
-        return $this->label ?? static::label();
+        return $this->label ?? static::getTypeLabel();
     }
 }

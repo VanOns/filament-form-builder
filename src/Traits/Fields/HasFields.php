@@ -18,6 +18,20 @@ trait HasFields
      */
     protected ?int $gridColumns = null;
 
+    public function span(int $columns): static
+    {
+        $this->column_span = $columns;
+
+        return $this;
+    }
+
+    public function description(?string $description): static
+    {
+        $this->description = $description;
+
+        return $this;
+    }
+
     public function setGridColumns(int $columns): static
     {
         $this->gridColumns = $columns;

@@ -21,6 +21,24 @@ abstract class ChoiceField extends FormField
      */
     public array $options = [];
 
+    /**
+     * Either value => label pairs, or a list of `['value' => ..., 'label' => ...]`.
+     *
+     * @param  array<int|string, string|array{value: string, label?: string}>  $options
+     */
+    public function options(array $options): static
+    {
+        $this->options = [];
+
+        foreach ($options as $value => $option) {
+            $this->options[] = is_array($option)
+                ? ['value' => $option['value'], 'label' => $option['label'] ?? $option['value']]
+                : ['value' => (string) $value, 'label' => $option];
+        }
+
+        return $this;
+    }
+
     abstract public static function allowsMultiple(): bool;
 
     /**
@@ -50,15 +68,15 @@ abstract class ChoiceField extends FormField
         $allowed = Rule::in(Arr::pluck($this->options, 'value'));
 
         if (static::allowsMultiple()) {
-            return [
+            return $this->withExtraRules([
                 $this->getKey() => [...$this->getDefaultRules(), 'array'],
                 $this->getKey() . '.*' => [$allowed],
-            ];
+            ]);
         }
 
-        return [
+        return $this->withExtraRules([
             $this->getKey() => [...$this->getDefaultRules(), $allowed],
-        ];
+        ]);
     }
 
     public static function getDefaultValueComponent(): ?Component

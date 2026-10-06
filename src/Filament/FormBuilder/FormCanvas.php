@@ -111,7 +111,7 @@ class FormCanvas extends Field
     public function getAddAction(): Action
     {
         return Action::make('add')
-            ->modalHeading(fn (array $arguments, FormCanvas $component): string => $component->resolveFieldType($arguments['type'] ?? null)::label())
+            ->modalHeading(fn (array $arguments, FormCanvas $component): string => $component->resolveFieldType($arguments['type'] ?? null)::getTypeLabel())
             ->modalSubmitActionLabel(__('filament-form-builder::general.add'))
             ->slideOver()
             ->schema(fn (array $arguments, FormCanvas $component): array => $component->getItemSchema($component->resolveFieldType($arguments['type'] ?? null)))
@@ -129,7 +129,7 @@ class FormCanvas extends Field
     public function getEditAction(): Action
     {
         return Action::make('edit')
-            ->modalHeading(fn (array $arguments, FormCanvas $component): string => $component->resolveFieldType($component->getItemData($arguments)['type'] ?? null)::label())
+            ->modalHeading(fn (array $arguments, FormCanvas $component): string => $component->resolveFieldType($component->getItemData($arguments)['type'] ?? null)::getTypeLabel())
             ->modalSubmitActionLabel(__('filament-form-builder::general.save'))
             ->slideOver()
             ->fillForm(fn (array $arguments, FormCanvas $component): array => $component->getItemData($arguments))

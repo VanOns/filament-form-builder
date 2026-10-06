@@ -14,6 +14,20 @@ class TextAreaField extends FormField
     public ?string $placeholder = null;
     public ?int $rows = null;
 
+    public function placeholder(?string $placeholder): static
+    {
+        $this->placeholder = $placeholder;
+
+        return $this;
+    }
+
+    public function rows(?int $rows): static
+    {
+        $this->rows = $rows;
+
+        return $this;
+    }
+
     public static function icon(): string | BackedEnum
     {
         return Heroicon::OutlinedBars3BottomLeft;

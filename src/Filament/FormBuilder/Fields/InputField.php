@@ -10,6 +10,13 @@ abstract class InputField extends FormField
 
     public ?string $placeholder = null;
 
+    public function placeholder(?string $placeholder): static
+    {
+        $this->placeholder = $placeholder;
+
+        return $this;
+    }
+
     abstract public function getInputType(): string;
 
     /**
@@ -20,7 +27,7 @@ abstract class InputField extends FormField
         return [];
     }
 
-    protected function rules(): array
+    protected function fieldRules(): array
     {
         return [
             ...$this->getDefaultRules(),

@@ -20,6 +20,13 @@ trait HasKey
      */
     public static array $reservedKeys = ['_token', '_method', 'g-recaptcha-response', 'form_title', 'all_fields'];
 
+    public function key(string $key): static
+    {
+        $this->key = $key;
+
+        return $this;
+    }
+
     public static function cleanKey(string $key): string
     {
         return str_replace(static::$disallowedKeyCharacters, '', $key);

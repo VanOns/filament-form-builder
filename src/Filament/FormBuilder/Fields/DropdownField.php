@@ -13,6 +13,13 @@ class DropdownField extends ChoiceField
 
     public ?string $placeholder = null;
 
+    public function placeholder(?string $placeholder): static
+    {
+        $this->placeholder = $placeholder;
+
+        return $this;
+    }
+
     public static function allowsMultiple(): bool
     {
         return false;

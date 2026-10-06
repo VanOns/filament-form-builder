@@ -6,6 +6,13 @@ trait CanBeHidden
 {
     public ?bool $hidden = false;
 
+    public function hidden(bool $condition = true): static
+    {
+        $this->hidden = $condition;
+
+        return $this;
+    }
+
     public function isHidden(): bool
     {
         return static::canBeHidden() && (bool) $this->hidden;

@@ -9,6 +9,13 @@ trait HasDefaultValue
 {
     public mixed $defaultValue = null;
 
+    public function default(mixed $value): static
+    {
+        $this->defaultValue = $value;
+
+        return $this;
+    }
+
     public function getDefaultValue(): mixed
     {
         return $this->defaultValue;

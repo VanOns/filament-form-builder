@@ -11,7 +11,7 @@ class SubmitField extends FormField
     public static string $view = 'filament-form-builder::components.fields.submit-field';
     public static string $previewView = 'filament-form-builder::filament.previews.submit';
 
-    protected function rules(): array
+    protected function fieldRules(): array
     {
         return [];
     }

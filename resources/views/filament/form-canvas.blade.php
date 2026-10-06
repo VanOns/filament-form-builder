@@ -36,7 +36,7 @@
                 >
                     <div class="ffb-canvas-item-toolbar">
                         <x-filament::icon :icon="$item::icon()" class="ffb-canvas-item-icon" />
-                        <span class="ffb-canvas-item-type">{{ $item::label() }}</span>
+                        <span class="ffb-canvas-item-type">{{ $item::getTypeLabel() }}</span>
                         @if ($item->isHidden())
                             <x-filament::icon
                                 :icon="Heroicon::OutlinedEyeSlash"
@@ -89,7 +89,7 @@
                         class="ffb-canvas-palette-item"
                     >
                         <x-filament::icon :icon="$class::icon()" />
-                        <span>{{ $class::label() }}</span>
+                        <span>{{ $class::getTypeLabel() }}</span>
                     </button>
                 @endforeach
             </div>

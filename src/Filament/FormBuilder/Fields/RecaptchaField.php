@@ -15,7 +15,7 @@ class RecaptchaField extends FormField
 
     public ?string $key = 'g-recaptcha-response';
 
-    protected function rules(): array
+    protected function fieldRules(): array
     {
         return RecaptchaService::checkEnabled()
             ? ['required', 'string', new RecaptchaRule()]

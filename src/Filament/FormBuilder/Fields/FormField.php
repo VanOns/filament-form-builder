@@ -18,6 +18,9 @@ use VanOns\FilamentFormBuilder\Traits\Fields\HasRules;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasSubmissionColumns;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasView;
 
+/**
+ * @phpstan-consistent-constructor
+ */
 abstract class FormField
 {
     use HasKey;
@@ -57,6 +60,11 @@ abstract class FormField
                 $this->{$key} = $value;
             }
         }
+    }
+
+    public static function make(string $key): static
+    {
+        return new static(['key' => $key]);
     }
 
     public static function isInput(): bool

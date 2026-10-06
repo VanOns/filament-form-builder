@@ -14,6 +14,13 @@ class FileUploadField extends FormField
 
     public ?bool $multiple = false;
 
+    public function multiple(bool $condition = true): static
+    {
+        $this->multiple = $condition;
+
+        return $this;
+    }
+
     public function getOriginalKey(): string
     {
         return parent::getKey();
@@ -41,7 +48,7 @@ class FileUploadField extends FormField
         return is_int($maxSize) ? $maxSize : null;
     }
 
-    protected function rules(): array
+    protected function fieldRules(): array
     {
         $rules = [];
         if ($this->multiple) {
@@ -61,15 +68,13 @@ class FileUploadField extends FormField
     {
         $key = $this->getOriginalKey();
 
-        return array_filter([
-            $key => !empty($rules = $this->rules())
-                ? $rules
-                : null,
+        return array_filter($this->withExtraRules([
+            $key => $this->fieldRules(),
             $key . '.*' => $this->multiple ? [
                 'file',
                 'max:' . $this->getMaxSize(),
             ] : null,
-        ]);
+        ]));
     }
 
     public static function icon(): string | BackedEnum

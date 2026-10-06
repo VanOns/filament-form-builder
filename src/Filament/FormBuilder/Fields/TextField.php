@@ -15,6 +15,13 @@ class TextField extends FormField
 
     public ?string $text = null;
 
+    public function text(?string $text): static
+    {
+        $this->text = $text;
+
+        return $this;
+    }
+
     public static function icon(): string | BackedEnum
     {
         return Heroicon::OutlinedDocumentText;
@@ -37,7 +44,7 @@ class TextField extends FormField
         ];
     }
 
-    protected function rules(): array
+    protected function fieldRules(): array
     {
         return [];
     }
