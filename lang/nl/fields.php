@@ -5,6 +5,8 @@ return [
     'form_builder' => 'Formulier bouwer',
     'form_builder_placeholder' => 'Kies een veld',
     'required' => 'Verplicht',
+    'yes' => 'Ja',
+    'no' => 'Nee',
     'required_helper' => 'Met een voorwaarde alleen zolang het veld zichtbaar is.',
     'label' => 'Label',
     'description' => 'Beschrijving',
@@ -17,7 +19,6 @@ return [
     'rows' => 'Rijen',
     'field_type' => 'Veldtype',
     'helper_texts' => [
-        'submitter_email' => 'Gebruik de key `submitter_email` om dit veld als indiener e-mailadres te gebruiken.',
     ],
     'advanced' => 'Geavanceerd',
     'key_helper' => 'Laat leeg om de key uit het label te maken. Daarna blijft de key vast, ook als het label verandert.',

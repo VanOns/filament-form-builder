@@ -14,7 +14,8 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 ### Installing
 
 * Publish and run the migrations: `php artisan vendor:publish --tag=filament-form-builder-migrations`,
-  then `php artisan migrate`. They add `form_submissions.files`.
+  then `php artisan migrate`. They add `form_submissions.files` and
+  `form_submissions.field_snapshot`, and drop `form_submissions.submitter_email`.
 * `forms.template` now holds the name a form type is registered under instead of a template class: set
   it to `custom`, `contact` or the name of your own type.
 * Republish the config, or compare yours with [`config/general.php`](config/general.php).
@@ -52,14 +53,14 @@ code. See [Form types](docs/usage.md#form-types).
 * Replace `hasRecaptcha()` with `RecaptchaField::make('g-recaptcha-response')` in `fields()`.
 * The hooks are instance methods now, with the form in `$this->form`:
 
-| v2 (static)                                               | v3                                                 |
-|-----------------------------------------------------------|----------------------------------------------------|
-| `modifyDataBeforeValidation(array $data, Form $form)`     | `beforeValidation(array $data)`                    |
-| `modifyDataUsing(array $data, Form $form)`                | `beforeStore(array $data)`                         |
-| `modifyDataValues(array $data, FormSubmission $s)`        | `formatValues(array $values, FormSubmission $s)`   |
-| `modifyResourceDataUsing(array $data, FormSubmission $s)` | `formatDetails(array $details, FormSubmission $s)` |
-| `afterSubmissionCreated(FormSubmission $s)`               | `afterSubmission(FormSubmission $s)`               |
-| `successResponse(FormSubmission $s)`                      | `response(FormSubmission $s)`                      |
+| v2 (static)                                               | v3                                                         |
+|-----------------------------------------------------------|------------------------------------------------------------|
+| `modifyDataBeforeValidation(array $data, Form $form)`     | `beforeValidation(array $data)`                            |
+| `modifyDataUsing(array $data, Form $form)`                | `beforeStore(array $data)`                                 |
+| `modifyDataValues(array $data, FormSubmission $s)`        | `formatValues(array $values, FormSubmission $s)`           |
+| `modifyResourceDataUsing(array $data, FormSubmission $s)` | gone: `formatAnswerUsing()` or `answerView()` on the field |
+| `afterSubmissionCreated(FormSubmission $s)`               | `afterSubmission(FormSubmission $s)`                       |
+| `successResponse(FormSubmission $s)`                      | `response(FormSubmission $s)`                              |
 
 `settings()`, `messages()`, `hasRedirect()`, `hasNotificationMessage()`,
 `hasSubmitNotificationQuery()`, `hasNotifications()` and `hasIntegrations()` keep their names.
@@ -68,7 +69,8 @@ code. See [Form types](docs/usage.md#form-types).
   `getCustomFormLabels()` and `getFormAttributes()` give way to `getRules()` and `getSubmissionFields()`.
 * Notifications and integrations only run for a visitor's submission, no longer for every created
   `FormSubmission`.
-* A posted `submitter_email` is no longer read: the submitter is the first e-mail field filled in.
+* `submitter_email` is gone from the submission, the table, the export and the placeholders. Use the
+  e-mail field's own key instead: `{{ $email }}` in a mail, `email` as a receiver.
 
 ### Fields
 
@@ -101,3 +103,6 @@ Placeholders and receivers in e-mail notifications and the query string lose the
 `{{ $key_voornaam }}` becomes `{{ $voornaam }}`. Submissions stored with v2 keep their `key_` keys, so
 their answers show under raw keys instead of labels. A v2 upload is a link inside `data` to a route that
 no longer exists; v3 keeps uploads in the `files` column and links to them through signed URLs.
+
+Submissions from before the upgrade have no snapshot of their form's fields, so an answer to a field
+removed since then shows under its key, marked unknown.

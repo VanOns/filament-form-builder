@@ -14,7 +14,6 @@ use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\EmailField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Forms\CustomFields;
 use VanOns\FilamentFormBuilder\Forms\FormType;
@@ -205,6 +204,33 @@ class Form extends Model
         return array_values(array_unique($keys));
     }
 
+    /**
+     * What a submission keeps of the form, so its answers still read well after
+     * a field is renamed or removed: per field its label, type and columns, and
+     * a choice's options. The values a form type adds itself are kept too.
+     *
+     * @return array<string, array{label: string, type: ?string, columns: array<string, string>, options: array<string, string>}>
+     */
+    public function getFieldSnapshot(): array
+    {
+        $snapshot = [];
+
+        foreach ($this->getFields(inputsOnly: true) as $field) {
+            $snapshot[$field->getKey()] = [
+                'label' => $field->getLabel(),
+                'type' => FieldTypeHelper::nameOf($field::class) ?? $field::class,
+                'columns' => $field->getSubmissionColumns(),
+                'options' => $field->getFilterOptions(),
+            ];
+        }
+
+        foreach ($this->getType()->extraValues() as $key => $label) {
+            $snapshot[$key] = ['label' => $label, 'type' => null, 'columns' => [$key => $label], 'options' => []];
+        }
+
+        return $snapshot;
+    }
+
     public function findLabel(string $key): string
     {
         return $this->getSubmissionFields()[$key] ?? Str::headline($key);
@@ -219,24 +245,6 @@ class Form extends Model
             fn (string $key): string => '{{ $' . $key . ' }}',
             [...array_keys($this->getSubmissionFields()), 'all_fields', 'form_title'],
         );
-    }
-
-    /**
-     * The first e-mail field the visitor filled in.
-     *
-     * @param  array<string, mixed>  $data
-     */
-    public function findSubmitterEmail(array $data): ?string
-    {
-        foreach ($this->getFields(inputsOnly: true) as $field) {
-            $value = $data[$field->getKey()] ?? null;
-
-            if ($field instanceof EmailField && is_string($value) && filled($value)) {
-                return $value;
-            }
-        }
-
-        return null;
     }
 
     public function getWrapperAttributes(): HtmlString

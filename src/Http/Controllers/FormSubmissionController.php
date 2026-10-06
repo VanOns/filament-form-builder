@@ -3,11 +3,13 @@
 namespace VanOns\FilamentFormBuilder\Http\Controllers;
 
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use VanOns\FilamentFormBuilder\Classes\SubmissionFile;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -25,7 +27,6 @@ class FormSubmissionController
         $submission = FormSubmission::query()
             ->create([
                 'form_id' => $form->id,
-                'submitter_email' => $form->findSubmitterEmail($data),
                 'data' => $data,
                 'files' => $files ?: null,
             ]);
@@ -71,7 +72,7 @@ class FormSubmissionController
         return $files;
     }
 
-    public function showFile(int $submissionId, string $key, int $index): StreamedResponse
+    public function showFile(Request $request, int $submissionId, string $key, int $index): StreamedResponse
     {
         $file = FormSubmission::query()->findOrFail($submissionId)->getFiles()[$key][$index] ?? abort(404);
         $disk = Storage::disk(FormSubmission::getFilesDisk());
@@ -80,9 +81,7 @@ class FormSubmissionController
             abort(404);
         }
 
-        // Only types that cannot run script on this domain open in the browser.
-        $mimeType = $disk->mimeType($file->path) ?: 'application/octet-stream';
-        $inline = $mimeType === 'application/pdf' || (str_starts_with($mimeType, 'image/') && $mimeType !== 'image/svg+xml');
+        $inline = !$request->boolean('download') && SubmissionFile::isSafeInline($disk->mimeType($file->path) ?: null);
 
         return $disk->response(
             $file->path,

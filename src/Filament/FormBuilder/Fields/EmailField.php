@@ -7,6 +7,8 @@ use Filament\Support\Icons\Heroicon;
 
 class EmailField extends InputField
 {
+    public static string $answerView = 'filament-form-builder::answers.email';
+
     public function getInputType(): string
     {
         return 'email';

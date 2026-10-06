@@ -5,6 +5,8 @@ return [
     'form_builder' => 'Formulier builder',
     'form_builder_placeholder' => 'Choose a field',
     'required' => 'Required',
+    'yes' => 'Yes',
+    'no' => 'No',
     'required_helper' => 'With conditions, only while the field shows.',
     'label' => 'Label',
     'description' => 'Description',
@@ -17,7 +19,6 @@ return [
     'rows' => 'Rows',
     'field_type' => 'Field type',
     'helper_texts' => [
-        'submitter_email' => 'Use the key `submitter_email` to use this field as submitter email address.',
     ],
     'advanced' => 'Advanced',
     'key_helper' => 'Leave empty to derive the key from the label. After that the key stays the same, even when the label changes.',

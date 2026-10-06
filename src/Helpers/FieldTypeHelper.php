@@ -26,6 +26,16 @@ class FieldTypeHelper
     }
 
     /**
+     * The name a field class is configured under, or null for one that is not.
+     */
+    public static function nameOf(string $class): ?string
+    {
+        $name = array_search($class, static::all(), true);
+
+        return is_string($name) ? $name : null;
+    }
+
+    /**
      * @return class-string<FormField>|null
      */
     public static function resolve(mixed $type): ?string

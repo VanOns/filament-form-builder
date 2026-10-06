@@ -64,14 +64,13 @@ Every form renders through the `components/form` view. Pass another with
 
 Every method below runs on an instance, with the form in `$this->form`.
 
-| Method                                                      | When it runs                          | Affects                                                                  |
-|-------------------------------------------------------------|---------------------------------------|--------------------------------------------------------------------------|
-| `beforeValidation(array $data)`                             | Before validation                     | What is validated, not what is stored                                    |
-| `beforeStore(array $data)`                                  | Before the submission is stored       | Stored `data`                                                            |
-| `formatValues(array $values, FormSubmission $submission)`   | Whenever answers are shown            | The table, the detail page, the export, the mails and their placeholders |
-| `formatDetails(array $details, FormSubmission $submission)` | When showing the detail page          | Detail page **only**                                                     |
-| `afterSubmission(FormSubmission $submission)`               | Once a visitor's submission is stored | Sends the notifications, queues the integrations                         |
-| `response(FormSubmission $submission)`                      | After that                            | Replaces the redirect or message when it returns something               |
+| Method                                                    | When it runs                          | Affects                                                                  |
+|-----------------------------------------------------------|---------------------------------------|--------------------------------------------------------------------------|
+| `beforeValidation(array $data)`                           | Before validation                     | What is validated, not what is stored                                    |
+| `beforeStore(array $data)`                                | Before the submission is stored       | Stored `data`                                                            |
+| `formatValues(array $values, FormSubmission $submission)` | Whenever answers are shown            | The table, the detail page, the export, the mails and their placeholders |
+| `afterSubmission(FormSubmission $submission)`             | Once a visitor's submission is stored | Sends the notifications, queues the integrations                         |
+| `response(FormSubmission $submission)`                    | After that                            | Replaces the redirect or message when it returns something               |
 
 A visitor can only post the keys of the form's fields. A value `beforeStore()`
 adds on its own is declared in `extraValues()` as key => label, so it gets a
@@ -100,9 +99,6 @@ public function formatValues(array $values, FormSubmission $submission): array
 }
 ```
 
-`formatDetails()` receives the answers as text under their labels, for the
-detail page only; put value formatting in `formatValues()` instead.
-
 A type may also override `settings()` (extra fields for the form's
 settings tab, stored in its `settings` column), `messages()` (validation
 messages), and the admin toggles described below.
@@ -130,6 +126,41 @@ also keeps the branch's name and e-mail address, lists them all in
 `getInputKeys()`, the field's own key unless it says otherwise, are taken from
 what the visitor posts; the other columns are for the field or its form type's
 `beforeStore()` to fill in.
+
+## Showing answers
+
+The detail page of a submission shows one answer per field, in the order of the
+form: as text by default, a link for an e-mail address or phone number, labels
+for a list of choices, a check for a checkbox. A field that fills several
+columns shows them together. Files have a card of their own.
+
+A field can format its answer. The callback receives the value and the
+submission, never an empty answer, and what it returns is what the table, the
+detail page, the export and the mails show. An array becomes labels on the
+detail page and a comma-separated list everywhere else:
+
+```php
+NumberField::make('hours')
+    ->formatAnswerUsing(fn (int $value, FormSubmission $submission): string => "{$value} hours a week")
+```
+
+For something richer on the detail page only, give the field a Blade view of
+its own. It receives `$value` (formatted), `$raw` (as stored), `$field`,
+`$submission` and `$answer`, a `SubmissionAnswer`:
+
+```php
+BranchField::make('branch')->answerView('answers.branch')
+```
+
+A field type sets the default for all its fields in `$answerView`, which the
+built-in views `filament-form-builder::answers.text`, `.email`, `.phone`,
+`.boolean` and `.columns` use too.
+
+Every submission keeps a snapshot of the form's fields as they were when it
+was submitted. The answers to a field that has since been removed show apart,
+under the label they had, and a choice still reads as the option's label. A
+key the snapshot does not know shows under its own name. The export of a form
+puts these answers together in an "Other data" column, one per line.
 
 ## After a submission
 

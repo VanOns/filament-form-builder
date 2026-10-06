@@ -48,6 +48,17 @@ it('serves an upload to whoever holds its signed link', function () {
     expect($response->headers->get('Content-Disposition'))->toStartWith('inline')->toContain('cv.pdf');
 });
 
+it('downloads a file that would open in the browser when asked to', function () {
+    $file = uploadSubmission(['cv' => pdf()])->getFiles()['cv'][0];
+
+    $response = test()->get($file->downloadUrl());
+
+    expect($response->headers->get('Content-Disposition'))->toStartWith('attachment')
+        ->and($file->opensInBrowser())->toBeTrue()
+        ->and($file->extension())->toBe('PDF')
+        ->and($file->size())->toBeInt();
+});
+
 it('refuses a link that was not signed, was changed or has expired', function () {
     $url = uploadSubmission(['cv' => pdf()])->getFiles()['cv'][0]->url();
 

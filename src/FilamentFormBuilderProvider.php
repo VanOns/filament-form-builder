@@ -78,6 +78,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
     {
         FilamentAsset::register([
             Css::make('form-canvas', __DIR__.'/../resources/css/form-canvas.css'),
+            Css::make('form-submission', __DIR__.'/../resources/css/form-submission.css'),
             AlpineComponent::make('form-canvas', __DIR__.'/../resources/js/components/form-canvas.js'),
         ], 'van-ons/filament-form-builder');
     }

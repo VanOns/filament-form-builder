@@ -74,7 +74,7 @@ it('shows a choice by its label everywhere an answer is shown', function () {
     $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['aanhef' => 'mw']]);
 
     expect($submission->getDisplayText('aanhef'))->toBe('Mevrouw')
-        ->and($submission->getDetailData())->toBe(['Aanhef' => 'Mevrouw'])
+        ->and($submission->getAnswers()['current'][0]->value)->toBe('Mevrouw')
         ->and(SubmissionPlaceholders::make($submission)->replace('{{ $aanhef }}'))->toBe('Mevrouw');
 });
 

@@ -52,21 +52,48 @@ it('heads the columns with the labels the editor typed', function () {
     expect(exportColumnMap()['data.voornaam'])->toBe('Voornaam');
 });
 
-it('keeps a column for a field the form no longer has', function () {
+it('puts the answers the form no longer asks for in one column', function () {
     // Renaming or removing a field does not touch the answers already given;
     // exporting only what the form asks today would drop them silently.
-    $form = formWithFields('Solliciteren', ['Voornaam']);
-
-    FormSubmission::create([
-        'form_id' => $form->id,
-        'data' => ['voornaam' => 'Jesse', 'telefoon' => '0612345678'],
+    $form = Form::create([
+        'title' => 'Solliciteren',
+        'template' => 'custom',
+        'custom' => ['fields' => [
+            ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam'],
+            ['type' => 'text', 'label' => 'Telefoonnummer', 'key' => 'telefoon'],
+            ['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv'],
+        ]],
     ]);
+    $submission = FormSubmission::create([
+        'form_id' => $form->id,
+        'data' => ['voornaam' => 'Jesse', 'telefoon' => '0612345678', 'bron' => 'LinkedIn'],
+        'files' => ['cv' => [['path' => 'form_uploads/cv.pdf', 'name' => 'cv.pdf']]],
+    ]);
+    $form->update(['custom' => ['fields' => [['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam']]]]);
 
-    FormSubmissionExporter::$form = $form;
+    FormSubmissionExporter::$form = $form->fresh();
 
-    expect(exportColumnMap())->toHaveKeys(['data.voornaam', 'data.telefoon'])
-        ->and(exportColumnMap()['data.voornaam'])->toBe('Voornaam')
-        ->and(exportColumnMap()['data.telefoon'])->toBe('Telefoon');
+    expect(exportColumnMap())->toHaveKey('other_data', 'Other data')
+        ->not->toHaveKey('data.telefoon')
+        ->not->toHaveKey('data.bron');
+
+    $exporter = new FormSubmissionExporter(new Export(), ['data.voornaam' => 'Voornaam', 'other_data' => 'Other data'], ['form_id' => $form->id]);
+    [$voornaam, $other] = $exporter($submission->fresh());
+
+    expect($voornaam)->toBe('Jesse')
+        ->and(explode("\n", $other))->toHaveCount(3)
+        ->and(explode("\n", $other)[0])->toBe('Telefoonnummer: 0612345678')
+        ->and(explode("\n", $other)[1])->toBe('Bron: LinkedIn')
+        ->and(explode("\n", $other)[2])->toStartWith('CV: http');
+});
+
+it('leaves the other data empty when the form still asks for everything', function () {
+    $form = formWithFields('Solliciteren', ['Voornaam']);
+    $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['voornaam' => 'Jesse']]);
+
+    $exporter = new FormSubmissionExporter(new Export(), ['other_data' => 'Other data'], ['form_id' => $form->id]);
+
+    expect($exporter($submission))->toBe([null]);
 });
 
 it('falls back to the keys found in the submissions', function () {

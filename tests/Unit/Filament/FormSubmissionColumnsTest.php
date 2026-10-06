@@ -32,7 +32,6 @@ it('gives every input field of a custom form a column', function () {
 
     expect(columnMap($form))->toBe([
         'Created at' => 'created_at',
-        'Submitter email' => 'submitter_email',
         'Voornaam' => 'data.voornaam',
         'Achternaam' => 'data.achternaam',
     ]);

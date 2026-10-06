@@ -30,12 +30,11 @@ class SubmissionPlaceholders
         }
 
         // Later keys win: an answer beats the dash an empty field gets.
-        return $this->values = array_filter([
+        return $this->values = [
             'form_title' => $this->formSubmission->form->title,
             ...static::fallbacks($this->formSubmission),
             ...$this->formSubmission->getFormattedData(),
-            'submitter_email' => $this->formSubmission->submitter_email,
-        ], fn ($value) => $value !== null && $value !== '');
+        ];
     }
 
     /**

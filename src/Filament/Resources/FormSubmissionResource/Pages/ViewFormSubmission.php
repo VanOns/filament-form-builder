@@ -2,79 +2,180 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages;
 
-use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\RestoreAction;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Pages\ViewRecord;
-use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Text;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
-use Filament\Support\Enums\IconSize;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Collection;
 use VanOns\FilamentFormBuilder\Classes\Integration;
+use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
+use VanOns\FilamentFormBuilder\Classes\SubmissionFile;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
+use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
 
 class ViewFormSubmission extends ViewRecord
 {
     protected static string $resource = FormSubmissionResource::class;
 
+    public function getTitle(): string
+    {
+        return __('filament-form-builder::general.submission.title', ['id' => $this->getRecord()->getKey()]);
+    }
+
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            DeleteAction::make(),
+            ForceDeleteAction::make(),
+            RestoreAction::make(),
+        ];
     }
 
     public function infolist(Schema $schema): Schema
     {
         /** @var FormSubmission $record */
         $record = $this->getRecord();
-        $fileActions = [];
-
-        foreach ($record->getFiles() as $files) {
-            foreach ($files as $file) {
-                $fileActions[] = Action::make("file-{$file->key}-{$file->index}")
-                    ->color('gray')
-                    ->icon(Heroicon::OutlinedPaperClip)
-                    ->label($file->name)
-                    ->url($file->url())
-                    ->openUrlInNewTab();
-            }
-        }
+        $answers = $record->getAnswers();
+        $files = array_merge(...array_values($record->getFiles()));
+        $logs = $record->notificationLogs()->orderBy('created_at')->get();
 
         return $schema
+            ->components([
+                $this->getSummarySection($logs),
+                Grid::make(['lg' => 3])
+                    ->columnSpanFull()
+                    ->schema([
+                        $this->getAnswersSection($record, $answers['current'], $answers['removed'])
+                            ->columnSpan(['lg' => 2]),
+                        Group::make([
+                            $this->getFilesSection($record, $files),
+                            $this->getNotificationsSection($logs),
+                            $this->getDetailsSection($record),
+                            $this->getIntegrationsSection($record),
+                        ]),
+                    ]),
+            ]);
+    }
+
+    /**
+     * @param  Collection<int, FormSubmissionNotificationLog>  $logs
+     */
+    protected function getSummarySection(Collection $logs): Section
+    {
+        return Section::make()
+            ->columnSpanFull()
+            ->columns(['sm' => 2, 'lg' => 4])
             ->schema([
-                Section::make(__('filament-form-builder::general.general'))
-                    ->columnSpanFull()
-                    ->schema([
-                        TextEntry::make('form.title')
-                            ->label(__('filament-form-builder::general.form_title'))
-                            ->url(fn (FormSubmission $record) => FormResource::recordUrl($record->form)),
-                        TextEntry::make('created_at')
-                            ->label(__('filament-form-builder::general.created_at'))
-                            ->dateTime(),
-                        TextEntry::make('submitter_email')
-                            ->label(__('filament-form-builder::general.submitter_email')),
-                    ])->columns(3),
-                Section::make(__('filament-form-builder::general.form_content'))
-                    ->columnSpanFull()
-                    ->schema([
-                        KeyValueEntry::make('answers')
-                            ->state(fn (FormSubmission $record): array => $record->getDetailData())
-                            ->hiddenLabel()
-                            ->keyLabel(__('filament-form-builder::general.form_key'))
-                            ->valueLabel(__('filament-form-builder::general.form_value')),
-                    ]),
+                TextEntry::make('id')
+                    ->label(__('filament-form-builder::general.submission.id'))
+                    ->icon(Heroicon::OutlinedHashtag)
+                    ->weight('semibold'),
+                TextEntry::make('form.title')
+                    ->label(__('filament-form-builder::general.submission.form'))
+                    ->icon(Heroicon::OutlinedDocumentText)
+                    ->color('primary')
+                    ->url(fn (FormSubmission $record): ?string => $record->form ? FormResource::recordUrl($record->form) : null),
+                TextEntry::make('created_at')
+                    ->label(__('filament-form-builder::general.submission.submitted'))
+                    ->icon(Heroicon::OutlinedCalendar)
+                    ->dateTime('j F Y, H:i'),
+                TextEntry::make('notifications')
+                    ->label(__('filament-form-builder::general.submission.notifications'))
+                    ->icon(Heroicon::OutlinedPaperAirplane)
+                    ->state(__('filament-form-builder::general.submission.notifications_sent', [
+                        'sent' => $logs->where('status', 'sent')->count(),
+                        'total' => $logs->count(),
+                    ]))
+                    ->hidden($logs->isEmpty()),
+            ]);
+    }
 
-                Section::make(__('filament-form-builder::general.files'))
-                    ->columnSpanFull()
-                    ->hidden(empty($fileActions))
+    /**
+     * @param  list<SubmissionAnswer>  $current
+     * @param  list<SubmissionAnswer>  $removed
+     */
+    protected function getAnswersSection(FormSubmission $record, array $current, array $removed): Section
+    {
+        return Section::make(__('filament-form-builder::general.submission.answers'))
+            ->icon(Heroicon::OutlinedDocumentText)
+            ->afterHeader([
+                Text::make(trans_choice('filament-form-builder::general.submission.answer_count', count($current), ['count' => count($current)]))
+                    ->color('gray'),
+            ])
+            ->schema([
+                View::make('filament-form-builder::filament.submission.answers')
+                    ->viewData(['answers' => $current, 'submission' => $record]),
+                Section::make(__('filament-form-builder::general.submission.removed'))
+                    ->description(__('filament-form-builder::general.submission.removed_description'))
+                    ->icon(Heroicon::OutlinedArchiveBox)
+                    ->afterHeader([Text::make((string) count($removed))->color('gray')])
+                    ->compact()
+                    ->secondary()
+                    ->hidden($removed === [])
                     ->schema([
-                        Actions::make($fileActions),
+                        View::make('filament-form-builder::filament.submission.answers')
+                            ->viewData(['answers' => $removed, 'submission' => $record]),
                     ]),
+            ]);
+    }
 
-                $this->getIntegrationsSection($record),
-                $this->getNotificationLogsSection($record),
+    /**
+     * @param  list<SubmissionFile>  $files
+     */
+    protected function getFilesSection(FormSubmission $record, array $files): Section
+    {
+        return Section::make(__('filament-form-builder::general.files'))
+            ->icon(Heroicon::OutlinedPaperClip)
+            ->afterHeader([Text::make((string) count($files))->color('gray')])
+            ->hidden($files === [])
+            ->schema([
+                View::make('filament-form-builder::filament.submission.files')
+                    ->viewData(['files' => $files, 'submission' => $record]),
+            ]);
+    }
+
+    /**
+     * @param  Collection<int, FormSubmissionNotificationLog>  $logs
+     */
+    protected function getNotificationsSection(Collection $logs): Section
+    {
+        return Section::make(__('filament-form-builder::general.submission.notifications'))
+            ->icon(Heroicon::OutlinedEnvelope)
+            ->afterHeader([Text::make((string) $logs->count())->color('gray')])
+            ->hidden($logs->isEmpty() && !config('filament-form-builder.email_notification_enabled'))
+            ->schema([
+                View::make('filament-form-builder::filament.submission.notifications')
+                    ->viewData(['logs' => $logs]),
+            ]);
+    }
+
+    protected function getDetailsSection(FormSubmission $record): Section
+    {
+        return Section::make(__('filament-form-builder::general.submission.details'))
+            ->icon(Heroicon::OutlinedInformationCircle)
+            ->schema([
+                TextEntry::make('created_at')
+                    ->label(__('filament-form-builder::general.submission.submitted_at'))
+                    ->icon(Heroicon::OutlinedClock)
+                    ->dateTime('j M Y, H:i:s')
+                    ->inlineLabel(),
+                TextEntry::make('form_type')
+                    ->label(__('filament-form-builder::general.submission.form_type'))
+                    ->icon(Heroicon::OutlinedSquares2x2)
+                    ->state($record->form?->getType()->getLabel())
+                    ->placeholder('—')
+                    ->inlineLabel(),
             ]);
     }
 
@@ -85,8 +186,7 @@ class ViewFormSubmission extends ViewRecord
         if (empty($integrationResponses)) {
             return Section::make(__('filament-form-builder::general.integration_responses'))
                 ->hidden(empty(Integration::getIntegrations()))
-                ->icon('heroicon-o-server-stack')
-                ->iconSize(IconSize::ExtraLarge)
+                ->icon(Heroicon::OutlinedServerStack)
                 ->description(__('filament-form-builder::general.no_integrations'));
         }
 
@@ -110,10 +210,11 @@ class ViewFormSubmission extends ViewRecord
             $entries[] = Section::make($label)
                 ->description($integrationClass)
                 ->collapsed()
+                ->compact()
                 ->icon(match ($success) {
-                    true => 'heroicon-o-check-circle',
-                    false => 'heroicon-o-x-circle',
-                    default => 'heroicon-o-question-mark-circle',
+                    true => Heroicon::OutlinedCheckCircle,
+                    false => Heroicon::OutlinedXCircle,
+                    default => Heroicon::OutlinedQuestionMarkCircle,
                 })
                 ->iconColor($color)
                 ->schema([
@@ -131,98 +232,15 @@ class ViewFormSubmission extends ViewRecord
                         ->keyLabel(__('filament-form-builder::general.key'))
                         ->valueLabel(__('filament-form-builder::general.value')),
                 ])
-                ->columns(1)
                 ->collapsible();
         }
 
         return Section::make(__('filament-form-builder::general.integration_responses'))
-            ->icon('heroicon-o-server-stack')
-            ->iconSize(IconSize::ExtraLarge)
+            ->icon(Heroicon::OutlinedServerStack)
             ->description(__('filament-form-builder::general.integration_responses_description'))
-            ->schema($entries);
-    }
-
-    public function getNotificationLogsSection(FormSubmission $record): Section
-    {
-        $logs = $record->notificationLogs()->orderBy('created_at')->get();
-
-        if ($logs->isEmpty()) {
-            return Section::make(__('filament-form-builder::general.notification_logs'))
-                ->hidden(!config('filament-form-builder.email_notification_enabled'))
-                ->icon('heroicon-o-envelope')
-                ->iconSize(IconSize::ExtraLarge)
-                ->description(__('filament-form-builder::general.no_notification_logs'));
-        }
-
-        $entries = [];
-
-        foreach ($logs as $log) {
-            $color = match ($log->status) {
-                'sent' => 'success',
-                'failed' => 'danger',
-                default => 'gray',
-            };
-
-            $schema = [
-                TextEntry::make('notification_subject_' . $log->id)
-                    ->label(__('filament-form-builder::general.notifications.subject'))
-                    ->state($log->notification_subject),
-                TextEntry::make('sender_' . $log->id)
-                    ->label(__('filament-form-builder::general.sender'))
-                    ->state($log->sender ?? __('filament-form-builder::general.default_sender')),
-                TextEntry::make('recipient_' . $log->id)
-                    ->label(__('filament-form-builder::general.recipient'))
-                    ->state($log->recipient),
-                TextEntry::make('status_' . $log->id)
-                    ->label(__('filament-form-builder::general.status'))
-                    ->badge()
-                    ->color($color)
-                    ->state(match ($log->status) {
-                        'sent' => __('filament-form-builder::general.success'),
-                        'failed' => __('filament-form-builder::general.failed'),
-                        default => __('filament-form-builder::general.queued'),
-                    }),
-            ];
-
-            if ($log->sent_at) {
-                $schema[] = TextEntry::make('sent_at_' . $log->id)
-                    ->label(__('filament-form-builder::general.sent_at'))
-                    ->state($log->sent_at)
-                    ->dateTime();
-            }
-
-            if ($log->failed_at) {
-                $schema[] = TextEntry::make('failed_at_' . $log->id)
-                    ->label(__('filament-form-builder::general.failed_at'))
-                    ->state($log->failed_at)
-                    ->dateTime();
-            }
-
-            if ($log->error) {
-                $schema[] = TextEntry::make('error_' . $log->id)
-                    ->label(__('filament-form-builder::general.error'))
-                    ->state($log->error)
-                    ->color('danger');
-            }
-
-            $entries[] = Section::make($log->notification_subject)
-                ->description($log->recipient)
-                ->collapsed()
-                ->icon(match ($log->status) {
-                    'sent' => 'heroicon-o-check-circle',
-                    'failed' => 'heroicon-o-x-circle',
-                    default => 'heroicon-o-clock',
-                })
-                ->iconColor($color)
-                ->schema($schema)
-                ->columns()
-                ->collapsible();
-        }
-
-        return Section::make(__('filament-form-builder::general.notification_logs'))
-            ->icon('heroicon-o-envelope')
-            ->iconSize(IconSize::ExtraLarge)
-            ->description(__('filament-form-builder::general.notification_logs_description'))
+            ->afterHeader([Text::make((string) count($entries))->color('gray')])
+            ->collapsible()
+            ->collapsed()
             ->schema($entries);
     }
 }

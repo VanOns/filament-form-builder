@@ -33,11 +33,9 @@ it('stores only the fields a custom form asks for', function () {
         'naam' => 'Jan',
         'title_field' => 'not a field',
         'is_admin' => '1',
-        'submitter_email' => 'jan@example.com',
     ]);
 
-    expect($submission->data)->toBe(['naam' => 'Jan'])
-        ->and($submission->submitter_email)->toBeNull();
+    expect($submission->data)->toBe(['naam' => 'Jan']);
 });
 
 it('stores only the fields a form type has in code', function () {
@@ -58,20 +56,7 @@ it('stores only the fields a form type has in code', function () {
         'email' => 'jan@example.com',
         'phone_number' => '0612345678',
         'message' => 'Hallo',
-    ])->and($submission->submitter_email)->toBe('jan@example.com');
-});
-
-it('takes the submitter from the first e-mail field that was filled in', function () {
-    $form = Form::create([
-        'title' => 'Offerte',
-        'template' => 'custom',
-        'custom' => ['fields' => [
-            ['type' => 'email', 'label' => 'Werkmail', 'key' => 'werkmail'],
-            ['type' => 'email', 'label' => 'E-mailadres', 'key' => 'e-mailadres'],
-        ]],
     ]);
-
-    expect(submit($form, ['e-mailadres' => 'jan@example.com'])->submitter_email)->toBe('jan@example.com');
 });
 
 it('accepts a form whose optional fields were left empty', function () {

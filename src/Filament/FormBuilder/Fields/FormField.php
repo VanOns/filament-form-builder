@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Traits\Fields\CanBeHidden;
 use VanOns\FilamentFormBuilder\Traits\Fields\CanBeRequired;
+use VanOns\FilamentFormBuilder\Traits\Fields\HasAnswer;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasAttributes;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasConditions;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasDefaultValue;
@@ -34,6 +35,7 @@ abstract class FormField
     use HasConditions;
     use HasAttributes;
     use HasSubmissionColumns;
+    use HasAnswer;
 
     protected bool $newRow = false;
 

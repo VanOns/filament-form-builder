@@ -5,25 +5,23 @@ use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
-function placeholderSubmission(array $data = [], ?string $email = null): FormSubmission
+function placeholderSubmission(array $data = []): FormSubmission
 {
     $form = Form::create(['title' => 'Contact']);
 
     return FormSubmission::create([
         'form_id' => $form->id,
-        'submitter_email' => $email,
         'data' => $data,
     ]);
 }
 
-it('exposes the submitted values, the form title and the submitter', function () {
-    $submission = placeholderSubmission(['naam' => 'Jesse'], 'jesse@example.test');
+it('exposes the submitted values and the form title', function () {
+    $submission = placeholderSubmission(['naam' => 'Jesse']);
 
     expect(SubmissionPlaceholders::make($submission)->values())
         ->toMatchArray([
             'naam' => 'Jesse',
             'form_title' => 'Contact',
-            'submitter_email' => 'jesse@example.test',
         ]);
 });
 
@@ -53,14 +51,14 @@ it('replaces both placeholder spellings and leaves unknown ones alone', function
 });
 
 it('does not treat a placeholder a visitor typed as a placeholder', function () {
-    $submission = placeholderSubmission(['naam' => '{{ $submitter_email }}'], 'jesse@example.test');
+    $submission = placeholderSubmission(['naam' => '{{ $form_title }}']);
 
     expect(SubmissionPlaceholders::make($submission)->replace('Hoi {{ $naam }}'))
-        ->toBe('Hoi {{ $submitter_email }}');
+        ->toBe('Hoi {{ $form_title }}');
 });
 
 it('still replaces the placeholders in an e-mail notification', function () {
-    $submission = placeholderSubmission(['naam' => 'Jesse'], 'jesse@example.test');
+    $submission = placeholderSubmission(['naam' => 'Jesse']);
 
     $notification = new EmailNotification($submission, [
         'subject' => 'Inzending {{ $form_title }}',
@@ -100,11 +98,11 @@ it('escapes an answer before it goes into the html of a notification', function 
 });
 
 it('does not read a placeholder typed into a field as one in the field overview', function () {
-    $submission = placeholderSubmission(['naam' => '{{ $submitter_email }}'], 'jesse@example.test');
+    $submission = placeholderSubmission(['naam' => '{{ $form_title }}']);
 
     $notification = new EmailNotification($submission, ['subject' => 'Nieuw', 'content' => '{{ $all_fields }}']);
 
-    expect($notification->content)->toContain('<b>Naam</b>: {{ $submitter_email }}</p>');
+    expect($notification->content)->toContain('<b>Naam</b>: {{ $form_title }}</p>');
 });
 
 it('points the placeholders of a renamed key at its new name', function () {

@@ -12,6 +12,17 @@ class CheckboxField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.checkbox-field';
     public static string $previewView = 'filament-form-builder::filament.previews.checkbox';
+    public static string $answerView = 'filament-form-builder::answers.boolean';
+
+    /**
+     * A ticked box is stored as "1"; people read yes or no.
+     */
+    public function formatSubmissionValue(mixed $value): mixed
+    {
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN)
+            ? __('filament-form-builder::fields.yes')
+            : __('filament-form-builder::fields.no');
+    }
 
     public static function paletteGroup(): string
     {

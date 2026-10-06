@@ -7,6 +7,8 @@ use Filament\Support\Icons\Heroicon;
 
 class PhoneField extends InputField
 {
+    public static string $answerView = 'filament-form-builder::answers.phone';
+
     public function getInputType(): string
     {
         return 'tel';

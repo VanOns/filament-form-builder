@@ -113,17 +113,6 @@ class FormType
     }
 
     /**
-     * The answers on the detail page, already as text under their labels.
-     *
-     * @param  array<string, string>  $details
-     * @return array<string, string>
-     */
-    public function formatDetails(array $details, FormSubmission $submission): array
-    {
-        return $details;
-    }
-
-    /**
      * Runs for a visitor's submission, not for one a seeder or import creates.
      * Integrations call other systems, so they wait in the queue.
      */

@@ -35,11 +35,6 @@ class FormSubmissionColumns
                 ->label(__('filament-form-builder::general.created_at'))
                 ->dateTime()
                 ->sortable(),
-            TextColumn::make('submitter_email')
-                ->label(__('filament-form-builder::general.submitter_email'))
-                ->sortable()
-                ->searchable()
-                ->toggleable(),
             ...$this->fieldColumns(),
         ];
     }

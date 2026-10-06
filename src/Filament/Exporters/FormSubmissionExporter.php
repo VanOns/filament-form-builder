@@ -6,6 +6,7 @@ use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
 use Illuminate\Support\Number;
+use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -33,7 +34,6 @@ class FormSubmissionExporter extends Exporter
         return [
             ExportColumn::make('form_id'),
             ExportColumn::make('form.title'),
-            ExportColumn::make('submitter_email'),
             ...static::getAvailableDataExportColumns($form),
             ExportColumn::make('created_at'),
         ];
@@ -60,43 +60,65 @@ class FormSubmissionExporter extends Exporter
     }
 
     /**
-     * The form's own fields first, in its order and under the labels the editor
-     * typed, then whatever else the submissions hold.
+     * One form exports its own fields, in its order and under the labels the
+     * editor typed, and whatever else its submissions hold in one column. An
+     * export across forms has a column for every key the submissions hold.
      *
      * @return array<ExportColumn>
      */
     protected static function getAvailableDataExportColumns(?Form $form): array
     {
+        if ($form === null) {
+            return array_map(
+                fn (string $key): ExportColumn => static::getExportColumn($key, str($key)->headline()->toString()),
+                static::submittedDataKeys(),
+            );
+        }
+
         $columns = [];
 
-        foreach ($form?->getSubmissionFields() ?? [] as $key => $label) {
-            $columns[$key] = static::getExportColumn($key, $label);
+        foreach ($form->getSubmissionFields() as $key => $label) {
+            $columns[] = static::getExportColumn($key, $label);
         }
 
-        // A field that was renamed or removed still has answers under its old
-        // key. Going by the form alone would drop that column without a word.
-        foreach (static::submittedDataKeys($form) as $key) {
-            $columns[$key] ??= static::getExportColumn($key, str($key)->headline()->toString());
+        $columns[] = ExportColumn::make('other_data')
+            ->label(__('filament-form-builder::general.submission.other_data'))
+            ->state(fn (FormSubmission $record): ?string => static::getOtherData($record));
+
+        return $columns;
+    }
+
+    /**
+     * The answers to fields the form no longer has, so an export loses
+     * nothing, one per line under the label they had.
+     */
+    protected static function getOtherData(FormSubmission $record): ?string
+    {
+        $lines = array_map(
+            fn (SubmissionAnswer $answer): string => $answer->label . ': ' . FormSubmission::toText($answer->value),
+            $record->getAnswers()['removed'],
+        );
+
+        $fields = $record->form?->getSubmissionFields() ?? [];
+
+        foreach (array_keys($record->getFiles()) as $key) {
+            if (!array_key_exists($key, $fields)) {
+                $lines[] = $record->findLabel($key) . ': ' . $record->getDisplayText($key);
+            }
         }
 
-        return array_values($columns);
+        return $lines === [] ? null : implode("\n", $lines);
     }
 
     /**
      * @return array<int, string>
      */
-    protected static function submittedDataKeys(?Form $form): array
+    protected static function submittedDataKeys(): array
     {
         /** @var class-string<FormSubmission> $model */
         $model = static::$model;
 
-        $query = $model::query();
-
-        if ($form !== null) {
-            $query->where('form_id', $form->getKey());
-        }
-
-        return $query
+        return $model::query()
             ->get(['data', 'files'])
             ->flatMap(fn (FormSubmission $submission): array => [
                 ...array_keys($submission->data ?? []),

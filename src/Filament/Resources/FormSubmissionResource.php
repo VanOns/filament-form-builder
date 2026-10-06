@@ -62,11 +62,6 @@ class FormSubmissionResource extends Resource
                     ->label(__('filament-form-builder::general.form_title'))
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('submitter_email')
-                    ->label(__('filament-form-builder::general.submitter_email'))
-                    ->sortable()
-                    ->searchable()
-                    ->toggleable(),
                 TextColumn::make('created_at')
                     ->label(__('filament-form-builder::general.created_at'))
                     ->sortable()
@@ -80,21 +75,6 @@ class FormSubmissionResource extends Resource
                     ->searchable()
                     ->multiple()
                     ->preload(),
-                SelectFilter::make('submitter_email')
-                    ->label(__('filament-form-builder::general.submitter_email'))
-                    ->options(function () {
-                        /** @var class-string<FormSubmission> $model */
-                        $model = static::getModel();
-
-                        return $model::query()
-                            ->distinct('submitter_email')
-                            ->whereNotNull('submitter_email')
-                            ->pluck('submitter_email')
-                            ->mapWithKeys(fn ($email) => [$email => $email])
-                            ->toArray();
-                    })
-                    ->multiple()
-                    ->searchable(),
             ])
             ->recordActions([
                 // Over to that one form, where its own fields are columns.
