@@ -49,7 +49,7 @@ class TitleField extends FormField
         return false;
     }
 
-    public static function hasVisibilitySettings(): bool
+    public static function hasConditionSettings(): bool
     {
         return false;
     }

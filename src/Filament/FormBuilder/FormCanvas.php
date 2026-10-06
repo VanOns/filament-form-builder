@@ -5,9 +5,11 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Tabs;
@@ -16,7 +18,7 @@ use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
-use VanOns\FilamentFormBuilder\Enums\VisibilityType;
+use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
 use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
@@ -144,7 +146,7 @@ class FormCanvas extends Field
                 $newKey = ($component->getItems()[$uuid] ?? null)?->getKey();
 
                 if ($oldKey !== null && $newKey !== null && $oldKey !== $newKey) {
-                    $component->renameVisibilityKey($oldKey, $newKey);
+                    $component->renameConditionKey($oldKey, $newKey);
                     $component->evaluate($component->afterKeyRenamed, ['from' => $oldKey, 'to' => $newKey]);
                 }
             });
@@ -249,9 +251,9 @@ class FormCanvas extends Field
                 ->schema($this->getAdvancedSchema($type, $except)),
         ];
 
-        if ($type::hasVisibilitySettings()) {
+        if ($type::hasConditionSettings()) {
             $tabs[] = Tabs\Tab::make(__('filament-form-builder::fields.conditions'))
-                ->schema([$this->getVisibilityGroup($except)]);
+                ->schema($this->getConditionsSchema($except));
         }
 
         return [
@@ -301,35 +303,60 @@ class FormCanvas extends Field
         ]));
     }
 
-    protected function getVisibilityGroup(?string $except): Group
+    /**
+     * @return array<Component>
+     */
+    protected function getConditionsSchema(?string $except): array
     {
-        $keys = [];
+        $fields = [];
 
         foreach ($this->getItems() as $uuid => $item) {
             if ($uuid !== $except && $item::isInput()) {
-                $keys[$item->getKey()] = $item->getLabel();
+                $fields[$item->getKey()] = $item;
             }
         }
 
-        return Group::make([
-            Select::make('visibleWhenKey')
-                ->label(__('filament-form-builder::fields.visible_when_key'))
-                ->options($keys)
-                ->live(),
-            Select::make('visibleWhenType')
-                ->label('Is')
-                ->options(VisibilityType::toArray())
-                ->default(VisibilityType::EQUALS->value)
-                ->formatStateUsing(fn (?string $state): string => $state ?? VisibilityType::EQUALS->value)
-                ->required(fn (Get $get): bool => filled($get('visibleWhenKey')))
-                ->visible(fn (Get $get): bool => filled($get('visibleWhenKey')))
-                ->live(),
-            TextInput::make('visibleWhenValue')
-                ->label(__('filament-form-builder::fields.value'))
-                ->required(fn (Get $get): bool => filled($get('visibleWhenKey')))
-                ->visible(fn (Get $get): bool => filled($get('visibleWhenKey'))
-                    && ! in_array($get('visibleWhenType'), [VisibilityType::EMPTY->value, VisibilityType::NOT_EMPTY->value], true)),
-        ]);
+        $needsValue = fn (Get $get): bool => ConditionOperator::tryFrom((string) $get('operator'))?->needsValue() ?? false;
+
+        return [
+            ToggleButtons::make('conditionMatch')
+                ->label(__('filament-form-builder::fields.condition_match'))
+                ->options([
+                    'all' => __('filament-form-builder::fields.condition_match_all'),
+                    'any' => __('filament-form-builder::fields.condition_match_any'),
+                ])
+                ->default('all')
+                ->formatStateUsing(fn (?string $state): string => $state ?? 'all')
+                ->grouped()
+                ->visible(fn (Get $get): bool => count($get('conditions') ?? []) > 1),
+            Repeater::make('conditions')
+                ->hiddenLabel()
+                ->default([])
+                ->columns(3)
+                ->reorderable(false)
+                ->live()
+                ->addActionLabel(__('filament-form-builder::fields.add_condition'))
+                ->schema([
+                    Select::make('key')
+                        ->label(__('filament-form-builder::fields.condition_field'))
+                        ->options(array_map(fn (FormField $field): string => $field->getLabel(), $fields))
+                        ->required()
+                        ->live(),
+                    Select::make('operator')
+                        ->label(__('filament-form-builder::fields.condition_operator'))
+                        ->options(ConditionOperator::options())
+                        ->default(ConditionOperator::EQUALS->value)
+                        ->selectablePlaceholder(false)
+                        ->required()
+                        ->live(),
+                    TextInput::make('value')
+                        ->label(__('filament-form-builder::fields.value'))
+                        // A choice field suggests its own options.
+                        ->datalist(fn (Get $get): array => array_keys(($fields[$get('key')] ?? null)?->getFilterOptions() ?? []))
+                        ->required($needsValue)
+                        ->visible($needsValue),
+                ]),
+        ];
     }
 
     /**
@@ -392,13 +419,15 @@ class FormCanvas extends Field
         return $keys;
     }
 
-    protected function renameVisibilityKey(string $from, string $to): void
+    protected function renameConditionKey(string $from, string $to): void
     {
         $items = $this->getRawState() ?? [];
 
         foreach ($items as $uuid => $item) {
-            if (($item['visibleWhenKey'] ?? null) === $from) {
-                $items[$uuid]['visibleWhenKey'] = $to;
+            foreach ($item['conditions'] ?? [] as $index => $condition) {
+                if (($condition['key'] ?? null) === $from) {
+                    $items[$uuid]['conditions'][$index]['key'] = $to;
+                }
             }
         }
 

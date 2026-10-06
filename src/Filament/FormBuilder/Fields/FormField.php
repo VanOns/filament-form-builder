@@ -9,6 +9,7 @@ use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Traits\Fields\CanBeHidden;
 use VanOns\FilamentFormBuilder\Traits\Fields\CanBeRequired;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasAttributes;
+use VanOns\FilamentFormBuilder\Traits\Fields\HasConditions;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasDefaultValue;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasFields;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasKey;
@@ -16,7 +17,6 @@ use VanOns\FilamentFormBuilder\Traits\Fields\HasLabel;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasRules;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasSubmissionColumns;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasView;
-use VanOns\FilamentFormBuilder\Traits\Fields\HasVisibility;
 
 abstract class FormField
 {
@@ -28,7 +28,7 @@ abstract class FormField
     use CanBeRequired;
     use CanBeHidden;
     use HasDefaultValue;
-    use HasVisibility;
+    use HasConditions;
     use HasAttributes;
     use HasSubmissionColumns;
 

@@ -24,6 +24,15 @@ sends the e-mail notifications and queues a `RunFormIntegrationsJob` for the
 form's integrations. A submission created in code, by a seeder or an import,
 triggers neither.
 
+## Conditional fields
+
+A custom field can depend on other answers: on its Conditions tab an editor adds
+rules such as "Onderwerp is equal to anders" and chooses whether all of them or
+any of them must hold. The field renders the rules as JSON in a `data-conditions`
+attribute, which `resources/js/form-builder.js` evaluates to show or hide it. On
+the server, a required conditional field is only required while its conditions
+show it.
+
 ## Submit notification
 
 Each form has a "what happens after submission" section with two branches:

@@ -21,17 +21,11 @@ class FormBuilderForm {
 
     updateVisibility(input) {
         const inputWrapper = input.closest('[data-form-builder-input-wrapper]');
+        const conditions = input.getAttribute('data-conditions');
 
-        const visibleWhenKey = input.getAttribute('data-visible-when-key');
-        const visibleWhenValue = input.getAttribute('data-visible-when-value');
+        if (!conditions || !inputWrapper) return;
 
-        if (!visibleWhenKey || !visibleWhenValue) return;
-
-        const currentValue = this.getValue(visibleWhenKey);
-
-        const shouldShow = this.shouldShow(currentValue, visibleWhenValue);
-
-        if (shouldShow) {
+        if (this.passes(JSON.parse(conditions))) {
             inputWrapper.style.display = '';
             if (input.hasAttribute('data-required') && input.getAttribute('data-required') === 'true') {
                 input.setAttribute('required', true);
@@ -54,29 +48,29 @@ class FormBuilderForm {
         }
     }
 
-    shouldShow(value, conditionValue) {
-        if (conditionValue === '__not_empty__') {
-            return Array.isArray(value)
-                ? value.length > 0
-                : value !== undefined && value !== null && value !== '';
-        }
+    passes({ match, rules }) {
+        const results = rules.map(rule => this.matches(this.getValue(rule.key), rule.operator, rule.value));
 
-        if (conditionValue === '__empty__') {
-            return Array.isArray(value)
-                ? value.length === 0
-                : value === undefined || value === null || value === '';
-        }
+        return match === 'any' ? results.some(Boolean) : results.every(Boolean);
+    }
 
-        if (conditionValue.startsWith('__not__')) {
-            const actualValue = conditionValue.replace('__not__', '');
-            return Array.isArray(value)
-                ? !value.includes(actualValue)
-                : value !== actualValue;
-        }
+    // A field with several answers equals a value when that value is among them.
+    matches(value, operator, expected) {
+        const answers = (Array.isArray(value) ? value : [value])
+            .filter(answer => answer !== undefined && answer !== null && answer !== '');
 
-        return Array.isArray(value)
-            ? value.includes(conditionValue)
-            : value === conditionValue;
+        switch (operator) {
+            case 'equals':
+                return answers.includes(expected ?? '');
+            case 'not_equals':
+                return !answers.includes(expected ?? '');
+            case 'empty':
+                return answers.length === 0;
+            case 'not_empty':
+                return answers.length > 0;
+            default:
+                return true;
+        }
     }
 
     getValue(key) {

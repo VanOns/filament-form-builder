@@ -14,8 +14,7 @@ trait HasAttributes
     {
         return array_filter([
             'data-form-builder-input' => $this->getKey(),
-            'data-visible-when-key' => $this->getVisibleWhenKey(),
-            'data-visible-when-value' => $this->getVisibleWhenValue(),
+            'data-conditions' => $this->hasConditions() ? json_encode($this->getConditions()->toArray()) : null,
             'data-required' => !$withRequired
                 ? null
                 : ($this->isRequired() ? 'true' : 'false'),

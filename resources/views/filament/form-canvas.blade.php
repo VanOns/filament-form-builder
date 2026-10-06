@@ -44,7 +44,7 @@
                                 class="ffb-canvas-item-icon ffb-canvas-item-flag"
                             />
                         @endif
-                        @if ($item->hasVisibilityCondition())
+                        @if ($item->hasConditions())
                             <x-filament::icon
                                 :icon="Heroicon::OutlinedArrowTurnDownRight"
                                 :title="__('filament-form-builder::fields.conditions')"

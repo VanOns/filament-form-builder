@@ -2,6 +2,8 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
+use VanOns\FilamentFormBuilder\Rules\RequiredWhenShown;
+
 trait HasRules
 {
     /**
@@ -14,9 +16,9 @@ trait HasRules
             return [];
         }
 
-        return array_filter([
-            $this->hasVisibilityCondition() ? $this->getRequiredVisibilityRule() : 'required',
-        ]);
+        $conditions = $this->getConditions();
+
+        return [$conditions->isEmpty() ? 'required' : new RequiredWhenShown($conditions)];
     }
 
     /**
