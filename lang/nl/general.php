@@ -24,7 +24,11 @@ return [
     'email_notification_explanation' => 'E-mail notificaties die verzonden moeten worden na het indienen van het formulier.',
     'submitter_email' => 'Inzender e-mail',
     'title' => 'Titel',
-    'template' => 'Template',
+    'type' => 'Type',
+    'types' => [
+        'custom' => 'Eigen formulier',
+        'contact' => 'Contactformulier',
+    ],
     'email' => 'Email',
     'email_address' => 'Emailadres',
     'submit_notification_content' => 'Content',
@@ -110,6 +114,7 @@ return [
         'no_options' => 'Nog geen opties',
         'more_options' => '+ :count meer',
         'delete_heading' => '":label" verwijderen?',
+        'fixed' => 'Vastgelegd in code',
         'delete_description' => 'Het veld verdwijnt uit het formulier zodra je opslaat. Antwoorden die al zijn ingestuurd blijven bij hun inzending bewaard.',
     ],
 ];

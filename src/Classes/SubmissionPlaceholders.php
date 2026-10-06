@@ -2,8 +2,6 @@
 
 namespace VanOns\FilamentFormBuilder\Classes;
 
-use Exception;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class SubmissionPlaceholders
@@ -31,10 +29,10 @@ class SubmissionPlaceholders
             return $this->values;
         }
 
-        // Later keys win: a submitted field beats a template fallback.
+        // Later keys win: an answer beats the dash an empty field gets.
         return $this->values = array_filter([
             'form_title' => $this->formSubmission->form->title,
-            ...$this->templatePlaceholders(),
+            ...static::fallbacks($this->formSubmission),
             ...$this->formSubmission->getFormattedData(),
             'submitter_email' => $this->formSubmission->submitter_email,
         ], fn ($value) => $value !== null && $value !== '');
@@ -99,21 +97,10 @@ class SubmissionPlaceholders
     }
 
     /**
-     * Fallbacks the template declares, so an empty field renders as "-".
-     *
      * @return array<string, string>
      */
-    protected function templatePlaceholders(): array
+    public static function fallbacks(FormSubmission $submission): array
     {
-        try {
-            if (TemplateHelper::isTemplate($this->formSubmission->form->template)) {
-                return $this->formSubmission->form->getFormComponent()->getPlaceholders();
-            }
-        } catch (Exception) {
-            return [];
-        }
-
-        return [];
+        return array_fill_keys(array_keys($submission->form?->getSubmissionFields() ?? []), '-');
     }
-
 }

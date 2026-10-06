@@ -94,6 +94,24 @@
     opacity: 0.6;
 }
 
+.ffb-canvas-item-fixed,
+.ffb-canvas-item-fixed .ffb-canvas-item-preview {
+    cursor: default;
+}
+
+.ffb-canvas-item-fixed,
+.ffb-canvas-item-fixed:hover {
+    border-color: var(--gray-200);
+    background: var(--gray-50);
+    box-shadow: none;
+}
+
+.dark .ffb-canvas-item-fixed,
+.dark .ffb-canvas-item-fixed:hover {
+    border-color: rgb(255 255 255 / 0.1);
+    background: rgb(255 255 255 / 0.03);
+}
+
 .ffb-canvas-item-type {
     flex: 1;
     min-width: 0;

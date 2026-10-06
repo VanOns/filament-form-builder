@@ -8,53 +8,43 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
-use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class FormSubmissionController
 {
-    public function store(
-        int $formId,
-        CreateFormSubmission $request
-    ): mixed {
-        $form = Form::query()->findOrFail($formId);
+    public function store(CreateFormSubmission $request): mixed
+    {
+        $form = $request->getForm();
+        $type = $form->getType();
         $keys = $form->getSubmittableKeys();
 
-        $data = Arr::except(Arr::only($request->input(), $keys), ['submitter_email']);
+        $data = $type->beforeStore(Arr::only($request->input(), $keys));
         $files = $this->storeFiles(Arr::only($request->allFiles(), $keys));
-
-        /** @var FilamentForm $template */
-        $template = $form->template;
-
-        $data = $template::modifyDataUsing($data, $form);
-
-        $submitterEmail = $request->input('submitter_email') ?: $form->findSubmitterEmail($data);
 
         $submission = FormSubmission::query()
             ->create([
                 'form_id' => $form->id,
-                'submitter_email' => $submitterEmail,
+                'submitter_email' => $form->findSubmitterEmail($data),
                 'data' => $data,
                 'files' => $files ?: null,
             ]);
 
-        $template::afterSubmissionCreated($submission);
+        $type->afterSubmission($submission);
 
-        if ($response = $template::successResponse($submission)) {
+        if ($response = $type->response($submission)) {
             return $response;
         }
 
-        $formComponent = $form->getFormComponent()->resolveSubmitNotification($submission);
+        $type->resolveSubmitNotification($submission);
 
-        if (!empty($callBackUrl = $formComponent->getRedirectUrl())) {
+        if (!empty($callBackUrl = $type->getRedirectUrl())) {
             return redirect($callBackUrl);
         }
 
         return back(Response::HTTP_CREATED)->with([
-            'submit_notification_type' => $formComponent->getNotificationType(),
-            'submit_notification_content' => $formComponent->getNotificationMessage(),
+            'submit_notification_type' => $type->getNotificationType(),
+            'submit_notification_content' => $type->getNotificationMessage(),
         ]);
     }
 

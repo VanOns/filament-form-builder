@@ -4,25 +4,12 @@ use Filament\Tables\Columns\TextColumn;
 use VanOns\FilamentFormBuilder\Filament\Tables\FormSubmissionColumns;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
-use VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm;
-use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
-
-class LabelledContactForm extends ContactForm
-{
-    /**
-     * @return array<string, string>
-     */
-    public function attributes(): array
-    {
-        return ['name' => 'Naam', 'message' => 'Bericht'];
-    }
-}
 
 function customForm(array $fields): Form
 {
     return Form::create([
         'title' => 'Solliciteren',
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => $fields],
     ]);
 }
@@ -84,16 +71,10 @@ it('shortens a label that is a whole paragraph', function () {
         ->and($label)->toEndWith('...');
 });
 
-it('takes the columns of a template form from its declared labels', function () {
-    $form = Form::create(['title' => 'Contact', 'template' => LabelledContactForm::class]);
+it('gives the fields a form type has in code a column too', function () {
+    $form = Form::create(['title' => 'Contact', 'template' => 'contact']);
 
-    expect(columnMap($form))->toHaveKeys(['Naam', 'Bericht']);
-});
-
-it('falls back to the rule keys of a template that declares none', function () {
-    $form = Form::create(['title' => 'Contact', 'template' => ContactForm::class]);
-
-    expect(columnMap($form))->toHaveKeys(['Name', 'Company Name', 'Phone Number', 'Message']);
+    expect(columnMap($form))->toHaveKeys(['Name', 'Company name', 'Email address', 'Phone number', 'Message']);
 });
 
 it('offers a filter for a field with a fixed list of choices', function () {

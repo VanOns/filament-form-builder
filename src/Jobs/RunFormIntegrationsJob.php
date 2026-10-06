@@ -7,7 +7,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class RunFormIntegrationsJob implements ShouldQueue
@@ -24,8 +23,6 @@ class RunFormIntegrationsJob implements ShouldQueue
 
     public function handle(): void
     {
-        if ($template = TemplateHelper::resolve($this->formSubmission->form?->template)) {
-            $template::triggerIntegrations($this->formSubmission);
-        }
+        $this->formSubmission->form?->getType()->triggerIntegrations($this->formSubmission);
     }
 }

@@ -3,7 +3,6 @@
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
 use VanOns\FilamentFormBuilder\Models\Form;
-use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
 class ProjectTextField extends TextInputField
 {
@@ -21,7 +20,7 @@ it('knows no type by its class name or by a name nobody configured', function ()
 it('lets a project swap the class behind a type without touching stored forms', function () {
     $form = Form::create([
         'title' => 'Contact',
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => [['type' => 'text', 'label' => 'Naam']]],
     ]);
 

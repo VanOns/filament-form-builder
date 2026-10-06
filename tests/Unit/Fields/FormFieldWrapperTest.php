@@ -22,7 +22,7 @@ it('falls back to a single column when nothing is stored', function () {
 });
 
 it('never spans more columns than the form has', function () {
-    // Stored on a wider form, then the template dropped to 3 columns.
+    // Stored on a wider form, then the form type dropped to 3 columns.
     $attributes = field(['column_span' => 4])->getWrapperAttributes()->toHtml();
 
     expect($attributes)->toContain('data-form-builder-column-span="3"');

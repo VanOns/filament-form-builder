@@ -18,7 +18,7 @@
         @if($field->rows) rows="{{ $field->rows }}" @endif
         {{ $field->getAttributes() }}
     >
-        {{ old($field->getKey()) }}
+        {{ old($field->getKey(), $field->getDefaultValue()) }}
     </textarea>
 </label>
 @error($field->getKey())

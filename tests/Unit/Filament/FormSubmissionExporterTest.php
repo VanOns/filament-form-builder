@@ -5,7 +5,6 @@ use Filament\Actions\Exports\Models\Export;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
-use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
 afterEach(function () {
     FormSubmissionExporter::$form = null;
@@ -15,7 +14,7 @@ function formWithFields(string $title, array $labels): Form
 {
     return Form::create([
         'title' => $title,
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => array_map(
             fn (string $label): array => ['type' => 'text', 'label' => $label],
             $labels,

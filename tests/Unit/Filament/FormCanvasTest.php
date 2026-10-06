@@ -3,9 +3,9 @@
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
+use Tests\Fixtures\ApplicationForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
 use VanOns\FilamentFormBuilder\Models\Form;
-use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
 beforeEach(function () {
     $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
@@ -15,7 +15,7 @@ function canvasForm(array $fields = [], array $attributes = []): Form
 {
     return Form::create([
         'title' => 'Contact',
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => $fields],
         'submit_notification_type' => 'content',
         'submit_notification_content' => 'Bedankt!',
@@ -161,4 +161,17 @@ it('stores the conditions of a field with how they combine', function () {
                 ['key' => 'naam', 'operator' => 'not_empty', 'value' => null],
             ],
         ]);
+});
+
+it('shows the fields of the form type around the canvas and keeps their keys free', function () {
+    config(['filament-form-builder.types.application' => ApplicationForm::class]);
+
+    $form = canvasForm(attributes: ['template' => 'application']);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSee('Defined in code')
+        ->callAction(onCanvas('add', ['type' => 'text']), data: ['label' => 'Naam'])
+        ->call('save');
+
+    expect(array_column(savedFields($form), 'key'))->toBe(['naam_2']);
 });

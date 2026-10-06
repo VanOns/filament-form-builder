@@ -6,6 +6,7 @@
     $livewireKey = $getLivewireKey();
     $columns = $getGridColumns();
     $items = $getItems();
+    [$fixedBefore, $fixedAfter] = $getFixedFields();
     $editAction = $getAction('edit');
     $cloneAction = $getAction('clone');
     $deleteAction = $getAction('delete');
@@ -25,8 +26,13 @@
             class="ffb-canvas-grid"
             style="--ffb-columns: {{ $columns }}"
         >
+            @foreach ($fixedBefore as $field)
+                @include('filament-form-builder::filament.partials.canvas-fixed-field')
+            @endforeach
+
             @forelse ($items as $uuid => $item)
-                @php($span = $item->getColumnSpan($columns))
+                {{-- A hidden field takes no room on the page, so it gets a row of its own here. --}}
+                @php($span = $item->isHidden() ? $columns : $item->getColumnSpan($columns))
 
                 <div
                     wire:key="{{ $livewireKey }}.items.{{ $uuid }}"
@@ -53,8 +59,10 @@
                         @endif
                         <span class="ffb-canvas-item-span">{{ $span }}/{{ $columns }}</span>
                         <div class="ffb-canvas-item-actions">
-                            {{ $narrowAction(['item' => $uuid]) }}
-                            {{ $widenAction(['item' => $uuid]) }}
+                            @unless ($item->isHidden())
+                                {{ $narrowAction(['item' => $uuid]) }}
+                                {{ $widenAction(['item' => $uuid]) }}
+                            @endunless
                             {{ $cloneAction(['item' => $uuid]) }}
                             {{ $deleteAction(['item' => $uuid]) }}
                         </div>
@@ -75,6 +83,10 @@
                     {{ __('filament-form-builder::general.canvas.empty') }}
                 </div>
             @endforelse
+
+            @foreach ($fixedAfter as $field)
+                @include('filament-form-builder::filament.partials.canvas-fixed-field')
+            @endforeach
         </div>
 
         <div class="ffb-canvas-sidebar">

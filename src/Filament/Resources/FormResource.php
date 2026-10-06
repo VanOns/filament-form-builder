@@ -43,9 +43,9 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers\FormSubmissionsRelationManager;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
+use VanOns\FilamentFormBuilder\Forms\FormType;
+use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
-use VanOns\FilamentFormBuilder\View\Components\FormComponent;
 
 class FormResource extends Resource
 {
@@ -143,13 +143,7 @@ class FormResource extends Resource
             ->description(__('filament-form-builder::general.settings_explanation'))
             ->icon('heroicon-o-cog-6-tooth')
             ->statePath('settings')
-            ->schema(function (Get $get): array {
-                if (!$template = TemplateHelper::resolve($get('template'))) {
-                    return [];
-                }
-
-                return $template::settings();
-            });
+            ->schema(fn (Get $get, ?FormModel $record): array => static::getFormType($get, $record)?->settings() ?? []);
     }
 
     public static function getGeneralSection(): Section
@@ -158,9 +152,9 @@ class FormResource extends Resource
             ->schema([
                 Select::make('template')
                     ->required()
-                    ->label(__('filament-form-builder::general.template'))
+                    ->label(__('filament-form-builder::general.type'))
                     ->searchable()
-                    ->options(FormComponent::getTemplates())
+                    ->options(FormTypeHelper::options())
                     ->live()
                     ->columnSpan(1),
                 TextInput::make('title')
@@ -180,6 +174,8 @@ class FormResource extends Resource
             ->schema([
                 FormCanvas::make('custom.fields')
                     ->hiddenLabel()
+                    ->gridColumns(fn (Get $get, ?FormModel $record): int => static::getFormType($get, $record)?->columns() ?? FormTypeHelper::defaultColumns())
+                    ->fixedFields(fn (Get $get, ?FormModel $record): array => static::getFormType($get, $record)?->fields() ?? [])
                     ->afterKeyRenamed(static::renameKeyInNotifications(...)),
             ])->columnSpanFull();
     }
@@ -349,11 +345,7 @@ class FormResource extends Resource
             ->copyable()
             ->fontFamily(FontFamily::Mono)
             ->placeholder(__('filament-form-builder::general.unknown'))
-            ->state(function (Get $get, ?FormModel $record): array {
-                return TemplateHelper::isTemplate($get('template'))
-                    ? $record?->getFormComponent()->getPlaceholderList() ?? []
-                    : [];
-            });
+            ->state(fn (?FormModel $record): array => $record?->getPlaceholderList() ?? []);
     }
 
     public static function getIntegrationsSection(): Section
@@ -404,8 +396,8 @@ class FormResource extends Resource
                     ->sortable()
                     ->searchable(),
                 TextColumn::make('template')
-                    ->state(fn (FormModel $record) => $record->getTemplateLabel())
-                    ->label(__('filament-form-builder::general.template')),
+                    ->formatStateUsing(fn (?string $state): ?string => FormTypeHelper::options()[$state] ?? $state)
+                    ->label(__('filament-form-builder::general.type')),
                 TextColumn::make('submissions_count')
                     ->label(__('filament-form-builder::general.submissions'))
                     ->counts('submissions')
@@ -436,16 +428,8 @@ class FormResource extends Resource
             ->recordUrl(static::recordUrl(...))
             ->filters([
                 SelectFilter::make('template')
-                    ->label(__('filament-form-builder::general.template'))
-                    ->options(function () {
-                        return FormModel::query()
-                            ->distinct('template')
-                            ->pluck('template')
-                            ->mapWithKeys(function ($template) {
-                                return [$template => config("filament-form-builder.templates.{$template}", 'not-found')];
-                            })
-                            ->toArray();
-                    })
+                    ->label(__('filament-form-builder::general.type'))
+                    ->options(FormTypeHelper::options())
                     ->multiple()
                     ->searchable(),
                 TrashedFilter::make(),
@@ -526,20 +510,29 @@ class FormResource extends Resource
     }
 
     /**
-     * The submit notification types the selected template allows.
+     * The type picked in the form, which can differ from the stored one while
+     * the editor is still choosing.
+     */
+    public static function getFormType(Get $get, ?FormModel $record = null): ?FormType
+    {
+        return FormTypeHelper::make($get('template'), $record);
+    }
+
+    /**
+     * The submit notification types the selected form type allows.
      *
      * @return array<string, string>
      */
     public static function getSubmitNotificationTypes(Get $get): array
     {
-        $template = TemplateHelper::resolve($get('template'));
+        $formType = static::getFormType($get);
 
         $types = [];
 
         foreach (SubmitNotificationType::cases() as $type) {
-            $allowed = !$template || match ($type) {
-                SubmitNotificationType::URL => $template::hasRedirect(),
-                SubmitNotificationType::Content => $template::hasNotificationMessage(),
+            $allowed = !$formType || match ($type) {
+                SubmitNotificationType::URL => $formType->hasRedirect(),
+                SubmitNotificationType::Content => $formType->hasNotificationMessage(),
             };
 
             if ($allowed) {
@@ -551,7 +544,7 @@ class FormResource extends Resource
     }
 
     /**
-     * The selected type, or the only type the template allows.
+     * The selected type, or the only type the form type allows.
      */
     public static function getSubmitNotificationType(Get $get): ?string
     {
@@ -572,29 +565,18 @@ class FormResource extends Resource
             return false;
         }
 
-        $template = TemplateHelper::resolve($get('template'));
-
-        return $template
-            ? $template::hasSubmitNotificationQuery()
-            : config('filament-form-builder.submit_notification_query_enabled', true) === true;
+        return static::getFormType($get)?->hasSubmitNotificationQuery()
+            ?? config('filament-form-builder.submit_notification_query_enabled', true) === true;
     }
 
     public static function hasNotificationsEnabled(Get $get): bool
     {
-        if ($template = TemplateHelper::resolve($get('template'))) {
-            return $template::hasNotifications();
-        }
-
-        return false;
+        return static::getFormType($get)?->hasNotifications() ?? false;
     }
 
     public static function hasIntegrationsEnabled(Get $get): bool
     {
-        if ($template = TemplateHelper::resolve($get('template'))) {
-            return $template::hasIntegrations();
-        }
-
-        return false;
+        return static::getFormType($get)?->hasIntegrations() ?? false;
     }
 
     /**
@@ -613,20 +595,13 @@ class FormResource extends Resource
         ];
     }
 
-    public static function hasSettings(Get $get): bool
+    public static function hasSettings(Get $get, ?FormModel $record): bool
     {
-        $template = TemplateHelper::resolve($get('template'));
-
-        return $template && !empty($template::settings());
+        return filled(static::getFormType($get, $record)?->settings());
     }
 
-    /**
-     * @param array<string, mixed> $state
-     */
-    public static function hasCustomFields(array $state): bool
+    public static function hasCustomFields(Get $get): bool
     {
-        $template = TemplateHelper::resolve($state['template'] ?? null);
-
-        return $template && $template::isCustom();
+        return static::getFormType($get)?->hasCustomFields() ?? false;
     }
 }

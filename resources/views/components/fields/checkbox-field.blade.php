@@ -15,6 +15,7 @@
         id="{{ $field->getKey() }}"
         name="{{ $field->getKey() }}"
         value="1"
+        @checked(old($field->getKey(), $field->getDefaultValue()))
         @required($field->isRequired())
         {{ $field->getAttributes() }}
     />

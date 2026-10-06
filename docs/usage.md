@@ -1,5 +1,104 @@
 # Usage
 
+## Form types
+
+A form's type decides which fields it has in code, whether editors may add
+their own on the canvas, and what happens around a submission. The `types`
+config maps the name a form stores in its `template` column to the class behind
+it:
+
+```php
+'types' => [
+    'custom' => Forms\CustomForm::class,
+    'contact' => Forms\ContactForm::class,
+    'application' => App\Forms\VacancyApplication::class,
+],
+```
+
+`custom` leaves every field to the editor, `contact` has all of them in code. A
+type of your own extends `FormType` and returns its fields from `fields()`,
+built with the same field classes the canvas stores:
+
+```php
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
+use VanOns\FilamentFormBuilder\Forms\CustomFields;
+use VanOns\FilamentFormBuilder\Forms\FormType;
+
+class VacancyApplication extends FormType
+{
+    public static function getLabel(): string
+    {
+        return 'Sollicitatie';
+    }
+
+    public function fields(): array
+    {
+        return [
+            Fields\TextInputField::make('voornaam')->label('Voornaam')->required()->span(1),
+            Fields\TextInputField::make('achternaam')->label('Achternaam')->required()->span(1),
+            Fields\TextInputField::make('vacature')->hidden()->default(request()->query('vacature')),
+            CustomFields::make(),
+            Fields\CheckboxField::make('privacy')->label('Ik ga akkoord met de privacyverklaring')->required(),
+            Fields\SubmitField::make('verstuur')->label('Verstuur'),
+        ];
+    }
+}
+```
+
+- `CustomFields::make()` marks where the fields an editor builds go. A type
+  without it has no canvas.
+- The canvas shows the type's own fields around the editor's, locked. Their keys
+  stay reserved, so an editor's field never takes one.
+- A hidden field renders as `<input type="hidden">` holding its default value,
+  which suits context such as the vacancy a visitor applies for.
+
+### Hooks
+
+Every method below runs on an instance, with the form in `$this->form`.
+
+| Method                                                      | When it runs                          | Affects                                                                  |
+|-------------------------------------------------------------|---------------------------------------|--------------------------------------------------------------------------|
+| `beforeValidation(array $data)`                             | Before validation                     | What is validated, not what is stored                                    |
+| `beforeStore(array $data)`                                  | Before the submission is stored       | Stored `data`                                                            |
+| `formatValues(array $values, FormSubmission $submission)`   | Whenever answers are shown            | The table, the detail page, the export, the mails and their placeholders |
+| `formatDetails(array $details, FormSubmission $submission)` | When showing the detail page          | Detail page **only**                                                     |
+| `afterSubmission(FormSubmission $submission)`               | Once a visitor's submission is stored | Sends the notifications, queues the integrations                         |
+| `response(FormSubmission $submission)`                      | After that                            | Replaces the redirect or message when it returns something               |
+
+A visitor can only post the keys of the form's fields. A value `beforeStore()`
+adds on its own is declared in `extraValues()` as key => label, so it gets a
+label, a placeholder and a column like any field:
+
+```php
+public function extraValues(): array
+{
+    return ['received_from' => 'Received from'];
+}
+
+public function beforeStore(array $data): array
+{
+    return [...$data, 'received_from' => request()->headers->get('referer')];
+}
+```
+
+`formatValues()` receives the answers after the fields formatted them (a choice
+already reads as its label, a file as its download link) and keeps the field
+keys. Whatever it returns is what every output shows:
+
+```php
+public function formatValues(array $values, FormSubmission $submission): array
+{
+    return [...$values, 'property_type' => PropertyType::tryFrom($values['property_type'] ?? '')?->getLabel()];
+}
+```
+
+`formatDetails()` receives the answers as text under their labels, for the
+detail page only; put value formatting in `formatValues()` instead.
+
+A type may also override `columns()`, `settings()` (extra fields for the form's
+settings tab, stored in its `settings` column), `messages()` (validation
+messages), and the admin toggles described below.
+
 ## Field types
 
 The `fields` config maps the name a form stores to the class behind it:
@@ -19,7 +118,7 @@ to offer a field type of your own in the builder's palette.
 
 ## After a submission
 
-Once a visitor's submission is stored, the template's `afterSubmissionCreated()`
+Once a visitor's submission is stored, the form type's `afterSubmission()`
 sends the e-mail notifications and queues a `RunFormIntegrationsJob` for the
 form's integrations. A submission created in code, by a seeder or an import,
 triggers neither.
@@ -42,8 +141,8 @@ Each form has a "what happens after submission" section with two branches:
   column. The column is cast with `VanOns\FilamentFormBuilder\Casts\RedirectUrl`,
   so it may hold either a plain URL string or a structured (JSON) value.
 
-On submit, the controller resolves both branches through the form template
-(`$form->getFormComponent()->resolveSubmitNotification($submission)`): the URL via
+On submit, the controller resolves both branches through the form type
+(`$form->getType()->resolveSubmitNotification($submission)`): the URL via
 `FilamentFormBuilderPlugin::resolveRedirectUrl($form->submit_notification_url, $form)`
 and the message from `submit_notification_content`. When a URL is present it
 redirects, otherwise the message is flashed back.
@@ -53,7 +152,7 @@ redirects, otherwise the message is flashed back.
 The URL branch has an optional query string, stored in
 `submit_notification_query`. Set the `submit_notification_query_enabled` config
 flag to `false` to hide the field, or override `hasSubmitNotificationQuery()` on
-a template to drop it for that template alone. Either way a stored query string
+a form type to drop it for that type alone. Either way a stored query string
 is no longer appended on submit. An editor writes the parameters with the same
 placeholders the e-mail notification uses:
 
@@ -93,14 +192,13 @@ FilamentFormBuilderPlugin::resolveRedirectUrlUsing(function (mixed $stored, Form
 ```
 
 Both hooks are optional; the defaults keep the plain URL `TextInput` and
-string passthrough. Neither runs when a template returns its own response
-(e.g. an Inertia redirect), so call
-`$submission->form->getFormComponent()->resolveSubmitNotification($submission)`
+string passthrough. Neither runs when a form type returns its own `response()`
+(e.g. an Inertia redirect), so call `$this->resolveSubmitNotification($submission)`
 there to get the resolved values.
 
 ### Modifying the redirect URL and message per submission
 
-A form template may override `modifySubmitNotification()` to change the redirect
+A form type may override `modifySubmitNotification()` to change the redirect
 URL or the notification message based on the submission. The `$redirectUrl` and
 `$notificationMessage` properties hold the values configured on the form, so you
 can read, extend or replace them:
@@ -120,25 +218,25 @@ public function modifySubmitNotification(FormSubmission $submission): void
 ```
 
 - `$redirectUrl` is only pre-filled when the form uses the **URL** branch, but a
-  template may set it on a **Content** form too — a non-empty URL always wins.
+  type may set it on a **Content** form too — a non-empty URL always wins.
 - `$notificationMessage` is flashed as `submit_notification_content`; setting it
   also flashes `submit_notification_type` as `content`, so the message renders
   even on a URL form without a redirect.
-- The form model caches the template instance, so `$this->form` and both
+- The form model caches its type instance, so `$this->form` and both
   properties are available in any instance method.
 
 ### Hard-coding the redirect URL or message
 
-A template may also drop either branch from the admin, so editors can't
+A form type may also drop either branch from the admin, so editors can't
 configure it. Both default to `true`:
 
 ```php
-public static function hasRedirect(): bool
+public function hasRedirect(): bool
 {
     return false;
 }
 
-public static function hasNotificationMessage(): bool
+public function hasNotificationMessage(): bool
 {
     return true;
 }
@@ -148,7 +246,7 @@ A third toggle hides only the query string, leaving the URL itself editable. It
 defaults to the `submit_notification_query_enabled` config flag:
 
 ```php
-public static function hasSubmitNotificationQuery(): bool
+public function hasSubmitNotificationQuery(): bool
 {
     return false;
 }
@@ -156,13 +254,13 @@ public static function hasSubmitNotificationQuery(): bool
 
 - The type toggle only shows the allowed branches, and hides itself when only
   one is left — that branch is then always used.
-- When a template allows neither, the whole submit notification section is
+- When a form type allows neither, the whole submit notification section is
   hidden and the stored values are left untouched.
 - A disabled branch is not read from the form on submit, so its property starts
   as `null`. Set it in `modifySubmitNotification()`:
 
 ```php
-public static function hasRedirect(): bool
+public function hasRedirect(): bool
 {
     return false;
 }
@@ -172,39 +270,6 @@ public function modifySubmitNotification(FormSubmission $submission): void
     $this->redirectUrl = route('thanks', ['submission' => $submission]);
 }
 ```
-
-### Modifying submission data
-
-A form template may override these hooks to transform submission data. They run
-at different stages and affect different outputs — choose the right one:
-
-| Hook                                                               | When it runs                    | Affects                                                                  |
-|--------------------------------------------------------------------|---------------------------------|--------------------------------------------------------------------------|
-| `modifyDataBeforeValidation(array $data, Form $form)`              | Before validation               | Validated input                                                          |
-| `modifyDataUsing(array $data, Form $form)`                         | Before the submission is stored | Stored `data`                                                            |
-| `modifyDataValues(array $data, FormSubmission $submission)`        | Whenever answers are shown      | The table, the detail page, the export, the mails and their placeholders |
-| `modifyResourceDataUsing(array $data, FormSubmission $submission)` | When showing the detail page    | Detail page **only**                                                     |
-
-`modifyDataValues()` is the hook for formatting stored values into human-readable
-output while keeping the original field-name keys. It receives the answers after
-the form's own fields formatted them (a choice already reads as its label, a file
-as its download link). Whatever it returns is what every output shows, so this is
-the hook you want for value formatting (e.g. mapping an enum value to its label):
-
-```php
-public static function modifyDataValues(array $data, FormSubmission $submission): array
-{
-    return [
-        ...$data,
-        'property_type' => static::getOptions('property_type')[$data['property_type']] ?? null,
-    ];
-}
-```
-
-> **Note:** `modifyResourceDataUsing()` receives the answers as text under their
-> labels and is used by the detail page only. Do **not** put value formatting here
-> if you also want it in the table, the export or the mails; use
-> `modifyDataValues()` instead.
 
 ### File uploads
 
@@ -218,10 +283,10 @@ to `form-uploads-middleware` to put the links behind a login as well.
 ## Form columns
 
 The number of grid columns a form is rendered with defaults to the `columns`
-config value (`2`). A form template may override it:
+config value (`2`). A form type may override it:
 
 ```php
-public static function columns(): int
+public function columns(): int
 {
     return 3;
 }
@@ -241,7 +306,7 @@ $field->getColumnSpan($form->getColumns()); // int, 1..columns
 ```
 
 The span is capped at the column count, so a stored value never overflows the
-grid when a template later reduces its columns.
+grid when a form type later reduces its columns.
 
 ### Laying the grid out in CSS
 

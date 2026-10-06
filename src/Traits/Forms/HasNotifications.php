@@ -10,33 +10,36 @@ use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
 
 trait HasNotifications
 {
-    public static function hasNotifications(): bool
+    public function hasNotifications(): bool
     {
         return config('filament-form-builder.email_notification_enabled') === true;
     }
 
-    public static function getNotifications(FormSubmission $submission): array
+    /**
+     * @return array<EmailNotification>
+     */
+    public function getNotifications(FormSubmission $submission): array
     {
         return $submission->getNotifications();
     }
 
-    public static function triggerNotifications(FormSubmission $submission): void
+    public function triggerNotifications(FormSubmission $submission): void
     {
-        if (!static::hasNotifications()) {
+        if (!$this->hasNotifications()) {
             return;
         }
 
-        static::sendNotifications($submission);
+        $this->sendNotifications($submission);
     }
 
-    public static function sendNotifications(FormSubmission $submission): void
+    public function sendNotifications(FormSubmission $submission): void
     {
-        foreach (static::getNotifications($submission) as $notification) {
-            static::sendNotification($notification, $submission);
+        foreach ($this->getNotifications($submission) as $notification) {
+            $this->sendNotification($notification, $submission);
         }
     }
 
-    public static function sendNotification(EmailNotification $notification, FormSubmission $submission): void
+    public function sendNotification(EmailNotification $notification, FormSubmission $submission): void
     {
         foreach ($notification->receivers as $receiver) {
             try {

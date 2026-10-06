@@ -9,7 +9,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Casts\RedirectUrl;
-use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
 use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
@@ -17,14 +16,16 @@ use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\EmailField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Forms\CustomFields;
+use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
-use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
+use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
+use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
 
 /**
  * @property int $id
  * @property string $title
- * @property string|class-string<FilamentForm> $template
+ * @property string|null $template
  * @property array<string, mixed> $custom
  * @property array<int, mixed> $notifications
  * @property array<int, array<string, mixed>>|null $integrations
@@ -40,13 +41,14 @@ use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
 class Form extends Model
 {
     use SoftDeletes;
-    use HasCustomFields;
 
     /**
-     * @var array<int, FormField>
+     * @var array<int, FormField>|null
      */
-    protected array $fields;
-    protected FilamentForm $formComponent;
+    protected ?array $fields = null;
+
+    protected ?FormType $formType = null;
+
     protected $guarded = ['id'];
 
     /**
@@ -88,33 +90,67 @@ class Form extends Model
         return $this->hasMany(FormSubmission::class);
     }
 
-    public function getTemplateLabel(): ?string
+    public function getType(): FormType
     {
-        return config("filament-form-builder.templates.{$this->template}");
+        return $this->formType ??= FormTypeHelper::make($this->template, $this) ?? new FormType($this);
     }
 
     /**
-     * @return array<string, string>
+     * The fields of the type with the fields an editor built in their place.
+     *
+     * @return array<int, FormField>
      */
-    public function getFormAttributes(): array
+    public function getFields(bool $inputsOnly = false): array
     {
-        if ($this->isCustom()) {
-            return $this->getCustomFormLabels();
-        }
+        $this->fields ??= $this->makeFields();
 
-        return $this->getFormComponent()->attributes();
+        return $inputsOnly
+            ? array_values(array_filter($this->fields, fn (FormField $field): bool => $field::isInput()))
+            : $this->fields;
     }
 
     /**
-     * @return array<string>
+     * @return array<int, FormField>
      */
-    public function getFormMessages(): array
+    protected function makeFields(): array
     {
-        if ($this->isCustom()) {
-            return [];
+        $fields = [];
+
+        foreach ($this->getType()->fields() as $field) {
+            $fields = [...$fields, ...($field instanceof CustomFields ? $this->makeCustomFields() : [$field])];
         }
 
-        return $this->getFormComponent()->messages();
+        return array_map(fn (FormField $field): FormField => $field->setGridColumns($this->getColumns()), $fields);
+    }
+
+    /**
+     * @return array<int, FormField>
+     */
+    protected function makeCustomFields(): array
+    {
+        $fields = [];
+
+        foreach ($this->custom['fields'] ?? [] as $data) {
+            if ($type = FieldTypeHelper::resolve($data['type'] ?? null)) {
+                $fields[] = new $type($data);
+            }
+        }
+
+        return $fields;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getRules(): array
+    {
+        $rules = [];
+
+        foreach ($this->getFields() as $field) {
+            $rules = [...$rules, ...$field->getRules()];
+        }
+
+        return array_filter($rules);
     }
 
     /**
@@ -126,9 +162,13 @@ class Form extends Model
      */
     public function getSubmissionFields(): array
     {
-        return $this->isCustom()
-            ? $this->getSubmissionCustomFields()
-            : $this->getSubmissionTemplateFields();
+        $fields = [];
+
+        foreach ($this->getFields(inputsOnly: true) as $field) {
+            $fields = [...$fields, ...$field->getSubmissionColumns()];
+        }
+
+        return [...$fields, ...$this->getType()->extraValues()];
     }
 
     /**
@@ -139,20 +179,27 @@ class Form extends Model
      */
     public function getSubmittableKeys(): array
     {
-        if ($this->isCustom()) {
-            return array_keys($this->getSubmissionCustomFields());
-        }
+        return array_keys(array_diff_key($this->getSubmissionFields(), $this->getType()->extraValues()));
+    }
 
-        $component = $this->getFormComponent();
-
-        return array_values(array_unique([
-            ...array_map(fn (string $key): string => Str::before($key, '.'), array_keys($component->rules())),
-            ...array_keys($component->attributes()),
-        ]));
+    public function findLabel(string $key): string
+    {
+        return $this->getSubmissionFields()[$key] ?? Str::headline($key);
     }
 
     /**
-     * The first e-mail field of a custom form the visitor filled in.
+     * @return array<int, string>
+     */
+    public function getPlaceholderList(): array
+    {
+        return array_map(
+            fn (string $key): string => '{{ $' . $key . ' }}',
+            [...array_keys($this->getSubmissionFields()), 'all_fields', 'form_title'],
+        );
+    }
+
+    /**
+     * The first e-mail field the visitor filled in.
      *
      * @param  array<string, mixed>  $data
      */
@@ -169,58 +216,9 @@ class Form extends Model
         return null;
     }
 
-    /**
-     * @return array<string, string>
-     */
-    protected function getSubmissionCustomFields(): array
-    {
-        $fields = [];
-
-        foreach ($this->getFields() as $field) {
-            if ($field::isInput()) {
-                $fields = [...$fields, ...$field->getSubmissionColumns()];
-            }
-        }
-
-        return $fields;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected function getSubmissionTemplateFields(): array
-    {
-        $attributes = $this->getFormAttributes();
-
-        if ($attributes !== []) {
-            return $attributes;
-        }
-
-        // A template that never declared its labels still has rules, and their
-        // keys are the fields.
-        $keys = [];
-
-        foreach (array_keys($this->getFormComponent()->rules()) as $key) {
-            if (! str_contains($key, '.') && ! str_contains($key, '*')) {
-                $keys[$key] = Str::headline($key);
-            }
-        }
-
-        return $keys;
-    }
-
-    public function getFormComponent(): FilamentForm
-    {
-        if (isset($this->formComponent)) {
-            return $this->formComponent;
-        }
-
-        return $this->formComponent = new $this->template($this);
-    }
-
     public function getColumns(): int
     {
-        return TemplateHelper::columns($this->template);
+        return $this->getType()->columns();
     }
 
     public function getWrapperAttributes(): HtmlString

@@ -7,26 +7,29 @@ use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 trait HasIntegrations
 {
-    public static function hasIntegrations(): bool
+    public function hasIntegrations(): bool
     {
         return !empty(Integration::getIntegrations());
     }
 
-    public static function getIntegrations(FormSubmission $submission): array
+    /**
+     * @return array<Integration>
+     */
+    public function getIntegrations(FormSubmission $submission): array
     {
         return $submission->getIntegrations();
     }
 
-    public static function triggerIntegrations(FormSubmission $submission): void
+    public function triggerIntegrations(FormSubmission $submission): void
     {
-        if (!static::hasIntegrations()) {
+        if (!$this->hasIntegrations()) {
             return;
         }
 
         $responses = [];
 
-        foreach (static::getIntegrations($submission) as $integration) {
-            static::triggerIntegration($integration);
+        foreach ($this->getIntegrations($submission) as $integration) {
+            $this->triggerIntegration($integration);
 
             $responses[] = [
                 'integration' => get_class($integration),
@@ -39,7 +42,7 @@ trait HasIntegrations
         ]);
     }
 
-    public static function triggerIntegration(Integration $integration): void
+    public function triggerIntegration(Integration $integration): void
     {
         try {
             $integration->handle();

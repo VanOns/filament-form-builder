@@ -1,10 +1,9 @@
 <?php
 
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
+use VanOns\FilamentFormBuilder\Forms\ContactForm;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
-use VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm;
-use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
 it('belongs to a form', function () {
     $form = Form::create(['title' => 'Contact']);
@@ -56,16 +55,16 @@ it('getFormattedData filters out empty/null values', function () {
 
 class ShoutingContactForm extends ContactForm
 {
-    public static function modifyDataValues(array $data, FormSubmission $submission): array
+    public function formatValues(array $values, FormSubmission $submission): array
     {
-        return [...$data, 'name' => strtoupper($data['name'] ?? '')];
+        return [...$values, 'name' => strtoupper($values['name'] ?? '')];
     }
 }
 
 it('shows a choice by its label everywhere an answer is shown', function () {
     $form = Form::create([
         'title' => 'Contact',
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => [
             ['type' => 'radio', 'label' => 'Aanhef', 'key' => 'aanhef', 'options' => [
                 ['value' => 'mw', 'label' => 'Mevrouw'],
@@ -79,8 +78,10 @@ it('shows a choice by its label everywhere an answer is shown', function () {
         ->and(SubmissionPlaceholders::make($submission)->replace('{{ $aanhef }}'))->toBe('Mevrouw');
 });
 
-it('runs the template formatting wherever an answer is shown', function () {
-    $form = Form::create(['title' => 'Contact', 'template' => ShoutingContactForm::class]);
+it('runs the form type formatting wherever an answer is shown', function () {
+    config(['filament-form-builder.types.shouting' => ShoutingContactForm::class]);
+
+    $form = Form::create(['title' => 'Contact', 'template' => 'shouting']);
     $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['name' => 'jan']]);
 
     expect($submission->getDisplayText('name'))->toBe('JAN')

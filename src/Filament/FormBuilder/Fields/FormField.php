@@ -77,14 +77,10 @@ abstract class FormField
         return Heroicon::OutlinedPencil;
     }
 
-
-    /**
-     * @return string
-     */
     public function render(): string
     {
         return Blade::render(
-            $this->getView(),
+            $this->isHidden() ? 'filament-form-builder::components.fields.hidden-field' : $this->getView(),
             ['field' => $this],
         );
     }

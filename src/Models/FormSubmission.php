@@ -18,7 +18,6 @@ use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionForceDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionRestored;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionUpdated;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 
 /**
  * @property int $id
@@ -110,7 +109,7 @@ class FormSubmission extends Model
 
     /**
      * Every answer the way it is shown, under its field key: a choice by its
-     * label, a file as its download link, then the template's own formatting.
+     * label, a file as its download link, then the form type's own formatting.
      * The table, the detail page, the export and the mails all read from here.
      *
      * @return array<string, mixed>
@@ -131,8 +130,8 @@ class FormSubmission extends Model
             }
         }
 
-        if ($template = TemplateHelper::resolve($this->form?->template)) {
-            $values = $template::modifyDataValues($values, $this);
+        if ($this->form !== null) {
+            $values = $this->form->getType()->formatValues($values, $this);
         }
 
         return $this->resolvedValues = $values;
@@ -193,18 +192,12 @@ class FormSubmission extends Model
             }
         }
 
-        if ($template = TemplateHelper::resolve($this->form?->template)) {
-            return $template::modifyResourceDataUsing($texts, $this);
-        }
-
-        return $texts;
+        return $this->form?->getType()->formatDetails($texts, $this) ?? $texts;
     }
 
     public function findLabel(string $key): string
     {
-        return TemplateHelper::isTemplate($this->form?->template)
-            ? $this->form->getFormComponent()->findAttributeForKey($key)
-            : Str::headline($key);
+        return $this->form?->findLabel($key) ?? Str::headline($key);
     }
 
     /**

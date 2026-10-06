@@ -2,15 +2,15 @@
 
 use Illuminate\Support\Facades\Queue;
 use VanOns\FilamentFormBuilder\Classes\Integration;
+use VanOns\FilamentFormBuilder\Forms\CustomForm;
 use VanOns\FilamentFormBuilder\Jobs\RunFormIntegrationsJob;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
-use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
 class SilentForm extends CustomForm
 {
-    public static function hasNotifications(): bool
+    public function hasNotifications(): bool
     {
         return false;
     }
@@ -24,11 +24,11 @@ class RecordingIntegration extends Integration
     }
 }
 
-function lifecycleForm(string $template = CustomForm::class): Form
+function lifecycleForm(string $type = 'custom'): Form
 {
     return Form::create([
         'title' => 'Contact ' . uniqid(),
-        'template' => $template,
+        'template' => $type,
         'notifications' => [['subject' => 'Nieuw', 'content' => 'Hoi', 'receivers' => ['info@example.test']]],
         'integrations' => [['class' => RecordingIntegration::class]],
     ]);
@@ -46,6 +46,7 @@ beforeEach(function () {
     config([
         'filament-form-builder.email_notification_enabled' => true,
         'filament-form-builder.integrations' => [RecordingIntegration::class],
+        'filament-form-builder.types.silent' => SilentForm::class,
     ]);
 });
 
@@ -63,8 +64,8 @@ it('sends nothing for a submission created in code', function () {
     Queue::assertNotPushed(RunFormIntegrationsJob::class);
 });
 
-it('sends nothing for a template that turned notifications off', function () {
-    postTo(lifecycleForm(SilentForm::class));
+it('sends nothing for a form type that turned notifications off', function () {
+    postTo(lifecycleForm('silent'));
 
     expect(FormSubmissionNotificationLog::count())->toBe(0);
 });

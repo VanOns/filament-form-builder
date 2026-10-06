@@ -64,4 +64,12 @@ return [
         'recaptcha_field' => 'reCAPTCHA',
         'submit_field' => 'Submit button',
     ],
+    'contact' => [
+        'name' => 'Name',
+        'company_name' => 'Company name',
+        'email' => 'Email address',
+        'phone_number' => 'Phone number',
+        'message' => 'Message',
+        'submit' => 'Send',
+    ],
 ];

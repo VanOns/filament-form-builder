@@ -3,53 +3,23 @@
 namespace VanOns\FilamentFormBuilder\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 class CreateFormSubmission extends FormRequest
 {
     public Form $form;
 
-    protected function getForm(): Form
+    public function getForm(): Form
     {
-        if (!isset($this->form)) {
-            $this->form = Form::query()
-                ->findOrFail($this->route('formId'));
-        }
-
-        return $this->form;
-    }
-
-    /**
-     * @return array<string, mixed>
-    */
-    public function rules(): array
-    {
-        $rules = [
-            'submitter_email' => ['sometimes', 'nullable', 'string', 'email:rfc'],
-        ];
-
-        return array_merge($rules, $this->getFormRules());
+        return $this->form ??= Form::query()->findOrFail($this->route('formId'));
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function getFormRules(): array
+    public function rules(): array
     {
-        $form = $this->getForm();
-
-        $rules = [];
-
-        try {
-            if (TemplateHelper::isTemplate($form->template)) {
-                $rules = $form->getFormComponent()->getRules();
-            }
-
-            return $rules;
-        } catch (\Exception) {
-            return $rules;
-        }
+        return $this->getForm()->getRules();
     }
 
     /**
@@ -57,7 +27,7 @@ class CreateFormSubmission extends FormRequest
      */
     public function attributes(): array
     {
-        return $this->getForm()->getFormAttributes();
+        return $this->getForm()->getSubmissionFields();
     }
 
     /**
@@ -65,7 +35,7 @@ class CreateFormSubmission extends FormRequest
      */
     public function messages(): array
     {
-        return $this->getForm()->getFormMessages();
+        return $this->getForm()->getType()->messages();
     }
 
     /**
@@ -73,11 +43,6 @@ class CreateFormSubmission extends FormRequest
      */
     public function validationData(): array
     {
-        $form = $this->getForm();
-        if ($template = $form->template) {
-            return $template::modifyDataBeforeValidation($this->all(), $form);
-        }
-
-        return $this->all();
+        return $this->getForm()->getType()->beforeValidation($this->all());
     }
 }

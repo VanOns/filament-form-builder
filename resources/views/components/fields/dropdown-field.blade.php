@@ -20,7 +20,7 @@
         @foreach($field->options as $option)
             <option
                 value="{{ $option['value'] ?? '' }}"
-                @selected(old($field->getKey()) === ($option['value'] ?? null))
+                @selected(old($field->getKey(), $field->getDefaultValue()) === ($option['value'] ?? null))
             >
                 {{ $option['label'] ?? '' }}
             </option>

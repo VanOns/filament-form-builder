@@ -5,7 +5,7 @@ namespace VanOns\FilamentFormBuilder\Traits\Fields;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
+use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
 
 trait HasFields
 {
@@ -41,11 +41,11 @@ trait HasFields
 
     public function getGridColumns(): int
     {
-        return $this->gridColumns ?? TemplateHelper::defaultColumns();
+        return $this->gridColumns ?? FormTypeHelper::defaultColumns();
     }
 
     /**
-     * Capped at the form's column count, so a template that drops columns
+     * Capped at the form's column count, so a form type that drops columns
      * later never makes a stored field overflow its row.
      */
     public function getColumnSpan(int $columns): int

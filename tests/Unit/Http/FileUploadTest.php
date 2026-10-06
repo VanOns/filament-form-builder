@@ -4,7 +4,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
-use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
 beforeEach(function () {
     Storage::fake('local');
@@ -14,7 +13,7 @@ function uploadSubmission(array $payload): FormSubmission
 {
     $form = Form::create([
         'title' => 'Solliciteren',
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => [
             ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
             ['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv'],
@@ -72,7 +71,7 @@ it('never takes a typed value for a stored file', function () {
 
     $uploadOnly = Form::create([
         'title' => 'Alleen een cv',
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => [['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv']]],
     ]);
 

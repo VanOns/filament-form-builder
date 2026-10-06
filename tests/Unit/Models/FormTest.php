@@ -1,8 +1,8 @@
 <?php
 
+use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
-use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
 it('can create a form', function () {
     $form = Form::create(['title' => 'Contact']);
@@ -55,7 +55,7 @@ it('getWrapperAttributes carries the column count for CSS to lay out', function 
 it('returns only the input fields when asked, whatever was asked first', function () {
     $form = Form::create([
         'title' => 'Bellen',
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => [
             ['type' => 'title', 'title' => 'Bel me'],
             ['type' => 'text', 'label' => 'Naam'],
@@ -67,6 +67,9 @@ it('returns only the input fields when asked, whatever was asked first', functio
         ->and($form->getFields())->toHaveCount(2);
 });
 
-it('is not custom without a template', function () {
-    expect(Form::create(['title' => 'Leeg'])->isCustom())->toBeFalse();
+it('has no fields when its type is not registered', function () {
+    $form = Form::create(['title' => 'Leeg', 'template' => 'removed', 'custom' => ['fields' => [['type' => 'text', 'label' => 'Naam']]]]);
+
+    expect($form->getType())->toBeInstanceOf(FormType::class)
+        ->and($form->getFields())->toBe([]);
 });

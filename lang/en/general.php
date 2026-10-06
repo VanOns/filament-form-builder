@@ -24,7 +24,11 @@ return [
     'email_notification_explanation' => 'Email notifications that should be sent after form submission.',
     'submitter_email' => 'Submitter email',
     'title' => 'Title',
-    'template' => 'Template',
+    'type' => 'Type',
+    'types' => [
+        'custom' => 'Custom form',
+        'contact' => 'Contact form',
+    ],
     'email' => 'Email',
     'email_address' => 'Email address',
     'submit_notification_content' => 'Content',
@@ -110,6 +114,7 @@ return [
         'no_options' => 'No options yet',
         'more_options' => '+ :count more',
         'delete_heading' => 'Delete ":label"?',
+        'fixed' => 'Defined in code',
         'delete_description' => 'The field disappears from the form once you save. Answers that were already submitted stay with their submissions.',
     ],
 ];

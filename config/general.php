@@ -1,12 +1,13 @@
 <?php
 
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
+use VanOns\FilamentFormBuilder\Forms;
 
 return [
     'add_nav_group' => true,
-    'templates' => [
-        \VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm::class => 'Custom',
-        \VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm::class => 'Contact',
+    'types' => [
+        'custom' => Forms\CustomForm::class,
+        'contact' => Forms\ContactForm::class,
     ],
     'integrations' => [
         // Insert integrations here

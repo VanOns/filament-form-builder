@@ -64,4 +64,12 @@ return [
         'recaptcha_field' => 'reCAPTCHA',
         'submit_field' => 'Verzendknop',
     ],
+    'contact' => [
+        'name' => 'Naam',
+        'company_name' => 'Bedrijfsnaam',
+        'email' => 'E-mailadres',
+        'phone_number' => 'Telefoonnummer',
+        'message' => 'Bericht',
+        'submit' => 'Versturen',
+    ],
 ];

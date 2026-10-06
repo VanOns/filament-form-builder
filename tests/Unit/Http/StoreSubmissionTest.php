@@ -2,8 +2,6 @@
 
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
-use VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm;
-use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
 function submit(Form $form, array $payload): FormSubmission
 {
@@ -15,7 +13,7 @@ function submit(Form $form, array $payload): FormSubmission
 it('stores only the fields a custom form asks for', function () {
     $form = Form::create([
         'title' => 'Terugbellen',
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => [
             ['type' => 'title', 'title' => 'Bel me terug'],
             ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
@@ -30,16 +28,16 @@ it('stores only the fields a custom form asks for', function () {
     ]);
 
     expect($submission->data)->toBe(['naam' => 'Jan'])
-        ->and($submission->submitter_email)->toBe('jan@example.com');
+        ->and($submission->submitter_email)->toBeNull();
 });
 
-it('stores only the fields a template validates or labels', function () {
-    $form = Form::create(['title' => 'Contact', 'template' => ContactForm::class]);
+it('stores only the fields a form type has in code', function () {
+    $form = Form::create(['title' => 'Contact', 'template' => 'contact']);
 
     $submission = submit($form, [
         'name' => 'Jan',
         'company_name' => 'Van Ons',
-        'submitter_email' => 'jan@example.com',
+        'email' => 'jan@example.com',
         'phone_number' => '0612345678',
         'message' => 'Hallo',
         'is_admin' => '1',
@@ -48,15 +46,16 @@ it('stores only the fields a template validates or labels', function () {
     expect($submission->data)->toBe([
         'name' => 'Jan',
         'company_name' => 'Van Ons',
+        'email' => 'jan@example.com',
         'phone_number' => '0612345678',
         'message' => 'Hallo',
-    ]);
+    ])->and($submission->submitter_email)->toBe('jan@example.com');
 });
 
 it('takes the submitter from the first e-mail field that was filled in', function () {
     $form = Form::create([
         'title' => 'Offerte',
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => [
             ['type' => 'email', 'label' => 'Werkmail', 'key' => 'werkmail'],
             ['type' => 'email', 'label' => 'E-mailadres', 'key' => 'e-mailadres'],
@@ -66,21 +65,10 @@ it('takes the submitter from the first e-mail field that was filled in', functio
     expect(submit($form, ['e-mailadres' => 'jan@example.com'])->submitter_email)->toBe('jan@example.com');
 });
 
-it('prefers a submitter e-mail that was posted as such', function () {
-    $form = Form::create([
-        'title' => 'Offerte',
-        'template' => CustomForm::class,
-        'custom' => ['fields' => [['type' => 'email', 'label' => 'E-mailadres', 'key' => 'e-mailadres']]],
-    ]);
-
-    expect(submit($form, ['e-mailadres' => 'jan@example.com', 'submitter_email' => 'piet@example.com'])->submitter_email)
-        ->toBe('piet@example.com');
-});
-
 it('accepts a form whose optional fields were left empty', function () {
     $form = Form::create([
         'title' => 'Terugbellen',
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => [
             ['type' => 'email', 'label' => 'E-mail', 'key' => 'email'],
             ['type' => 'dropdown', 'label' => 'Land', 'key' => 'land', 'options' => [['value' => 'nl', 'label' => 'Nederland']]],

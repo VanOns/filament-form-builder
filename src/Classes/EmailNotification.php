@@ -2,10 +2,8 @@
 
 namespace VanOns\FilamentFormBuilder\Classes;
 
-use Exception;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Mail\MailPanel;
 
@@ -102,7 +100,7 @@ class EmailNotification
     protected function getFormSubmissionData(bool $withPlaceholders = false): array
     {
         $placeholders = $withPlaceholders
-            ? $this->getPlaceholders()
+            ? SubmissionPlaceholders::fallbacks($this->formSubmission)
             : [];
 
         return [
@@ -110,21 +108,5 @@ class EmailNotification
             ...$this->formSubmission->getFormattedData(),
             'submitter_email' => $this->formSubmission->submitter_email,
         ];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected function getPlaceholders(): array
-    {
-        try {
-            if (TemplateHelper::isTemplate($this->formSubmission->form->template)) {
-                return $this->formSubmission->form->getFormComponent()->getPlaceholders();
-            }
-        } catch (Exception) {
-            return [];
-        }
-
-        return [];
     }
 }

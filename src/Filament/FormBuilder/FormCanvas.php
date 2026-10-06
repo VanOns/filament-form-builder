@@ -20,14 +20,20 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Forms\CustomFields;
 use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
+use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
 
 class FormCanvas extends Field
 {
     protected string $view = 'filament-form-builder::filament.form-canvas';
 
     protected int | Closure | null $gridColumns = null;
+
+    /**
+     * @var array<int, FormField|CustomFields>|Closure
+     */
+    protected array | Closure $fixedFields = [];
 
     protected ?Closure $afterKeyRenamed = null;
 
@@ -36,8 +42,6 @@ class FormCanvas extends Field
         parent::setUp();
 
         $this->default([]);
-
-        $this->gridColumns(static fn (Get $get): int => TemplateHelper::columns($get('template')));
 
         $this->afterStateHydrated(static function (FormCanvas $component, ?array $rawState): void {
             $component->rawState(
@@ -68,6 +72,19 @@ class FormCanvas extends Field
     }
 
     /**
+     * The fields a form type has in code, shown around the editor's fields where
+     * CustomFields::make() sits. The canvas cannot change them.
+     *
+     * @param  array<int, FormField|CustomFields>|Closure  $fields
+     */
+    public function fixedFields(array | Closure $fields): static
+    {
+        $this->fixedFields = $fields;
+
+        return $this;
+    }
+
+    /**
      * Runs after an editor renamed a key, so whatever outside the canvas still
      * names the old key can follow. Receives `$from` and `$to`.
      */
@@ -80,7 +97,38 @@ class FormCanvas extends Field
 
     public function getGridColumns(): int
     {
-        return max(1, (int) ($this->evaluate($this->gridColumns) ?? TemplateHelper::defaultColumns()));
+        return max(1, (int) ($this->evaluate($this->gridColumns) ?? FormTypeHelper::defaultColumns()));
+    }
+
+    /**
+     * @return array{0: array<int, FormField>, 1: array<int, FormField>}
+     */
+    public function getFixedFields(): array
+    {
+        $columns = $this->getGridColumns();
+        $before = [];
+        $after = [];
+        $isAfter = false;
+
+        foreach ($this->evaluate($this->fixedFields) ?? [] as $field) {
+            if ($field instanceof CustomFields) {
+                $isAfter = true;
+            } elseif ($isAfter) {
+                $after[] = $field->setGridColumns($columns);
+            } else {
+                $before[] = $field->setGridColumns($columns);
+            }
+        }
+
+        return [$before, $after];
+    }
+
+    /**
+     * @return array<int, FormField>
+     */
+    protected function getFixedInputs(): array
+    {
+        return array_values(array_filter(array_merge(...$this->getFixedFields()), fn (FormField $field): bool => $field::isInput()));
     }
 
     /**
@@ -310,6 +358,10 @@ class FormCanvas extends Field
     {
         $fields = [];
 
+        foreach ($this->getFixedInputs() as $field) {
+            $fields[$field->getKey()] = $field;
+        }
+
         foreach ($this->getItems() as $uuid => $item) {
             if ($uuid !== $except && $item::isInput()) {
                 $fields[$item->getKey()] = $item;
@@ -408,7 +460,7 @@ class FormCanvas extends Field
      */
     protected function getTakenKeys(?string $except): array
     {
-        $keys = [];
+        $keys = array_map(fn (FormField $field): string => $field->getKey(), $this->getFixedInputs());
 
         foreach ($this->getItems() as $uuid => $item) {
             if ($uuid !== $except && $item::isInput()) {

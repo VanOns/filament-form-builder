@@ -17,7 +17,7 @@ trait HasSubmitNotification
      * Whether the redirect URL is configurable in the admin. Disable it to
      * hard-code the URL in `modifySubmitNotification()`.
      */
-    public static function hasRedirect(): bool
+    public function hasRedirect(): bool
     {
         return true;
     }
@@ -26,7 +26,7 @@ trait HasSubmitNotification
      * Whether the notification message is configurable in the admin. Disable it
      * to hard-code the message in `modifySubmitNotification()`.
      */
-    public static function hasNotificationMessage(): bool
+    public function hasNotificationMessage(): bool
     {
         return true;
     }
@@ -35,7 +35,7 @@ trait HasSubmitNotification
      * Whether the query string field is configurable in the admin. Disable it to
      * keep submitted values out of the redirect URL.
      */
-    public static function hasSubmitNotificationQuery(): bool
+    public function hasSubmitNotificationQuery(): bool
     {
         return config('filament-form-builder.submit_notification_query_enabled', true) === true;
     }
@@ -49,13 +49,13 @@ trait HasSubmitNotification
     }
 
     /**
-     * Fill the properties with the configured values, then run the template hook.
+     * Fill the properties with the configured values, then run the form type hook.
      */
     public function resolveSubmitNotification(FormSubmission $submission): static
     {
         $this->redirectUrl = $this->resolveRedirectUrl($submission);
 
-        $this->notificationMessage = static::hasNotificationMessage()
+        $this->notificationMessage = $this->hasNotificationMessage()
             ? $this->form->submit_notification_content
             : null;
 
@@ -66,13 +66,13 @@ trait HasSubmitNotification
 
     private function resolveRedirectUrl(FormSubmission $submission): ?string
     {
-        if (!static::hasRedirect() || $this->form->submit_notification_type !== SubmitNotificationType::URL->value) {
+        if (!$this->hasRedirect() || $this->form->submit_notification_type !== SubmitNotificationType::URL->value) {
             return null;
         }
 
         $url = FilamentFormBuilderPlugin::resolveRedirectUrl($this->form->submit_notification_url, $this->form);
 
-        $query = static::hasSubmitNotificationQuery()
+        $query = $this->hasSubmitNotificationQuery()
             ? $this->form->submit_notification_query
             : null;
 
