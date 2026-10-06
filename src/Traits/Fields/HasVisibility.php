@@ -22,7 +22,7 @@ trait HasVisibility
 
     public function getVisibilityType(): ?VisibilityType
     {
-        return VisibilityType::tryFrom($this->visibleWhenType);
+        return VisibilityType::tryFrom($this->visibleWhenType ?? '');
     }
 
     public function getVisibleWhenValue(): ?string
