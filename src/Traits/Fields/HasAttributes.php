@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
+use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
 
 trait HasAttributes
@@ -24,12 +25,12 @@ trait HasAttributes
     /**
      * @param array<string, string|null>|null $attributes
      */
-    public function getAttributes(?array $attributes = null, bool $withRequired = true): string
+    public function getAttributes(?array $attributes = null, bool $withRequired = true): HtmlString
     {
-        return AttributeHelper::arrayToString($attributes ?? $this->getAttributesList($withRequired));
+        return AttributeHelper::render($attributes ?? $this->getAttributesList($withRequired));
     }
 
-    public function getWrapperAttributes(): string
+    public function getWrapperAttributes(): HtmlString
     {
         return $this->getAttributes([
             'data-form-builder-input-wrapper' => $this->getKey(),

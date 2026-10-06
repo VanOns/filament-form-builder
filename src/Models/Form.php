@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Casts\RedirectUrl;
 use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
@@ -173,11 +174,11 @@ class Form extends Model
         return TemplateHelper::columns($this->template);
     }
 
-    public function getWrapperAttributes(): string
+    public function getWrapperAttributes(): HtmlString
     {
         $columns = $this->getColumns();
 
-        return AttributeHelper::arrayToString([
+        return AttributeHelper::render([
             'enctype' => 'multipart/form-data',
             'data-form-builder-form' => $this->id,
             'data-form-builder-columns' => $columns,

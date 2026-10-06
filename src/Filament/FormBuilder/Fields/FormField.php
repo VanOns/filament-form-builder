@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Traits\Fields\CanBeHidden;
 use VanOns\FilamentFormBuilder\Traits\Fields\CanBeRequired;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasAttributes;
@@ -34,11 +35,8 @@ abstract class FormField
     /**
      * The wrapper carries where the field sits in the form's grid, so a project
      * can lay the form out from CSS alone without overriding any view.
-     *
-     * Values are written without spaces on purpose: AttributeHelper renders
-     * attributes unquoted, so a space would end the attribute early.
      */
-    public function getWrapperAttributes(): string
+    public function getWrapperAttributes(): HtmlString
     {
         $columns = $this->getGridColumns();
         $span = $this->getColumnSpan($columns);
