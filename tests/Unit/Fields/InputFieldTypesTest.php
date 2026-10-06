@@ -38,3 +38,13 @@ it('validates the value against its type', function (string $type, mixed $valid,
 it('accepts any text in a text field', function () {
     expect(passes(TextInputField::class, 'Wat dan ook'))->toBeTrue();
 });
+
+it('lets an optional field stay empty', function (string $type) {
+    // The browser posts an empty field as "", which Laravel turns into null.
+    expect(passes($type, null))->toBeTrue();
+})->with([
+    TextInputField::class,
+    EmailField::class,
+    PhoneField::class,
+    NumberField::class,
+]);

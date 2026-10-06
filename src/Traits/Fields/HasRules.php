@@ -11,14 +11,17 @@ trait HasRules
      */
     protected function getDefaultRules(): array
     {
-        // A visitor cannot fill in a field they never see.
+        // An empty answer arrives as null, which rules like `email` or `in` would
+        // reject. A visitor cannot fill in a field they never see either.
         if (! $this->isRequired() || $this->isHidden()) {
-            return [];
+            return ['nullable'];
         }
 
         $conditions = $this->getConditions();
 
-        return [$conditions->isEmpty() ? 'required' : new RequiredWhenShown($conditions)];
+        return $conditions->isEmpty()
+            ? ['required']
+            : [new RequiredWhenShown($conditions), 'nullable'];
     }
 
     /**

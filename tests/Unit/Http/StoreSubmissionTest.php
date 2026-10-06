@@ -76,3 +76,16 @@ it('prefers a submitter e-mail that was posted as such', function () {
     expect(submit($form, ['e-mailadres' => 'jan@example.com', 'submitter_email' => 'piet@example.com'])->submitter_email)
         ->toBe('piet@example.com');
 });
+
+it('accepts a form whose optional fields were left empty', function () {
+    $form = Form::create([
+        'title' => 'Terugbellen',
+        'template' => CustomForm::class,
+        'custom' => ['fields' => [
+            ['type' => 'email', 'label' => 'E-mail', 'key' => 'email'],
+            ['type' => 'dropdown', 'label' => 'Land', 'key' => 'land', 'options' => [['value' => 'nl', 'label' => 'Nederland']]],
+        ]],
+    ]);
+
+    expect(submit($form, ['email' => '', 'land' => ''])->data)->toBe(['email' => null, 'land' => null]);
+});

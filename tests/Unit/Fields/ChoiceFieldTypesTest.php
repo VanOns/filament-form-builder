@@ -58,3 +58,7 @@ it('renders a dropdown as a select with an empty first option', function () {
     expect($html)->toContain('<select')
         ->and($html)->toContain('<option value="">Kies…</option>');
 });
+
+it('lets an optional choice stay empty', function (string $type) {
+    expect(choicePasses(choice($type), null))->toBeTrue();
+})->with([RadioField::class, CheckboxListField::class, DropdownField::class]);

@@ -7,7 +7,7 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 it('drops the required rule of a field the visitor never sees', function () {
     $field = new TextInputField(['key' => 'bron', 'required' => true, 'hidden' => true]);
 
-    expect(array_filter($field->getRules()))->toBe([]);
+    expect($field->getRules())->toBe(['bron' => ['nullable']]);
 });
 
 it('keeps the required rule of a visible field', function () {

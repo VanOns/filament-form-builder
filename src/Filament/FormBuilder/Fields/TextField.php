@@ -39,7 +39,7 @@ class TextField extends FormField
 
     protected function rules(): array
     {
-        return $this->getDefaultRules();
+        return [];
     }
 
     public static function isInput(): bool

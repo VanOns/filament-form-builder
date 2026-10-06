@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Validator;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\EmailField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextAreaField;
 
 /**
@@ -71,4 +72,15 @@ it('ignores a condition that names no field', function () {
     $field = new TextAreaField(['key' => 'toelichting', 'conditions' => [['operator' => 'equals', 'value' => 'x']]]);
 
     expect($field->hasConditions())->toBeFalse();
+});
+
+it('lets a conditional e-mail field stay empty while it is hidden', function () {
+    $field = new EmailField([
+        'key' => 'werkmail',
+        'required' => true,
+        'conditions' => [['key' => 'zakelijk', 'operator' => 'equals', 'value' => 'ja']],
+    ]);
+
+    expect(Validator::make(['zakelijk' => 'nee', 'werkmail' => null], $field->getRules())->passes())->toBeTrue()
+        ->and(Validator::make(['zakelijk' => 'ja', 'werkmail' => null], $field->getRules())->passes())->toBeFalse();
 });
