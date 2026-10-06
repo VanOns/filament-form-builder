@@ -70,13 +70,13 @@ class FormSubmissionExporter extends Exporter
         $columns = [];
 
         foreach ($form?->getSubmissionFields() ?? [] as $key => $label) {
-            $columns[$key] = ExportColumn::make("data.{$key}")->label($label);
+            $columns[$key] = static::getExportColumn($key, $label);
         }
 
         // A field that was renamed or removed still has answers under its old
         // key. Going by the form alone would drop that column without a word.
         foreach (static::submittedDataKeys($form) as $key) {
-            $columns[$key] ??= static::getExportColumn($key);
+            $columns[$key] ??= static::getExportColumn($key, str($key)->headline()->toString());
         }
 
         return array_values($columns);
@@ -97,17 +97,21 @@ class FormSubmissionExporter extends Exporter
         }
 
         return $query
-            ->pluck('data')
-            ->flatMap(fn ($data) => array_keys($data ?? []))
+            ->get(['data', 'files'])
+            ->flatMap(fn (FormSubmission $submission): array => [
+                ...array_keys($submission->data ?? []),
+                ...array_keys($submission->files ?? []),
+            ])
             ->unique()
             ->values()
             ->all();
     }
 
-    protected static function getExportColumn(string $key): ExportColumn
+    protected static function getExportColumn(string $key, string $label): ExportColumn
     {
         return ExportColumn::make("data.{$key}")
-            ->label(str($key)->headline()->toString());
+            ->label($label)
+            ->state(fn (FormSubmission $record): ?string => $record->getDisplayText($key));
     }
 
     public static function getCompletedNotificationBody(Export $export): string

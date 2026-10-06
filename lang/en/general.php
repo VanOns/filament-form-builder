@@ -65,7 +65,7 @@ return [
     'placeholders_receivers_hint' => 'For receivers, enter the field name without the brackets (e.g. email instead of {{ $email }}).',
     'you_can_use_placeholders' => 'You can use the following placeholders:',
     'unknown' => 'Unknown',
-    'found_urls' => 'Found URL(s)',
+    'files' => 'Files',
     'settings' => 'Settings',
     'save' => 'Save',
     'no_settings' => 'No settings',

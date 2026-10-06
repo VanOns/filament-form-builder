@@ -6,6 +6,7 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
 use VanOns\FilamentFormBuilder\Filament\Tables\FormSubmissionColumns;
 use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm;
 use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
@@ -128,10 +129,10 @@ it('shows the label of a chosen option, not the value that was stored', function
         ]],
     ]);
 
-    $column = collect(FormSubmissionColumns::for($form)->columns())
-        ->first(fn (TextColumn $column): bool => $column->getName() === 'data.aanhef');
+    $cell = fn (string $answer): ?string => FormSubmission::create(['form_id' => $form->id, 'data' => ['aanhef' => $answer]])
+        ->getDisplayText('aanhef');
 
-    expect($column->formatState('mw'))->toBe('Mw.')
+    expect($cell('mw'))->toBe('Mw.')
         // A value the field no longer offers still has to show something.
-        ->and($column->formatState('onbekend'))->toBe('onbekend');
+        ->and($cell('onbekend'))->toBe('onbekend');
 });

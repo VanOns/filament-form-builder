@@ -65,7 +65,7 @@ return [
     'placeholders_receivers_hint' => 'Vul bij ontvangers alleen de veldnaam in zonder de haakjes (bijv. email in plaats van {{ $email }}).',
     'you_can_use_placeholders' => 'Je kunt gebruikmaken van de volgende placeholders:',
     'unknown' => 'Onbekend',
-    'found_urls' => 'Gevonden URL(\'s)',
+    'files' => 'Bestanden',
     'settings' => 'Instellingen',
     'save' => 'Opslaan',
     'no_settings' => 'Geen instellingen',

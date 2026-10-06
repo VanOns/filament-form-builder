@@ -145,18 +145,18 @@ public function modifySubmitNotification(FormSubmission $submission): void
 A form template may override these hooks to transform submission data. They run
 at different stages and affect different outputs — choose the right one:
 
-| Hook                                                               | When it runs                    | Affects                                              |
-|--------------------------------------------------------------------|---------------------------------|------------------------------------------------------|
-| `modifyDataBeforeValidation(array $data, Form $form)`              | Before validation               | Validated input                                      |
-| `modifyDataUsing(array $data, Form $form)`                         | Before the submission is stored | Stored `data`                                        |
-| `modifyDataValues(array $data, FormSubmission $submission)`        | When rendering values           | **Both** the detail view **and** notification emails |
-| `modifyResourceDataUsing(array $data, FormSubmission $submission)` | When rendering the detail view  | Detail view **only**                                 |
+| Hook                                                               | When it runs                    | Affects                                                                  |
+|--------------------------------------------------------------------|---------------------------------|--------------------------------------------------------------------------|
+| `modifyDataBeforeValidation(array $data, Form $form)`              | Before validation               | Validated input                                                          |
+| `modifyDataUsing(array $data, Form $form)`                         | Before the submission is stored | Stored `data`                                                            |
+| `modifyDataValues(array $data, FormSubmission $submission)`        | Whenever answers are shown      | The table, the detail page, the export, the mails and their placeholders |
+| `modifyResourceDataUsing(array $data, FormSubmission $submission)` | When showing the detail page    | Detail page **only**                                                     |
 
 `modifyDataValues()` is the hook for formatting stored values into human-readable
-output while keeping the original field-name keys. By default it returns the data
-unchanged. Override it to apply your own formatting. When you do, the formatting
-applies to both the Filament detail view and the notification emails. This is the
-hook you want for value formatting (e.g. mapping an enum value to its label):
+output while keeping the original field-name keys. It receives the answers after
+the form's own fields formatted them (a choice already reads as its label, a file
+as its download link). Whatever it returns is what every output shows, so this is
+the hook you want for value formatting (e.g. mapping an enum value to its label):
 
 ```php
 public static function modifyDataValues(array $data, FormSubmission $submission): array
@@ -168,11 +168,18 @@ public static function modifyDataValues(array $data, FormSubmission $submission)
 }
 ```
 
-> **Note:** `modifyResourceDataUsing()` rewrites the keys into human labels and
-> is used by the detail view only. Do **not** put value formatting here if you
-> also want it reflected in emails — use `modifyDataValues()` instead. By default
-> `modifyResourceDataUsing()` already runs your `modifyDataValues()` output through
-> key formatting, so overriding it is rarely needed.
+> **Note:** `modifyResourceDataUsing()` receives the answers as text under their
+> labels and is used by the detail page only. Do **not** put value formatting here
+> if you also want it in the table, the export or the mails; use
+> `modifyDataValues()` instead.
+
+### File uploads
+
+Uploaded files are stored on the `form-uploads-disk` (default `local`) and kept in
+the submission's `files` column, apart from the answers. They are served through
+signed links that stay valid for `form-uploads-link-days` days (default 7), so a
+notification mail can link to them for someone without an account. Add middleware
+to `form-uploads-middleware` to put the links behind a login as well.
 
 
 ## Form columns

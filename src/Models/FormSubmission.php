@@ -8,8 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\Integration;
+use VanOns\FilamentFormBuilder\Classes\SubmissionFile;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionCreated;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionForceDeleted;
@@ -22,6 +24,7 @@ use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
  * @property int $form_id
  * @property ?string $submitter_email
  * @property array<string, mixed> $data
+ * @property array<string, list<array{path: string, name: string}>>|null $files
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -33,10 +36,16 @@ class FormSubmission extends Model
 
     protected $guarded = ['id'];
 
+    /**
+     * @var array<string, mixed>|null
+     */
+    protected ?array $resolvedValues = null;
+
     protected function casts(): array
     {
         return [
             'data' => 'array',
+            'files' => 'array',
             'integrations' => 'array',
         ];
     }
@@ -69,88 +78,118 @@ class FormSubmission extends Model
     }
 
     /**
-     * @return array<string>
+     * @return array<string, list<SubmissionFile>>
      */
-    public function getFormattedDataAttribute(): array
+    public function getFiles(): array
     {
-        return $this->getFormattedData();
-    }
+        $files = [];
 
-    /**
-     * @return array<string>
-     */
-    public function getFormattedKeyDataAttribute(): array
-    {
-        return $this->modifyFormattedKeyDataUsing(
-            $this->data
-        );
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    public function modifyFormattedKeyDataUsing(array $data): array
-    {
-        if ($template = TemplateHelper::resolve($this->form->template)) {
-            return $template::modifyResourceDataUsing($data, $this);
-        }
-        return $this->getFormattedData(true);
-    }
-
-    /**
-     * Apply the form template's value formatting while keeping the original
-     * field-name keys (used by notification emails, where keys map to placeholders).
-     *
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    public function modifyDataValuesUsing(array $data): array
-    {
-        if ($template = TemplateHelper::resolve($this->form->template)) {
-            return $template::modifyDataValues($data, $this);
-        }
-        return $data;
-    }
-
-    /**
-     * @param bool $formatKeys
-     * @param array<string, mixed>|null $data
-     * @return array<string>
-     */
-    public function getFormattedData(bool $formatKeys = false, ?array $data = null): array
-    {
-        $data ??= $this->data;
-
-        return collect($data)
-            ->mapWithKeys(function ($value, $key) use ($formatKeys) {
-                $value = is_array($value)
-                    ? implode(', ', Arr::flatten($value))
-                    : $value;
-
-                if ($formatKeys) {
-                    $key = $this->form->getFormComponent()->findAttributeForKey($key);
-                }
-
-                return [$key => $value];
-            })->filter()->toArray();
-    }
-
-    /**
-     * @return array<string>
-     */
-    public function getAllUrlsInData(): array
-    {
-        $urls = [];
-        $data = $this->data;
-
-        array_walk_recursive($data, function ($value) use (&$urls) {
-            if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
-                $urls[] = $value;
+        foreach ($this->files ?? [] as $key => $stored) {
+            foreach ($stored as $index => $file) {
+                $files[$key][] = new SubmissionFile($this, (string) $key, $index, $file['path'], $file['name']);
             }
-        });
+        }
 
-        return $urls;
+        return $files;
+    }
+
+    /**
+     * Every answer the way it is shown, under its field key: a choice by its
+     * label, a file as its download link, then the template's own formatting.
+     * The table, the detail page, the export and the mails all read from here.
+     *
+     * @return array<string, mixed>
+     */
+    public function getValues(): array
+    {
+        if ($this->resolvedValues !== null) {
+            return $this->resolvedValues;
+        }
+
+        $values = [...$this->data ?? [], ...$this->getFiles()];
+
+        foreach ($this->form?->getFields() ?? [] as $field) {
+            foreach (array_keys($field->getSubmissionColumns()) as $key) {
+                if (array_key_exists($key, $values)) {
+                    $values[$key] = $field->formatSubmissionValue($values[$key]);
+                }
+            }
+        }
+
+        if ($template = TemplateHelper::resolve($this->form?->template)) {
+            $values = $template::modifyDataValues($values, $this);
+        }
+
+        return $this->resolvedValues = $values;
+    }
+
+    /**
+     * A file reads as its download link, or as its name where the link would
+     * only clutter the screen.
+     */
+    public function getDisplayText(string $key, bool $fileNames = false): ?string
+    {
+        return static::toText($this->getValues()[$key] ?? null, $fileNames);
+    }
+
+    public static function toText(mixed $value, bool $fileNames = false): ?string
+    {
+        if (is_array($value)) {
+            $value = implode(', ', array_map(
+                fn (mixed $item): string => $fileNames && $item instanceof SubmissionFile ? $item->name : (string) $item,
+                Arr::flatten($value),
+            ));
+        }
+
+        return $value === null || $value === '' ? null : (string) $value;
+    }
+
+    /**
+     * The answers as text, without the empty ones.
+     *
+     * @return array<string, string>
+     */
+    public function getFormattedData(bool $formatKeys = false): array
+    {
+        $texts = [];
+
+        foreach ($this->getValues() as $key => $value) {
+            if (($text = static::toText($value)) !== null) {
+                $texts[$formatKeys ? $this->findLabel((string) $key) : $key] = $text;
+            }
+        }
+
+        return $texts;
+    }
+
+    /**
+     * The answers under their labels for the detail page, which links the files
+     * in a section of their own.
+     *
+     * @return array<string, string>
+     */
+    public function getDetailData(): array
+    {
+        $texts = [];
+
+        foreach ($this->getValues() as $key => $value) {
+            if (($text = static::toText($value, fileNames: true)) !== null) {
+                $texts[$this->findLabel((string) $key)] = $text;
+            }
+        }
+
+        if ($template = TemplateHelper::resolve($this->form?->template)) {
+            return $template::modifyResourceDataUsing($texts, $this);
+        }
+
+        return $texts;
+    }
+
+    public function findLabel(string $key): string
+    {
+        return TemplateHelper::isTemplate($this->form?->template)
+            ? $this->form->getFormComponent()->findAttributeForKey($key)
+            : Str::headline($key);
     }
 
     /**

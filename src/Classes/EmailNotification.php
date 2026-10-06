@@ -6,7 +6,6 @@ use Exception;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
 use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
-use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Mail\MailPanel;
 
@@ -30,8 +29,7 @@ class EmailNotification
         array $notification,
     ) {
         $this->subject = $this->replacePlaceholders($notification['subject'] ?? '');
-        $this->content = $this->replacePlaceholders($notification['content'] ?? '');
-        $this->content = $this->sanitizeContent($this->content);
+        $this->content = $this->replaceContentPlaceholders($notification['content'] ?? '');
         $this->sender = $notification['sender'] ?? '';
         $this->senderName = $this->replacePlaceholders($notification['senderName'] ?? '');
         $this->receivers = $this->parseReceivers(
@@ -41,12 +39,24 @@ class EmailNotification
 
     public function replacePlaceholders(string $content): string
     {
-        // Only the mail renders every field as an HTML panel.
-        if (str_contains($content, '$all_fields') && ($allFields = $this->getAllFieldsHtml()) !== '') {
-            $content = str_replace(['{{ $all_fields }}', '{{$all_fields}}'], $allFields, $content);
-        }
-
         return SubmissionPlaceholders::make($this->formSubmission)->replace($content);
+    }
+
+    /**
+     * The content is HTML, so an answer is escaped before it goes in. The panel
+     * of all fields goes in last, so nothing typed into a field is read as a
+     * placeholder.
+     */
+    public function replaceContentPlaceholders(string $content): string
+    {
+        $placeholders = SubmissionPlaceholders::make($this->formSubmission);
+
+        $parts = array_map(
+            fn (string $part): string => $this->sanitizeContent($placeholders->replace($part, e(...))),
+            preg_split('/{{\s*\$all_fields\s*}}/', $content) ?: [$content],
+        );
+
+        return implode(count($parts) > 1 ? $this->getAllFieldsHtml() : '', $parts);
     }
 
     /**
@@ -74,12 +84,10 @@ class EmailNotification
             return '';
         }
 
-        /* @var Form $form */
-        $form = $this->formSubmission->form;
+        $allFieldsFormatted = array_map(function ($key, $value) {
+            $label = $this->formSubmission->findLabel((string) $key);
 
-        $allFieldsFormatted = array_map(function ($key, $value) use ($form) {
-            $label = $form->getFormComponent()->findAttributeForKey($key);
-            return "<p><b>{$label}</b>: {$value}</p>";
+            return '<p><b>' . e($label) . '</b>: ' . e((string) $value) . '</p>';
         }, array_keys($data), $data);
 
         return Blade::render(MailPanel::$view, [
@@ -111,9 +119,7 @@ class EmailNotification
 
         return [
             ...$placeholders,
-            ...$this->formSubmission->getFormattedData(
-                data: $this->formSubmission->modifyDataValuesUsing($this->formSubmission->data),
-            ),
+            ...$this->formSubmission->getFormattedData(),
             'submitter_email' => $this->formSubmission->submitter_email,
         ];
     }

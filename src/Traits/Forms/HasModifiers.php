@@ -43,17 +43,14 @@ trait HasModifiers
     }
 
     /**
-     * Modify the data shown in the Filament resource detail view.
+     * Modify the answers shown on the detail page, already as text under their labels.
      *
-     * @param array<string, mixed> $data
+     * @param array<string, string> $data
      * @param FormSubmission $submission
-     * @return array<string, mixed>
+     * @return array<string, string>
      */
     public static function modifyResourceDataUsing(array $data, FormSubmission $submission): array
     {
-        return $submission->getFormattedData(
-            formatKeys: true,
-            data: static::modifyDataValues($data, $submission),
-        );
+        return $data;
     }
 }

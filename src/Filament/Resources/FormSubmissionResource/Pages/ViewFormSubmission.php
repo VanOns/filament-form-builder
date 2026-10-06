@@ -10,6 +10,7 @@ use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\IconSize;
+use Filament\Support\Icons\Heroicon;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
@@ -28,13 +29,18 @@ class ViewFormSubmission extends ViewRecord
     {
         /** @var FormSubmission $record */
         $record = $this->getRecord();
-        $actions = array_map(function ($url) {
-            return Action::make('view-url')
-                ->color('gray')
-                ->label($url)
-                ->url($url)
-                ->openUrlInNewTab();
-        }, $record->getAllUrlsInData());
+        $fileActions = [];
+
+        foreach ($record->getFiles() as $files) {
+            foreach ($files as $file) {
+                $fileActions[] = Action::make("file-{$file->key}-{$file->index}")
+                    ->color('gray')
+                    ->icon(Heroicon::OutlinedPaperClip)
+                    ->label($file->name)
+                    ->url($file->url())
+                    ->openUrlInNewTab();
+            }
+        }
 
         return $schema
             ->schema([
@@ -53,16 +59,18 @@ class ViewFormSubmission extends ViewRecord
                 Section::make(__('filament-form-builder::general.form_content'))
                     ->columnSpanFull()
                     ->schema([
-                        KeyValueEntry::make('formattedKeyData')
+                        KeyValueEntry::make('answers')
+                            ->state(fn (FormSubmission $record): array => $record->getDetailData())
                             ->hiddenLabel()
                             ->keyLabel(__('filament-form-builder::general.form_key'))
                             ->valueLabel(__('filament-form-builder::general.form_value')),
                     ]),
 
-                Section::make(__('filament-form-builder::general.found_urls'))
-                    ->hidden(empty($actions))
+                Section::make(__('filament-form-builder::general.files'))
+                    ->columnSpanFull()
+                    ->hidden(empty($fileActions))
                     ->schema([
-                        Actions::make($actions),
+                        Actions::make($fileActions),
                     ]),
 
                 $this->getIntegrationsSection($record),

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Routing\Middleware\ValidateSignature;
 use Illuminate\Support\Facades\Route;
 use VanOns\FilamentFormBuilder\Http\Controllers\FormSubmissionController;
 
@@ -14,8 +15,11 @@ Route::name('filament-form-builder.')
                 ]
             )
             ->name('form.store');
-        Route::get('file/{filePath}', [FormSubmissionController::class, 'showFile'])
-            ->middleware(config('filament-form-builder.form-uploads-middleware'))
-            ->where('filePath', '.*')
+        Route::get('submissions/{submissionId}/files/{key}/{index}', [FormSubmissionController::class, 'showFile'])
+            ->middleware([
+                ValidateSignature::class,
+                ...config('filament-form-builder.form-uploads-middleware', []),
+            ])
+            ->whereNumber(['submissionId', 'index'])
             ->name('form.download-file');
     });

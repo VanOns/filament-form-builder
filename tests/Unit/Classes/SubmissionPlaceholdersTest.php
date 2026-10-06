@@ -86,3 +86,23 @@ it('strips a placeholder the e-mail cannot fill in', function () {
 
     expect($notification->content)->toBe('<p>Hoi .</p>');
 });
+
+it('escapes an answer before it goes into the html of a notification', function () {
+    $submission = placeholderSubmission(['naam' => '<a href="https://evil.test">Klik</a>']);
+
+    $notification = new EmailNotification($submission, [
+        'subject' => 'Van {{ $naam }}',
+        'content' => '<p>Van {{ $naam }}</p>{{ $all_fields }}',
+    ]);
+
+    expect($notification->content)->not->toContain('<a href')
+        ->and($notification->content)->toContain('&lt;a href=&quot;https://evil.test&quot;&gt;Klik&lt;/a&gt;');
+});
+
+it('does not read a placeholder typed into a field as one in the field overview', function () {
+    $submission = placeholderSubmission(['naam' => '{{ $submitter_email }}'], 'jesse@example.test');
+
+    $notification = new EmailNotification($submission, ['subject' => 'Nieuw', 'content' => '{{ $all_fields }}']);
+
+    expect($notification->content)->toContain('<b>Naam</b>: {{ $submitter_email }}</p>');
+});

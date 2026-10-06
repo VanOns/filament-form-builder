@@ -1,0 +1,90 @@
+<?php
+
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FileUploadField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
+use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
+use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
+
+beforeEach(function () {
+    Storage::fake('local');
+});
+
+function uploadSubmission(array $payload): FormSubmission
+{
+    $form = Form::create([
+        'title' => 'Solliciteren',
+        'template' => CustomForm::class,
+        'custom' => ['fields' => [
+            ['fieldType' => TextInputField::class, 'label' => 'Naam', 'key' => 'naam'],
+            ['fieldType' => FileUploadField::class, 'label' => 'CV', 'key' => 'cv'],
+        ]],
+    ]);
+
+    test()->post(route('filament-form-builder.form.store', ['formId' => $form->id]), $payload);
+
+    return FormSubmission::query()->where('form_id', $form->id)->sole();
+}
+
+function pdf(): UploadedFile
+{
+    return UploadedFile::fake()->create('cv.pdf', 10, 'application/pdf');
+}
+
+it('keeps an upload apart from the answers, under its original name', function () {
+    $submission = uploadSubmission(['naam' => 'Jan', 'cv' => pdf()]);
+
+    expect($submission->data)->toBe(['naam' => 'Jan'])
+        ->and($submission->files['cv'][0]['name'])->toBe('cv.pdf');
+
+    Storage::disk('local')->assertExists($submission->files['cv'][0]['path']);
+});
+
+it('serves an upload to whoever holds its signed link', function () {
+    $submission = uploadSubmission(['cv' => pdf()]);
+
+    $response = test()->get($submission->getFiles()['cv'][0]->url());
+
+    $response->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+    expect($response->headers->get('Content-Disposition'))->toStartWith('inline')->toContain('cv.pdf');
+});
+
+it('refuses a link that was not signed, was changed or has expired', function () {
+    $url = uploadSubmission(['cv' => pdf()])->getFiles()['cv'][0]->url();
+
+    test()->get(strtok($url, '?'))->assertForbidden();
+    test()->get(str_replace('/files/cv/0', '/files/cv/1', $url))->assertForbidden();
+
+    test()->travel(8)->days();
+    test()->get($url)->assertForbidden();
+});
+
+it('downloads a file a browser could run script from, instead of opening it', function () {
+    $submission = uploadSubmission(['cv' => UploadedFile::fake()->createWithContent('cv.html', '<script>alert(1)</script>')]);
+
+    $response = test()->get($submission->getFiles()['cv'][0]->url());
+
+    expect($response->headers->get('Content-Disposition'))->toStartWith('attachment');
+});
+
+it('never takes a typed value for a stored file', function () {
+    $forged = ['path' => '../.env', 'name' => 'cv.pdf'];
+
+    $uploadOnly = Form::create([
+        'title' => 'Alleen een cv',
+        'template' => CustomForm::class,
+        'custom' => ['fields' => [['fieldType' => FileUploadField::class, 'label' => 'CV', 'key' => 'cv']]],
+    ]);
+
+    // The upload field itself only accepts a real file...
+    test()->post(route('filament-form-builder.form.store', ['formId' => $uploadOnly->id]), ['cv' => $forged])
+        ->assertSessionHasErrors('cv');
+
+    // ...and what lands in a text field stays an answer, never a file.
+    $submission = uploadSubmission(['naam' => $forged]);
+
+    expect($submission->files)->toBeNull()
+        ->and($submission->getFiles())->toBe([]);
+});

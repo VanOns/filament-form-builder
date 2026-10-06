@@ -17,9 +17,10 @@ return [
     'email_notification_enabled' => true,
     'submit_notification_query_enabled' => true,
     'form-middleware' => ['web'],
-    'form-uploads-middleware' => ['web', 'auth'],
-    'form-uploads-disk' => 'private',
+    'form-uploads-middleware' => [],
+    'form-uploads-disk' => 'local',
     'form-uploads-max-size' => 10240,
+    'form-uploads-link-days' => 7,
     'fields' => [
         Fields\TitleField::class,
         Fields\TextField::class,

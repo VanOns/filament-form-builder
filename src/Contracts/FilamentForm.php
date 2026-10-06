@@ -92,7 +92,8 @@ interface FilamentForm extends HasNotifications, HasIntegrations
 
     /**
      * Modify the submission values while keeping the original field-name keys.
-     * Applied to both the resource detail view and notification emails.
+     * Applied wherever answers are shown: the table, the detail page, the
+     * export, the notification mails and their placeholders.
      *
      * @param array<string, mixed> $data
      * @param FormSubmission $submission
@@ -101,11 +102,11 @@ interface FilamentForm extends HasNotifications, HasIntegrations
     public static function modifyDataValues(array $data, FormSubmission $submission): array;
 
     /**
-     * Modify the data shown in the Filament resource detail view.
+     * Modify the answers shown on the detail page, already as text under their labels.
      *
-     * @param array<string, mixed> $data
+     * @param array<string, string> $data
      * @param FormSubmission $submission
-     * @return array<string, mixed>
+     * @return array<string, string>
      */
     public static function modifyResourceDataUsing(array $data, FormSubmission $submission): array;
 

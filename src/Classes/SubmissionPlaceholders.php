@@ -35,9 +35,7 @@ class SubmissionPlaceholders
         return $this->values = array_filter([
             'form_title' => $this->formSubmission->form->title,
             ...$this->templatePlaceholders(),
-            ...$this->formSubmission->getFormattedData(
-                data: $this->formSubmission->modifyDataValuesUsing($this->formSubmission->data),
-            ),
+            ...$this->formSubmission->getFormattedData(),
             'submitter_email' => $this->formSubmission->submitter_email,
         ], fn ($value) => $value !== null && $value !== '');
     }

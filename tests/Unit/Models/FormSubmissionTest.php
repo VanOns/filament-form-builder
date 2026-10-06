@@ -1,7 +1,11 @@
 <?php
 
+use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\RadioField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
+use VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm;
+use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
 it('belongs to a form', function () {
     $form = Form::create(['title' => 'Contact']);
@@ -51,37 +55,35 @@ it('getFormattedData filters out empty/null values', function () {
         ->not->toHaveKey('fax');
 });
 
-it('getAllUrlsInData returns URLs from flat data', function () {
-    $form = Form::create(['title' => 'Contact']);
-    $submission = FormSubmission::create([
-        'form_id' => $form->id,
-        'data' => [
-            'website' => 'https://example.com',
-            'name' => 'Alice',
-        ],
-    ]);
+class ShoutingContactForm extends ContactForm
+{
+    public static function modifyDataValues(array $data, FormSubmission $submission): array
+    {
+        return [...$data, 'name' => strtoupper($data['name'] ?? '')];
+    }
+}
 
-    expect($submission->getAllUrlsInData())->toBe(['https://example.com']);
+it('shows a choice by its label everywhere an answer is shown', function () {
+    $form = Form::create([
+        'title' => 'Contact',
+        'template' => CustomForm::class,
+        'custom' => ['fields' => [
+            ['fieldType' => RadioField::class, 'label' => 'Aanhef', 'key' => 'aanhef', 'options' => [
+                ['value' => 'mw', 'label' => 'Mevrouw'],
+            ]],
+        ]],
+    ]);
+    $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['aanhef' => 'mw']]);
+
+    expect($submission->getDisplayText('aanhef'))->toBe('Mevrouw')
+        ->and($submission->getDetailData())->toBe(['Aanhef' => 'Mevrouw'])
+        ->and(SubmissionPlaceholders::make($submission)->replace('{{ $aanhef }}'))->toBe('Mevrouw');
 });
 
-it('getAllUrlsInData finds URLs nested inside arrays', function () {
-    $form = Form::create(['title' => 'Contact']);
-    $submission = FormSubmission::create([
-        'form_id' => $form->id,
-        'data' => [
-            'links' => ['http://foo.com', 'https://bar.com'],
-        ],
-    ]);
+it('runs the template formatting wherever an answer is shown', function () {
+    $form = Form::create(['title' => 'Contact', 'template' => ShoutingContactForm::class]);
+    $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['name' => 'jan']]);
 
-    expect($submission->getAllUrlsInData())->toBe(['http://foo.com', 'https://bar.com']);
-});
-
-it('getAllUrlsInData returns an empty array when no URLs are present', function () {
-    $form = Form::create(['title' => 'Contact']);
-    $submission = FormSubmission::create([
-        'form_id' => $form->id,
-        'data' => ['name' => 'Alice', 'message' => 'Hello'],
-    ]);
-
-    expect($submission->getAllUrlsInData())->toBeEmpty();
+    expect($submission->getDisplayText('name'))->toBe('JAN')
+        ->and(SubmissionPlaceholders::make($submission)->replace('{{ $name }}'))->toBe('JAN');
 });

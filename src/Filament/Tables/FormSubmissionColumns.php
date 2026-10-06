@@ -5,10 +5,9 @@ namespace VanOns\FilamentFormBuilder\Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 /**
  * Turns one form into table columns and filters over its submissions, so the
@@ -84,14 +83,10 @@ class FormSubmissionColumns
     {
         $columns = [];
 
-        $fields = $this->fieldsByKey();
-
         foreach ($this->form->getSubmissionFields() as $key => $label) {
-            $field = $fields[$key] ?? null;
-
             $columns[] = TextColumn::make("data.{$key}")
                 ->label(Str::limit($label, 40))
-                ->formatStateUsing(fn (mixed $state): ?string => $this->format($field?->formatSubmissionValue($state) ?? $state))
+                ->state(fn (FormSubmission $record): ?string => $record->getDisplayText($key, fileNames: true))
                 ->toggleable(isToggledHiddenByDefault: true)
                 // Filament would look for a `data` column; these live inside it.
                 ->sortable(query: function (Builder $query, string $direction) use ($key): Builder {
@@ -107,33 +102,8 @@ class FormSubmissionColumns
         return $columns;
     }
 
-    /**
-     * @return array<string, FormField>
-     */
-    private function fieldsByKey(): array
-    {
-        $fields = [];
-
-        foreach ($this->form->getFields() as $field) {
-            foreach (array_keys($field->getSubmissionColumns()) as $key) {
-                $fields[$key] = $field;
-            }
-        }
-
-        return $fields;
-    }
-
     private function path(string $key): string
     {
         return "data->{$key}";
-    }
-
-    private function format(mixed $state): ?string
-    {
-        if (is_array($state)) {
-            return implode(', ', Arr::flatten($state));
-        }
-
-        return $state === null ? null : (string) $state;
     }
 }
