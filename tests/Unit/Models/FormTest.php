@@ -1,7 +1,5 @@
 <?php
 
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
@@ -59,8 +57,8 @@ it('returns only the input fields when asked, whatever was asked first', functio
         'title' => 'Bellen',
         'template' => CustomForm::class,
         'custom' => ['fields' => [
-            ['fieldType' => TitleField::class, 'title' => 'Bel me'],
-            ['fieldType' => TextInputField::class, 'label' => 'Naam'],
+            ['type' => 'title', 'title' => 'Bel me'],
+            ['type' => 'text', 'label' => 'Naam'],
         ]],
     ]);
 

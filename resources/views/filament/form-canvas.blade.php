@@ -81,15 +81,15 @@
             <p class="ffb-canvas-sidebar-heading">{{ __('filament-form-builder::general.canvas.fields') }}</p>
 
             <div x-ref="palette" wire:ignore class="ffb-canvas-palette">
-                @foreach ($getFieldTypes() as $type)
+                @foreach ($getFieldTypes() as $type => $class)
                     <button
                         type="button"
                         data-type="{{ $type }}"
                         x-on:click="add(@js($type))"
                         class="ffb-canvas-palette-item"
                     >
-                        <x-filament::icon :icon="$type::icon()" />
-                        <span>{{ $type::label() }}</span>
+                        <x-filament::icon :icon="$class::icon()" />
+                        <span>{{ $class::label() }}</span>
                     </button>
                 @endforeach
             </div>

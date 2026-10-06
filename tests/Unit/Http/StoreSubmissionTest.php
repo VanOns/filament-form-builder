@@ -1,8 +1,5 @@
 <?php
 
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\EmailField;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm;
@@ -20,8 +17,8 @@ it('stores only the fields a custom form asks for', function () {
         'title' => 'Terugbellen',
         'template' => CustomForm::class,
         'custom' => ['fields' => [
-            ['fieldType' => TitleField::class, 'title' => 'Bel me terug'],
-            ['fieldType' => TextInputField::class, 'label' => 'Naam', 'key' => 'naam'],
+            ['type' => 'title', 'title' => 'Bel me terug'],
+            ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
         ]],
     ]);
 
@@ -61,8 +58,8 @@ it('takes the submitter from the first e-mail field that was filled in', functio
         'title' => 'Offerte',
         'template' => CustomForm::class,
         'custom' => ['fields' => [
-            ['fieldType' => EmailField::class, 'label' => 'Werkmail', 'key' => 'werkmail'],
-            ['fieldType' => EmailField::class, 'label' => 'E-mailadres', 'key' => 'e-mailadres'],
+            ['type' => 'email', 'label' => 'Werkmail', 'key' => 'werkmail'],
+            ['type' => 'email', 'label' => 'E-mailadres', 'key' => 'e-mailadres'],
         ]],
     ]);
 
@@ -73,7 +70,7 @@ it('prefers a submitter e-mail that was posted as such', function () {
     $form = Form::create([
         'title' => 'Offerte',
         'template' => CustomForm::class,
-        'custom' => ['fields' => [['fieldType' => EmailField::class, 'label' => 'E-mailadres', 'key' => 'e-mailadres']]],
+        'custom' => ['fields' => [['type' => 'email', 'label' => 'E-mailadres', 'key' => 'e-mailadres']]],
     ]);
 
     expect(submit($form, ['e-mailadres' => 'jan@example.com', 'submitter_email' => 'piet@example.com'])->submitter_email)

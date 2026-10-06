@@ -3,6 +3,7 @@
 namespace VanOns\FilamentFormBuilder\Traits;
 
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
 use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 
 trait HasCustomFields
@@ -31,9 +32,7 @@ trait HasCustomFields
         $fields = [];
 
         foreach ($this->custom['fields'] ?? [] as $data) {
-            $type = $data['fieldType'] ?? null;
-
-            if (is_string($type) && is_subclass_of($type, FormField::class)) {
+            if ($type = FieldTypeHelper::resolve($data['type'] ?? null)) {
                 $fields[] = (new $type($data))->setGridColumns($this->getColumns());
             }
         }

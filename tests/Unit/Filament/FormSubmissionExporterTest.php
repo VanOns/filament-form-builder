@@ -3,7 +3,6 @@
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Models\Export;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
@@ -18,7 +17,7 @@ function formWithFields(string $title, array $labels): Form
         'title' => $title,
         'template' => CustomForm::class,
         'custom' => ['fields' => array_map(
-            fn (string $label): array => ['fieldType' => TextInputField::class, 'label' => $label],
+            fn (string $label): array => ['type' => 'text', 'label' => $label],
             $labels,
         )],
     ]);

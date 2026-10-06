@@ -1,9 +1,6 @@
 <?php
 
 use Filament\Tables\Columns\TextColumn;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\RadioField;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
 use VanOns\FilamentFormBuilder\Filament\Tables\FormSubmissionColumns;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -42,8 +39,8 @@ function columnMap(Form $form): array
 
 it('gives every input field of a custom form a column', function () {
     $form = customForm([
-        ['fieldType' => TextInputField::class, 'label' => 'Voornaam'],
-        ['fieldType' => TextInputField::class, 'label' => 'Achternaam'],
+        ['type' => 'text', 'label' => 'Voornaam'],
+        ['type' => 'text', 'label' => 'Achternaam'],
     ]);
 
     expect(columnMap($form))->toBe([
@@ -57,8 +54,8 @@ it('gives every input field of a custom form a column', function () {
 it('leaves out fields that never reach the submission', function () {
     // A title is decoration on the form; a column for it would always be empty.
     $form = customForm([
-        ['fieldType' => TitleField::class, 'label' => 'Jouw gegevens'],
-        ['fieldType' => TextInputField::class, 'label' => 'Voornaam'],
+        ['type' => 'title', 'label' => 'Jouw gegevens'],
+        ['type' => 'text', 'label' => 'Voornaam'],
     ]);
 
     expect(columnMap($form))->not->toHaveKey('Jouw gegevens')
@@ -66,7 +63,7 @@ it('leaves out fields that never reach the submission', function () {
 });
 
 it('hides the field columns until someone asks for them', function () {
-    $form = customForm([['fieldType' => TextInputField::class, 'label' => 'Voornaam']]);
+    $form = customForm([['type' => 'text', 'label' => 'Voornaam']]);
 
     $columns = collect(FormSubmissionColumns::for($form)->columns())
         ->keyBy(fn (TextColumn $column): string => $column->getName());
@@ -77,7 +74,7 @@ it('hides the field columns until someone asks for them', function () {
 
 it('shortens a label that is a whole paragraph', function () {
     $consent = 'Ik ga ermee akkoord dat mijn gegevens via deze website tot 4 weken worden bewaard';
-    $form = customForm([['fieldType' => TextInputField::class, 'label' => $consent, 'key' => 'akkoord']]);
+    $form = customForm([['type' => 'text', 'label' => $consent, 'key' => 'akkoord']]);
 
     $label = collect(FormSubmissionColumns::for($form)->columns())
         ->first(fn (TextColumn $column): bool => $column->getName() === 'data.akkoord')
@@ -101,8 +98,8 @@ it('falls back to the rule keys of a template that declares none', function () {
 
 it('offers a filter for a field with a fixed list of choices', function () {
     $form = customForm([
-        ['fieldType' => TextInputField::class, 'label' => 'Voornaam'],
-        ['fieldType' => RadioField::class, 'label' => 'Aanhef', 'options' => [
+        ['type' => 'text', 'label' => 'Voornaam'],
+        ['type' => 'radio', 'label' => 'Aanhef', 'options' => [
             ['value' => 'dhr', 'label' => 'Dhr.'],
             ['value' => 'mw', 'label' => 'Mw.'],
         ]],
@@ -116,14 +113,14 @@ it('offers a filter for a field with a fixed list of choices', function () {
 });
 
 it('offers no filter when there is nothing to choose from', function () {
-    $form = customForm([['fieldType' => TextInputField::class, 'label' => 'Voornaam']]);
+    $form = customForm([['type' => 'text', 'label' => 'Voornaam']]);
 
     expect(FormSubmissionColumns::for($form)->filters())->toBe([]);
 });
 
 it('shows the label of a chosen option, not the value that was stored', function () {
     $form = customForm([
-        ['fieldType' => RadioField::class, 'label' => 'Aanhef', 'options' => [
+        ['type' => 'radio', 'label' => 'Aanhef', 'options' => [
             ['value' => 'dhr', 'label' => 'Dhr.'],
             ['value' => 'mw', 'label' => 'Mw.'],
         ]],

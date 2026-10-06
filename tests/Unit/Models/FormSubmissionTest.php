@@ -1,7 +1,6 @@
 <?php
 
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\RadioField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm;
@@ -68,7 +67,7 @@ it('shows a choice by its label everywhere an answer is shown', function () {
         'title' => 'Contact',
         'template' => CustomForm::class,
         'custom' => ['fields' => [
-            ['fieldType' => RadioField::class, 'label' => 'Aanhef', 'key' => 'aanhef', 'options' => [
+            ['type' => 'radio', 'label' => 'Aanhef', 'key' => 'aanhef', 'options' => [
                 ['value' => 'mw', 'label' => 'Mevrouw'],
             ]],
         ]],

@@ -1,5 +1,22 @@
 # Usage
 
+## Field types
+
+The `fields` config maps the name a form stores to the class behind it:
+
+```php
+'fields' => [
+    'text' => Fields\TextInputField::class,
+    'email' => Fields\EmailField::class,
+    // ...
+    'postcode' => App\Forms\PostcodeField::class,
+],
+```
+
+Stored forms only know the name, so a field class can be renamed, moved or
+swapped for a project's own subclass by changing its entry here. Add an entry
+to offer a field type of your own in the builder's palette.
+
 ## Submit notification
 
 Each form has a "what happens after submission" section with two branches:

@@ -2,8 +2,6 @@
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FileUploadField;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
@@ -18,8 +16,8 @@ function uploadSubmission(array $payload): FormSubmission
         'title' => 'Solliciteren',
         'template' => CustomForm::class,
         'custom' => ['fields' => [
-            ['fieldType' => TextInputField::class, 'label' => 'Naam', 'key' => 'naam'],
-            ['fieldType' => FileUploadField::class, 'label' => 'CV', 'key' => 'cv'],
+            ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
+            ['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv'],
         ]],
     ]);
 
@@ -75,7 +73,7 @@ it('never takes a typed value for a stored file', function () {
     $uploadOnly = Form::create([
         'title' => 'Alleen een cv',
         'template' => CustomForm::class,
-        'custom' => ['fields' => [['fieldType' => FileUploadField::class, 'label' => 'CV', 'key' => 'cv']]],
+        'custom' => ['fields' => [['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv']]],
     ]);
 
     // The upload field itself only accepts a real file...

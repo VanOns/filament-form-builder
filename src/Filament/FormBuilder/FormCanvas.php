@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use VanOns\FilamentFormBuilder\Enums\VisibilityType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
 use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 
 class FormCanvas extends Field
@@ -81,11 +82,11 @@ class FormCanvas extends Field
     }
 
     /**
-     * @return array<int, class-string<FormField>>
+     * @return array<string, class-string<FormField>>
      */
     public function getFieldTypes(): array
     {
-        return array_values((array) config('filament-form-builder.fields', []));
+        return FieldTypeHelper::all();
     }
 
     /**
@@ -94,13 +95,10 @@ class FormCanvas extends Field
     public function getItems(): array
     {
         $columns = $this->getGridColumns();
-        $types = $this->getFieldTypes();
         $items = [];
 
         foreach ($this->getRawState() ?? [] as $uuid => $data) {
-            $type = $data['fieldType'] ?? null;
-
-            if (in_array($type, $types, true)) {
+            if ($type = FieldTypeHelper::resolve($data['type'] ?? null)) {
                 $items[$uuid] = (new $type($data))->setGridColumns($columns);
             }
         }
@@ -119,7 +117,7 @@ class FormCanvas extends Field
                 $position = $arguments['position'] ?? null;
 
                 $component->insertItem($component->withUniqueKey([
-                    'fieldType' => $component->resolveFieldType($arguments['type'] ?? null),
+                    'type' => $arguments['type'],
                     'column_span' => $component->getGridColumns(),
                     ...$data,
                 ]), is_int($position) ? $position : null);
@@ -129,12 +127,12 @@ class FormCanvas extends Field
     public function getEditAction(): Action
     {
         return Action::make('edit')
-            ->modalHeading(fn (array $arguments, FormCanvas $component): string => $component->resolveFieldType($component->getItemData($arguments)['fieldType'] ?? null)::label())
+            ->modalHeading(fn (array $arguments, FormCanvas $component): string => $component->resolveFieldType($component->getItemData($arguments)['type'] ?? null)::label())
             ->modalSubmitActionLabel(__('filament-form-builder::general.save'))
             ->slideOver()
             ->fillForm(fn (array $arguments, FormCanvas $component): array => $component->getItemData($arguments))
             ->schema(fn (array $arguments, FormCanvas $component): array => $component->getItemSchema(
-                $component->resolveFieldType($component->getItemData($arguments)['fieldType'] ?? null),
+                $component->resolveFieldType($component->getItemData($arguments)['type'] ?? null),
                 except: $arguments['item'] ?? null,
             ))
             ->action(function (array $arguments, array $data, FormCanvas $component): void {
@@ -341,11 +339,7 @@ class FormCanvas extends Field
      */
     protected function resolveFieldType(mixed $type): string
     {
-        if (! in_array($type, $this->getFieldTypes(), true)) {
-            throw new InvalidArgumentException('Unknown field type.');
-        }
-
-        return $type;
+        return FieldTypeHelper::resolve($type) ?? throw new InvalidArgumentException('Unknown field type.');
     }
 
     /**
@@ -357,7 +351,7 @@ class FormCanvas extends Field
      */
     protected function withUniqueKey(array $item, ?string $except = null): array
     {
-        $type = $this->resolveFieldType($item['fieldType'] ?? null);
+        $type = $this->resolveFieldType($item['type'] ?? null);
 
         if (! $type::isInput()) {
             return $item;
