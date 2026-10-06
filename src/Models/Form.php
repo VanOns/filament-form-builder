@@ -189,13 +189,20 @@ class Form extends Model
 
     /**
      * Anything else a visitor posts is dropped, so it never reaches the stored
-     * data, the notification mails or the export.
+     * data, the notification mails or the export. That includes the columns a
+     * field or form type fills in itself.
      *
      * @return array<int, string>
      */
     public function getSubmittableKeys(): array
     {
-        return array_keys(array_diff_key($this->getSubmissionFields(), $this->getType()->extraValues()));
+        $keys = [];
+
+        foreach ($this->getFields(inputsOnly: true) as $field) {
+            $keys = [...$keys, ...$field->getInputKeys()];
+        }
+
+        return array_values(array_unique($keys));
     }
 
     public function findLabel(string $key): string

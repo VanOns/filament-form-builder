@@ -33,4 +33,15 @@ trait HasSubmissionColumns
     {
         return [$this->getKey() => $this->getLabel()];
     }
+
+    /**
+     * The keys a visitor posts for this field. Any other column is filled in by
+     * the field or its form type, so it is never taken from the request.
+     *
+     * @return array<int, string>
+     */
+    public function getInputKeys(): array
+    {
+        return [$this->getKey()];
+    }
 }

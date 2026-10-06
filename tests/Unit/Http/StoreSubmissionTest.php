@@ -1,7 +1,16 @@
 <?php
 
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
+
+class BranchField extends TextInputField
+{
+    public function getSubmissionColumns(): array
+    {
+        return [$this->getKey() => 'Vestiging', 'branch_email' => 'Vestiging e-mailadres'];
+    }
+}
 
 function submit(Form $form, array $payload): FormSubmission
 {
@@ -76,4 +85,17 @@ it('accepts a form whose optional fields were left empty', function () {
     ]);
 
     expect(submit($form, ['email' => '', 'land' => ''])->data)->toBe(['email' => null, 'land' => null]);
+});
+
+it('never takes a column a field fills in itself from the visitor', function () {
+    config(['filament-form-builder.fields.branch' => BranchField::class]);
+
+    $form = Form::create([
+        'title' => 'Afspraak',
+        'template' => 'custom',
+        'custom' => ['fields' => [['type' => 'branch', 'label' => 'Vestiging', 'key' => 'vestiging']]],
+    ]);
+
+    expect(submit($form, ['vestiging' => '12', 'branch_email' => 'iemand@example.test'])->data)->toBe(['vestiging' => '12'])
+        ->and($form->getSubmissionFields())->toHaveKey('branch_email');
 });

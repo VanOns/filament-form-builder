@@ -124,6 +124,13 @@ Stored forms only know the name, so a field class can be renamed, moved or
 swapped for a project's own subclass by changing its entry here. Add an entry
 to offer a field type of your own in the builder's palette.
 
+A field type that stores more than one value, such as a branch picker that
+also keeps the branch's name and e-mail address, lists them all in
+`getSubmissionColumns()` so each gets a label and a column. Only the keys in
+`getInputKeys()`, the field's own key unless it says otherwise, are taken from
+what the visitor posts; the other columns are for the field or its form type's
+`beforeStore()` to fill in.
+
 ## After a submission
 
 Once a visitor's submission is stored, the form type's `afterSubmission()`
