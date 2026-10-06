@@ -57,22 +57,23 @@ class SubmissionPlaceholders
         return preg_replace('/{{\s*\$' . preg_quote($from, '/') . '\s*}}/', '{{ $' . $to . ' }}', $value) ?? $value;
     }
 
-    public function replace(string $subject, ?callable $escape = null): string
+    /**
+     * One pass over the subject, so a filled-in value is never searched for
+     * placeholders of its own.
+     */
+    public function replace(string $subject, ?callable $escape = null, bool $removeUnknown = false): string
     {
-        $replacements = [];
+        $values = $this->values();
 
-        foreach ($this->values() as $key => $value) {
-            $value = (string) $value;
-
-            if ($escape !== null) {
-                $value = $escape($value);
+        return preg_replace_callback('/{{\s*\$([^\s{}]+)\s*}}/u', function (array $match) use ($values, $escape, $removeUnknown): string {
+            if (!array_key_exists($match[1], $values)) {
+                return $removeUnknown ? '' : $match[0];
             }
 
-            $replacements['{{ $' . $key . ' }}'] = $value;
-            $replacements['{{$' . $key . '}}'] = $value;
-        }
+            $value = (string) $values[$match[1]];
 
-        return $replacements === [] ? $subject : strtr($subject, $replacements);
+            return $escape !== null ? $escape($value) : $value;
+        }, $subject) ?? $subject;
     }
 
     public function appendQuery(?string $url, ?string $query): ?string
@@ -83,10 +84,8 @@ class SubmissionPlaceholders
             return $url;
         }
 
-        $query = $this->replace($query, rawurlencode(...));
-
         // Unfilled tags leave their parameter empty rather than the raw placeholder.
-        $query = trim(preg_replace('/{{\s*\$[^}]*}}/', '', $query) ?? $query, "?& \t\n\r\0\x0B");
+        $query = trim($this->replace($query, rawurlencode(...), removeUnknown: true), "?& \t\n\r\0\x0B");
 
         if ($query === '') {
             return $url;

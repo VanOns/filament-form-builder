@@ -120,3 +120,24 @@ it('points the placeholders of a renamed key at its new name', function () {
         'sender' => null,
     ]);
 });
+
+it('leaves a dollar sign in an answer alone', function () {
+    $submission = placeholderSubmission(['bericht' => 'Kost het $100 of $USD?']);
+
+    $notification = new EmailNotification($submission, ['subject' => 'Vraag', 'content' => '<p>{{ $bericht }}</p>']);
+
+    expect($notification->content)->toBe('<p>Kost het $100 of $USD?</p>');
+});
+
+it('drops a placeholder no answer fills from a mail subject', function () {
+    $notification = new EmailNotification(placeholderSubmission(), ['subject' => 'Vraag van {{ $onbekend }}', 'content' => '']);
+
+    expect($notification->subject)->toBe('Vraag van ');
+});
+
+it('fills in a key with a dash and placeholders spaced any way', function () {
+    $submission = placeholderSubmission(['e-mailadres' => 'jan@example.com']);
+
+    expect(SubmissionPlaceholders::make($submission)->replace('{{$e-mailadres}} / {{   $e-mailadres }}'))
+        ->toBe('jan@example.com / jan@example.com');
+});

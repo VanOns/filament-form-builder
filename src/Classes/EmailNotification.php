@@ -39,7 +39,7 @@ class EmailNotification
 
     public function replacePlaceholders(string $content): string
     {
-        return SubmissionPlaceholders::make($this->formSubmission)->replace($content);
+        return SubmissionPlaceholders::make($this->formSubmission)->replace($content, removeUnknown: true);
     }
 
     /**
@@ -52,25 +52,13 @@ class EmailNotification
         $placeholders = SubmissionPlaceholders::make($this->formSubmission);
 
         $parts = array_map(
-            fn (string $part): string => $this->sanitizeContent($placeholders->replace($part, e(...))),
+            fn (string $part): string => $placeholders->replace($part, e(...), removeUnknown: true),
             preg_split('/{{\s*\$all_fields\s*}}/', $content) ?: [$content],
         );
 
         return implode(count($parts) > 1 ? $this->getAllFieldsHtml() : '', $parts);
     }
 
-    /**
-     * Validate content so no unprocessed placeholders, variables remain. This is to prevent errors.
-     *
-     * @param string $content
-     * @return string
-     */
-    protected function sanitizeContent(string $content): string
-    {
-        $content = preg_replace('/{{\s*\$[a-zA-Z0-9_]+\s*}}/', '', $content);
-
-        return preg_replace('/\$[a-zA-Z_][a-zA-Z0-9_]*/', '', $content);
-    }
 
     /**
      * Get html ata for the `all_fields` placeholder
