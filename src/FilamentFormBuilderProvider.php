@@ -2,6 +2,9 @@
 
 namespace VanOns\FilamentFormBuilder;
 
+use Filament\Support\Assets\AlpineComponent;
+use Filament\Support\Assets\Css;
+use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
@@ -31,6 +34,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
         $this->hasViews();
         $this->hasRoutes();
         $this->hasRateLimiter();
+        $this->hasAssets();
     }
 
     public function hasTranslations(): void
@@ -68,6 +72,14 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
     public function hasRoutes(): void
     {
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+    }
+
+    public function hasAssets(): void
+    {
+        FilamentAsset::register([
+            Css::make('form-canvas', __DIR__.'/../resources/css/form-canvas.css'),
+            AlpineComponent::make('form-canvas', __DIR__.'/../resources/js/components/form-canvas.js'),
+        ], 'van-ons/filament-form-builder');
     }
 
     public function hasRateLimiter(): void

@@ -2,12 +2,11 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
-use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Str;
 
 trait HasKey
 {
-    public ?string $key;
+    public ?string $key = null;
     public static string $keyPrefix = 'key_';
 
     /**
@@ -15,26 +14,9 @@ trait HasKey
      */
     public static array $disallowedKeyCharacters = ['.', '*', ' '];
 
-    protected function generateKey(): string
-    {
-        return Str::snake(
-            $this->getLabel()
-        );
-    }
-
     public static function cleanKey(string $key): string
     {
         return str_replace(static::$disallowedKeyCharacters, '', $key);
-    }
-
-    public static function getKeyHelperText(Get $get, ?string $state): ?string
-    {
-        $key = static::cleanKey(Str::snake($get('key') ?? $state ?? ''));
-        $prefix = static::$keyPrefix;
-
-        return empty($key)
-            ? null
-            : __('filament-form-builder::fields.key') . ": {$prefix}{$key}";
     }
 
     public static function getKeyValidationRule(): string
@@ -42,10 +24,13 @@ trait HasKey
         return 'not_regex:/[' . preg_quote(implode('', static::$disallowedKeyCharacters), '/') . '\s]/';
     }
 
+    public function getBaseKey(): string
+    {
+        return static::cleanKey(filled($this->key) ? $this->key : Str::snake($this->label ?? class_basename(static::class)));
+    }
+
     public function getKey(): string
     {
-        $key = $this->key ?? ($this->key = $this->generateKey());
-
-        return static::$keyPrefix . static::cleanKey($key);
+        return static::$keyPrefix . $this->getBaseKey();
     }
 }

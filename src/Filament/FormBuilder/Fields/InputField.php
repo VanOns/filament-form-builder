@@ -2,44 +2,35 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 
-class InputField extends FormField
+abstract class InputField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.input-field';
 
-    public string $inputType = 'text';
-    public ?string $placeholder;
+    public ?string $placeholder = null;
+
+    abstract public function getInputType(): string;
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected function getTypeRules(): array
+    {
+        return [];
+    }
 
     protected function rules(): array
     {
-        $type = $this->inputType;
-        $rules =  match ($type) {
-            'email' => ['email'],
-            'number' => ['numeric'],
-            'tel' => ['phone'],
-            default => [],
-        };
-
         return [
             ...$this->getDefaultRules(),
-            ...$rules,
+            ...$this->getTypeRules(),
         ];
     }
 
     public static function getFields(): array
     {
         return [
-            Select::make('inputType')
-                ->label(__('filament-form-builder::fields.input_type'))
-                ->required()
-                ->options([
-                    'text' => 'Text',
-                    'number' => 'Number',
-                    'email' => 'Email',
-                    'tel' => 'Telephone',
-                ]),
             ...static::getDefaultFields(),
             TextInput::make('placeholder'),
         ];

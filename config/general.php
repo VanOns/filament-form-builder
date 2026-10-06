@@ -23,8 +23,11 @@ return [
     'fields' => [
         Fields\TitleField::class,
         Fields\TextField::class,
-        Fields\InputField::class,
+        Fields\TextInputField::class,
         Fields\TextAreaField::class,
+        Fields\EmailField::class,
+        Fields\PhoneField::class,
+        Fields\NumberField::class,
         Fields\SelectField::class,
         Fields\CheckboxField::class,
         Fields\FileUploadField::class,

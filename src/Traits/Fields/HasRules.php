@@ -9,14 +9,13 @@ trait HasRules
      */
     protected function getDefaultRules(): array
     {
-        if ($this->hasVisibilityCondition() && $this->isRequired()) {
-            $requiredRule = $this->getRequiredVisibilityRule();
-        } else {
-            $requiredRule = $this->isRequired() ? 'required' : null;
+        // A visitor cannot fill in a field they never see.
+        if (! $this->isRequired() || $this->isHidden()) {
+            return [];
         }
 
         return array_filter([
-            $requiredRule,
+            $this->hasVisibilityCondition() ? $this->getRequiredVisibilityRule() : 'required',
         ]);
     }
 

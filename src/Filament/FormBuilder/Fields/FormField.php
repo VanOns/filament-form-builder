@@ -2,13 +2,14 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
-use Filament\Schemas\Components\Component;
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Blade;
+use VanOns\FilamentFormBuilder\Traits\Fields\CanBeHidden;
 use VanOns\FilamentFormBuilder\Traits\Fields\CanBeRequired;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasAttributes;
+use VanOns\FilamentFormBuilder\Traits\Fields\HasDefaultValue;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasFields;
-use VanOns\FilamentFormBuilder\Traits\Fields\HasHelperText;
-use VanOns\FilamentFormBuilder\Traits\Fields\HasItemLabel;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasKey;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasLabel;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasRules;
@@ -20,12 +21,12 @@ abstract class FormField
 {
     use HasKey;
     use HasLabel;
-    use HasItemLabel;
     use HasRules;
-    use HasHelperText;
     use HasView;
     use HasFields;
     use CanBeRequired;
+    use CanBeHidden;
+    use HasDefaultValue;
     use HasVisibility;
     use HasAttributes;
     use HasSubmissionColumns;
@@ -74,13 +75,11 @@ abstract class FormField
         return true;
     }
 
-    /**
-     * @return array<Component>
-     */
-    public function make(): array
+    public static function icon(): string | BackedEnum
     {
-        return static::getFields();
+        return Heroicon::OutlinedPencil;
     }
+
 
     /**
      * @return string

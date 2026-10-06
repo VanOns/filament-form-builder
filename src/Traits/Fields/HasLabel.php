@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 
 trait HasLabel
@@ -10,8 +11,13 @@ trait HasLabel
 
     public static function label(): string
     {
-        $field = Str::replace('-', ' ', Str::kebab(class_basename(static::class)));
-        return ucfirst($field);
+        $basename = class_basename(static::class);
+
+        if (Lang::has($key = 'filament-form-builder::fields.types.' . Str::snake($basename))) {
+            return __($key);
+        }
+
+        return ucfirst(Str::replace('-', ' ', Str::kebab($basename)));
     }
 
     public function getLabel(): string

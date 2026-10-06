@@ -12,7 +12,7 @@
         :required="$field->isRequired()"
     />
     <input
-        type="{{ $field->inputType }}"
+        type="{{ $field->getInputType() }}"
         id="{{ $field->getKey() }}"
         name="{{ $field->getKey() }}"
         value="{{ old($field->getKey()) }}"

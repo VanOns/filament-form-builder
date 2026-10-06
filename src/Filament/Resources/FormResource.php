@@ -37,7 +37,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormBuilder;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers\FormSubmissionsRelationManager;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
@@ -176,7 +176,8 @@ class FormResource extends Resource
             ->icon('heroicon-o-cube')
             ->visible(self::hasCustomFields(...))
             ->schema([
-                FormBuilder::make('custom'),
+                FormCanvas::make('custom.fields')
+                    ->hiddenLabel(),
             ])->columnSpanFull();
     }
 

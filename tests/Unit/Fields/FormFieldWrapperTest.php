@@ -1,10 +1,10 @@
 <?php
 
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\InputField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 
-function field(array $data = [], int $columns = 3): InputField
+function field(array $data = [], int $columns = 3): TextInputField
 {
-    return (new InputField(['key' => 'voornaam', 'label' => 'Voornaam', ...$data]))
+    return (new TextInputField(['key' => 'voornaam', 'label' => 'Voornaam', ...$data]))
         ->setGridColumns($columns);
 }
 

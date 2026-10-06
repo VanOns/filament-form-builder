@@ -2,15 +2,23 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
+use BackedEnum;
 use Filament\Forms\Components\TextInput;
+use Filament\Support\Icons\Heroicon;
 
 class SubmitField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.submit-field';
+    public static string $previewView = 'filament-form-builder::filament.previews.submit';
 
     protected function rules(): array
     {
         return [];
+    }
+
+    public static function icon(): string | BackedEnum
+    {
+        return Heroicon::OutlinedPaperAirplane;
     }
 
     public static function getFields(): array

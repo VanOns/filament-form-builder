@@ -2,17 +2,23 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
+use BackedEnum;
 use Filament\Forms\Components\RichEditor;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Set;
-use Illuminate\Support\Str;
+use Filament\Support\Icons\Heroicon;
 
 class TextField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.text-field';
-    public static string $itemLabelField = 'text';
+    public static string $previewView = 'filament-form-builder::filament.previews.text';
 
     public ?string $text = null;
+
+    public static function icon(): string | BackedEnum
+    {
+        return Heroicon::OutlinedDocumentText;
+    }
 
     public static function getFields(): array
     {
@@ -34,18 +40,6 @@ class TextField extends FormField
     protected function rules(): array
     {
         return $this->getDefaultRules();
-    }
-
-    /**
-     * @param array<string, mixed> $item
-     * @return string|null
-     */
-    public static function getItemLabel(array $item): ?string
-    {
-        $text = $item[static::$itemLabelField] ?? null;
-        return $text
-            ? Str::limit(strip_tags($text), 50)
-            : null;
     }
 
     public static function isInput(): bool

@@ -14,7 +14,6 @@
         type="file"
         id="{{ $field->getKey() }}"
         name="{{ $field->getKey() }}"
-        @if($field->placeholder) placeholder="{{ $field->placeholder }}" @endif
         @required($field->isRequired())
         @if ($field->multiple) multiple @endif
         {{ $field->getAttributes() }}

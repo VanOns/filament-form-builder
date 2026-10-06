@@ -2,16 +2,23 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
+use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Support\Icons\Heroicon;
 
 class TitleField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.title-field';
-    public static string $itemLabelField = 'title';
+    public static string $previewView = 'filament-form-builder::filament.previews.title';
 
     public ?string $title;
     public ?string $headingLevel = 'h2';
+
+    public static function icon(): string | BackedEnum
+    {
+        return Heroicon::OutlinedH1;
+    }
 
     public static function getFields(): array
     {

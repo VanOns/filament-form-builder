@@ -100,4 +100,12 @@ return [
     'failed_at' => 'Failed at',
     'error' => 'Error',
     'queued' => 'Queued',
+    'canvas' => [
+        'fields' => 'Fields',
+        'empty' => 'Drag a field here, or click a field to add it.',
+        'narrow' => 'Narrower',
+        'widen' => 'Wider',
+        'no_options' => 'No options yet',
+        'more_options' => '+ :count more',
+    ],
 ];

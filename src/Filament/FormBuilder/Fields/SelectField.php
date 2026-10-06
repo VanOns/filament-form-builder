@@ -2,10 +2,14 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
+use BackedEnum;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -13,13 +17,13 @@ use Illuminate\Validation\Rule;
 class SelectField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.select-field';
+    public static string $previewView = 'filament-form-builder::filament.previews.select';
 
     /**
      * @var array<int, array{value?: string, label?: string}>
      */
     public array $options = [];
     public ?bool $multiple = false;
-    public ?string $placeholder;
 
     /**
      * @return array<string, string>
@@ -72,11 +76,23 @@ class SelectField extends FormField
         ];
     }
 
+    public static function icon(): string | BackedEnum
+    {
+        return Heroicon::OutlinedListBullet;
+    }
+
+    public static function getDefaultValueComponent(): ?Component
+    {
+        return Select::make('defaultValue')
+            ->label(__('filament-form-builder::fields.default_value'))
+            ->options(fn (Get $get): array => (new self(['options' => (array) $get('options')]))->getFilterOptions())
+            ->multiple(fn (Get $get): bool => (bool) $get('multiple'));
+    }
+
     public static function getFields(): array
     {
         return [
             ...static::getDefaultFields(),
-            TextInput::make('placeholder'),
             Checkbox::make('multiple')
                 ->columnSpanFull()
                 ->label(__('filament-form-builder::fields.multiple_choice_question'))

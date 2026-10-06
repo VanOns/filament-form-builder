@@ -100,4 +100,12 @@ return [
     'failed_at' => 'Mislukt op',
     'error' => 'Fout',
     'queued' => 'In wachtrij',
+    'canvas' => [
+        'fields' => 'Velden',
+        'empty' => 'Sleep een veld hierheen, of klik op een veld om het toe te voegen.',
+        'narrow' => 'Smaller',
+        'widen' => 'Breder',
+        'no_options' => 'Nog geen opties',
+        'more_options' => '+ :count meer',
+    ],
 ];

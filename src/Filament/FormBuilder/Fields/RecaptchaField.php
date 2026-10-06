@@ -2,13 +2,16 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
+use BackedEnum;
 use Filament\Schemas\Components\Text;
+use Filament\Support\Icons\Heroicon;
 use VanOns\FilamentFormBuilder\Rules\RecaptchaRule;
 use VanOns\FilamentFormBuilder\Services\RecaptchaService;
 
 class RecaptchaField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.recaptcha-field';
+    public static string $previewView = 'filament-form-builder::filament.previews.recaptcha';
 
     public ?string $key = 'g-recaptcha-response';
     public static string $keyPrefix = '';
@@ -18,6 +21,11 @@ class RecaptchaField extends FormField
         return RecaptchaService::checkEnabled()
             ? ['required', 'string', new RecaptchaRule()]
             : [];
+    }
+
+    public static function icon(): string | BackedEnum
+    {
+        return Heroicon::OutlinedShieldCheck;
     }
 
     public static function getFields(): array

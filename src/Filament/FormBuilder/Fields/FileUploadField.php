@@ -2,14 +2,16 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
+use BackedEnum;
 use Filament\Forms\Components\Checkbox;
-use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
+use Filament\Support\Icons\Heroicon;
 
 class FileUploadField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.file-upload-field';
+    public static string $previewView = 'filament-form-builder::filament.previews.file-upload';
 
-    public ?string $placeholder = null;
     public ?bool $multiple = false;
 
     public function getOriginalKey(): string
@@ -65,11 +67,25 @@ class FileUploadField extends FormField
         ]);
     }
 
+    public static function icon(): string | BackedEnum
+    {
+        return Heroicon::OutlinedArrowUpTray;
+    }
+
+    public static function getDefaultValueComponent(): ?Component
+    {
+        return null;
+    }
+
+    public static function canBeHidden(): bool
+    {
+        return false;
+    }
+
     public static function getFields(): array
     {
         return [
             ...static::getDefaultFields(),
-            TextInput::make('placeholder'),
             Checkbox::make('multiple')
                 ->columnSpanFull()
                 ->label(__('filament-form-builder::fields.multiple_uploads'))
