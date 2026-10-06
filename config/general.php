@@ -12,7 +12,6 @@ return [
         // Insert integrations here
     ],
     'columns' => 2,
-    'field_column_settings' => false,
     'rate-limit-hour' => 60,
     'email_notification_enabled' => true,
     'submit_notification_query_enabled' => true,

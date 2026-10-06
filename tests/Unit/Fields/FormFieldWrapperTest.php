@@ -9,25 +9,10 @@ function field(array $data = [], int $columns = 3): TextInputField
 }
 
 it('places a field on the grid through its wrapper', function () {
-    $attributes = field(['column_span' => 2, 'column_start' => 2])->getWrapperAttributes()->toHtml();
-
-    expect($attributes)->toContain('data-form-builder-column-span="2"')
-        ->and($attributes)->toContain('data-form-builder-column-start="2"')
-        ->and($attributes)->toContain('--form-builder-column-span:2')
-        ->and($attributes)->toContain('--form-builder-column-start:2');
-});
-
-it('leaves out the start column when the field places itself', function () {
     $attributes = field(['column_span' => 2])->getWrapperAttributes()->toHtml();
 
-    expect($attributes)->not->toContain('column-start')
-        ->and($attributes)->toContain('data-form-builder-column-span="2"');
-});
-
-it('spans the whole row for a full width field', function () {
-    $attributes = field(['large' => true], columns: 4)->getWrapperAttributes()->toHtml();
-
-    expect($attributes)->toContain('data-form-builder-column-span="4"');
+    expect($attributes)->toContain('data-form-builder-column-span="2"')
+        ->and($attributes)->toContain('--form-builder-column-span:2');
 });
 
 it('falls back to a single column when nothing is stored', function () {
@@ -36,11 +21,11 @@ it('falls back to a single column when nothing is stored', function () {
     expect($attributes)->toContain('data-form-builder-column-span="1"');
 });
 
-it('never spans past the last column', function () {
+it('never spans more columns than the form has', function () {
     // Stored on a wider form, then the template dropped to 3 columns.
-    $attributes = field(['column_span' => 4, 'column_start' => 3])->getWrapperAttributes()->toHtml();
+    $attributes = field(['column_span' => 4])->getWrapperAttributes()->toHtml();
 
-    expect($attributes)->toContain('data-form-builder-column-span="1"');
+    expect($attributes)->toContain('data-form-builder-column-span="3"');
 });
 
 it('keeps the existing wrapper key attribute', function () {

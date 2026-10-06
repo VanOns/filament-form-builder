@@ -223,26 +223,16 @@ the front end.
 
 ### Field width
 
-A large field spans the full row, whatever the column count. Each custom field
-additionally carries a column span and an optional start column for anything in
-between. The "width" and "start column" selects appear on forms with more than
-2 columns — and hide again while "large" is checked, since large already means
-full width. On forms with up to 2 columns only the large checkbox shows, so
-existing projects keep working unchanged after an update. Set the
-`field_column_settings` config flag to `true` to offer the selects everywhere.
-
-When rendering, resolve a field's width with:
+Each custom field spans a number of the form's columns, set with the − and +
+buttons on the field in the builder. A new field starts at full width. When
+rendering, resolve a field's width with:
 
 ```php
-$field->getColumnSpan($form->getColumns());  // int, 1..columns
-$field->getColumnStart($form->getColumns()); // int or null (auto)
+$field->getColumnSpan($form->getColumns()); // int, 1..columns
 ```
 
-`getColumnSpan()` returns the full column count for large fields and the stored
-span (default 1) otherwise, so both old and new data resolve through the same
-call. Both getters cap their value at the column count, and the span is also
-capped at the room left after the start column, so stored values never overflow
-the grid when a template later reduces its columns.
+The span is capped at the column count, so a stored value never overflows the
+grid when a template later reduces its columns.
 
 ### Laying the grid out in CSS
 
@@ -259,12 +249,12 @@ are enough to turn that into a grid:
 }
 
 [data-form-builder-input-wrapper] {
-    grid-column: var(--form-builder-column-start, auto) / span var(--form-builder-column-span, 1);
+    grid-column: span var(--form-builder-column-span, 1);
 }
 ```
 
-The same numbers are also available as `data-form-builder-columns`,
-`data-form-builder-column-span` and `data-form-builder-column-start` for
-projects that would rather select on attributes than custom properties. The
+The same numbers are also available as `data-form-builder-columns` and
+`data-form-builder-column-span` for projects that would rather select on
+attributes than custom properties. The
 package ships no CSS of its own, so nothing changes visually until you add
 rules like these.

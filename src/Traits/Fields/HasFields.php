@@ -9,9 +9,7 @@ use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 
 trait HasFields
 {
-    public ?bool $large = false;
     public null|int|string $column_span = null;
-    public null|int|string $column_start = null;
     public ?string $description = null;
 
     /**
@@ -33,32 +31,12 @@ trait HasFields
     }
 
     /**
-     * The number of grid columns the field spans. A large field is always full
-     * width; the stored span only applies when it isn't large, capped so the
-     * field never overflows the row it starts in.
+     * Capped at the form's column count, so a template that drops columns
+     * later never makes a stored field overflow its row.
      */
     public function getColumnSpan(int $columns): int
     {
-        if ($this->large) {
-            return $columns;
-        }
-
-        $max = $columns - ($this->getColumnStart($columns) ?? 1) + 1;
-
-        if ($this->column_span !== null) {
-            return max(1, min((int) $this->column_span, $max));
-        }
-
-        return 1;
-    }
-
-    /**
-     * The grid column the field starts in, capped at the form's column count,
-     * or null for auto placement.
-     */
-    public function getColumnStart(int $columns): ?int
-    {
-        return $this->column_start !== null ? min((int) $this->column_start, $columns) : null;
+        return max(1, min((int) ($this->column_span ?? 1), $columns));
     }
 
     /**

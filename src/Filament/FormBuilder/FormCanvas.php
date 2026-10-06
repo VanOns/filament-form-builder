@@ -225,8 +225,6 @@ class FormCanvas extends Field
 
                 $component->updateItem($arguments['item'], fn (array $item): array => [
                     ...$item,
-                    'large' => false,
-                    'column_start' => null,
                     'column_span' => max(1, min($columns, $span + $step)),
                 ]);
             });

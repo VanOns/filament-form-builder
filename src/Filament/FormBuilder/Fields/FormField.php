@@ -38,22 +38,13 @@ abstract class FormField
      */
     public function getWrapperAttributes(): HtmlString
     {
-        $columns = $this->getGridColumns();
-        $span = $this->getColumnSpan($columns);
-        $start = $this->getColumnStart($columns);
+        $span = $this->getColumnSpan($this->getGridColumns());
 
-        $style = "--form-builder-column-span:{$span}";
-
-        if ($start !== null) {
-            $style .= ";--form-builder-column-start:{$start}";
-        }
-
-        return $this->getAttributes(array_filter([
+        return $this->getAttributes([
             'data-form-builder-input-wrapper' => $this->getKey(),
             'data-form-builder-column-span' => (string) $span,
-            'data-form-builder-column-start' => $start !== null ? (string) $start : null,
-            'style' => $style,
-        ]));
+            'style' => "--form-builder-column-span:{$span}",
+        ]);
     }
 
     /**
