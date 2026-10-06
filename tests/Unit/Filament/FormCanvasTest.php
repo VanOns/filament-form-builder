@@ -5,6 +5,7 @@ use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
 use Tests\Fixtures\ApplicationForm;
 use Tests\Fixtures\HalfRowForm;
+use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextAreaField;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
@@ -101,8 +102,9 @@ it('takes conditions and notifications along when a key is renamed', function ()
     $form->refresh();
 
     expect(array_values($form->custom['fields'][1]['conditions'])[0]['key'])->toBe('roepnaam')
-        ->and($form->notifications[0]['subject'])->toBe('Van {{ $roepnaam }}')
-        ->and($form->notifications[0]['content'])->toContain('{{ $roepnaam }}')
+        // Opened in the editor, the text from before became merge tags.
+        ->and(MergeTags::ids($form->notifications[0]['subject']))->toBe(['roepnaam'])
+        ->and(MergeTags::ids($form->notifications[0]['content']))->toBe(['roepnaam'])
         ->and($form->notifications[0]['receivers'])->toBe(['roepnaam']);
 });
 

@@ -18,7 +18,10 @@ trait HasKey
      *
      * @var array<string>
      */
-    public static array $reservedKeys = ['_token', '_method', 'g-recaptcha-response', 'form_title', 'all_fields'];
+    public static array $reservedKeys = [
+        '_token', '_method', 'g-recaptcha-response',
+        'form_title', 'all_fields', 'submission_id', 'submitted_at', 'submission_url',
+    ];
 
     public function key(string $key): static
     {

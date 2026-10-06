@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Classes;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Mail\MailPanel;
 
@@ -26,35 +27,32 @@ class EmailNotification
         public FormSubmission $formSubmission,
         array $notification,
     ) {
-        $this->subject = $this->replacePlaceholders($notification['subject'] ?? '');
-        $this->content = $this->replaceContentPlaceholders($notification['content'] ?? '');
+        $values = SubmissionPlaceholders::make($formSubmission)->values();
+
+        $this->subject = MergeTags::render($notification['subject'] ?? '', $values, asText: true);
+        $this->content = MergeTags::render($notification['content'] ?? '', [...$values, ...$this->getHtmlValues($values)]);
         $this->sender = $notification['sender'] ?? '';
-        $this->senderName = $this->replacePlaceholders($notification['senderName'] ?? '');
+        $this->senderName = MergeTags::render($notification['senderName'] ?? '', $values, asText: true);
         $this->receivers = $this->parseReceivers(
             $notification['receivers'] ?? []
         );
     }
 
-    public function replacePlaceholders(string $content): string
-    {
-        return SubmissionPlaceholders::make($this->formSubmission)->replace($content, removeUnknown: true);
-    }
-
     /**
-     * The content is HTML, so an answer is escaped before it goes in. The panel
-     * of all fields goes in last, so nothing typed into a field is read as a
-     * placeholder.
+     * In the HTML of a mail, all fields are a panel and the submission's page
+     * is a link.
+     *
+     * @param  array<string, string>  $values
+     * @return array<string, HtmlString>
      */
-    public function replaceContentPlaceholders(string $content): string
+    protected function getHtmlValues(array $values): array
     {
-        $placeholders = SubmissionPlaceholders::make($this->formSubmission);
+        $url = $values['submission_url'] ?? '';
 
-        $parts = array_map(
-            fn (string $part): string => $placeholders->replace($part, e(...), removeUnknown: true),
-            preg_split('/{{\s*\$all_fields\s*}}/', $content) ?: [$content],
-        );
-
-        return implode(count($parts) > 1 ? $this->getAllFieldsHtml() : '', $parts);
+        return [
+            'all_fields' => new HtmlString($this->getAllFieldsHtml()),
+            'submission_url' => new HtmlString($url === '' ? '' : '<a href="' . e($url) . '">' . e(__('filament-form-builder::general.merge_tags.view_submission')) . '</a>'),
+        ];
     }
 
 

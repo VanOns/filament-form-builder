@@ -19,4 +19,9 @@ class EditForm extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        return FormResource::withMergeTags($data);
+    }
 }

@@ -16,4 +16,9 @@ class ViewForm extends ViewRecord
             Actions\EditAction::make(),
         ];
     }
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        return FormResource::withMergeTags($data);
+    }
 }

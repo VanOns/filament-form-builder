@@ -130,7 +130,7 @@ it('leaves a dollar sign in an answer alone', function () {
 it('drops a placeholder no answer fills from a mail subject', function () {
     $notification = new EmailNotification(placeholderSubmission(), ['subject' => 'Vraag van {{ $onbekend }}', 'content' => '']);
 
-    expect($notification->subject)->toBe('Vraag van ');
+    expect($notification->subject)->toBe('Vraag van');
 });
 
 it('fills in a key with a dash and placeholders spaced any way', function () {

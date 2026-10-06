@@ -8,7 +8,12 @@ use Filament\Forms\Components\TextInput;
 use Filament\Panel;
 use Filament\Schemas\Components\Component;
 use Filament\Support\Icons\Heroicon;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Contracts\View\View;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\CreateForm;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\ViewForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Models\Form;
 
@@ -80,6 +85,13 @@ class FilamentFormBuilderPlugin implements Plugin
             FormResource::class,
             FormSubmissionResource::class,
         ]);
+
+        // One picker for every tag button on the page, so it also opens from a modal.
+        $panel->renderHook(
+            PanelsRenderHook::BODY_END,
+            fn (): View => view('filament-form-builder::filament.merge-tag-picker'),
+            scopes: [CreateForm::class, EditForm::class, ViewForm::class],
+        );
     }
 
     public function boot(Panel $panel): void

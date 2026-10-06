@@ -2,6 +2,8 @@
 
 namespace VanOns\FilamentFormBuilder\Models;
 
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -238,6 +240,60 @@ class Form extends Model
         }
 
         return $snapshot;
+    }
+
+    /**
+     * The tags a text about a submission of this form can hold, grouped as the
+     * picker shows them: every answer, then the form, then the submission.
+     *
+     * @return list<array{label: string, tags: array<string, array{label: string, icon: string|BackedEnum}>}>
+     */
+    public function getMergeTagGroups(bool $withAllFields = true, bool $withSubmissionLink = true): array
+    {
+        $answers = [];
+
+        foreach ($this->getFields(inputsOnly: true) as $field) {
+            foreach ($field->getSubmissionColumns() as $key => $label) {
+                $answers[$key] = ['label' => $label, 'icon' => $field::icon()];
+            }
+        }
+
+        foreach ($this->getType()->extraValues() as $key => $label) {
+            $answers[$key] = ['label' => $label, 'icon' => Heroicon::OutlinedCube];
+        }
+
+        $tag = fn (string $key, string | BackedEnum $icon): array => ['label' => __("filament-form-builder::general.merge_tags.{$key}"), 'icon' => $icon];
+
+        return [
+            ['label' => __('filament-form-builder::general.merge_tags.groups.fields'), 'tags' => $answers],
+            ['label' => __('filament-form-builder::general.merge_tags.groups.form'), 'tags' => array_filter([
+                'form_title' => $tag('form_title', Heroicon::OutlinedDocumentText),
+                'all_fields' => $withAllFields ? $tag('all_fields', Heroicon::OutlinedQueueList) : null,
+            ])],
+            ['label' => __('filament-form-builder::general.merge_tags.groups.submission'), 'tags' => array_filter([
+                'submission_id' => $tag('submission_id', Heroicon::OutlinedHashtag),
+                'submitted_at' => $tag('submitted_at', Heroicon::OutlinedCalendar),
+                'submission_url' => $withSubmissionLink ? $tag('submission_url', Heroicon::OutlinedArrowTopRightOnSquare) : null,
+            ])],
+        ];
+    }
+
+    /**
+     * The same tags as id => label.
+     *
+     * @return array<string, string>
+     */
+    public function getMergeTags(bool $withAllFields = true, bool $withSubmissionLink = true): array
+    {
+        $tags = [];
+
+        foreach ($this->getMergeTagGroups($withAllFields, $withSubmissionLink) as $group) {
+            foreach ($group['tags'] as $id => $tag) {
+                $tags[$id] = $tag['label'];
+            }
+        }
+
+        return $tags;
     }
 
     /**

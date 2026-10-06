@@ -71,7 +71,7 @@ code. See [Form types](docs/usage.md#form-types).
 * Notifications and integrations only run for a visitor's submission, no longer for every created
   `FormSubmission`.
 * `submitter_email` is gone from the submission, the table, the export and the placeholders. Use the
-  e-mail field's own key instead: `{{ $email }}` in a mail, `email` as a receiver.
+  e-mail field's own key instead: its merge tag in a mail, `email` as a receiver.
 
 ### Fields
 
@@ -103,7 +103,8 @@ Nothing converts the canvas data of v2 forms. For each item in `forms.custom['fi
   `large: true` with 12.
 
 Placeholders and receivers in e-mail notifications and the query string lose the prefix too:
-`{{ $key_voornaam }}` becomes `{{ $voornaam }}`. Submissions stored with v2 keep their `key_` keys, so
+`{{ $key_voornaam }}` becomes `{{ $voornaam }}`, which the editors then show as a merge tag. Submissions
+stored with v2 keep their `key_` keys, so
 their answers show under raw keys instead of labels. A v2 upload is a link inside `data` to a route that
 no longer exists; v3 keeps uploads in the `files` column and links to them through signed URLs.
 

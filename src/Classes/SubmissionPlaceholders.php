@@ -2,6 +2,8 @@
 
 namespace VanOns\FilamentFormBuilder\Classes;
 
+use Throwable;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class SubmissionPlaceholders
@@ -32,9 +34,25 @@ class SubmissionPlaceholders
         // Later keys win: an answer beats the dash an empty field gets.
         return $this->values = [
             'form_title' => $this->formSubmission->form->title,
+            'submission_id' => (string) $this->formSubmission->getKey(),
+            'submitted_at' => (string) $this->formSubmission->created_at?->translatedFormat('j F Y, H:i'),
+            'submission_url' => $this->submissionUrl(),
             ...static::fallbacks($this->formSubmission),
             ...$this->formSubmission->getFormattedData(),
         ];
+    }
+
+    /**
+     * The submission's page in the panel, or nothing where no panel serves it,
+     * such as an app that registers the plugin without the resources.
+     */
+    public function submissionUrl(): string
+    {
+        try {
+            return FormSubmissionResource::getUrl('view', ['record' => $this->formSubmission]);
+        } catch (Throwable) {
+            return '';
+        }
     }
 
     /**
@@ -43,15 +61,7 @@ class SubmissionPlaceholders
      */
     public static function rename(mixed $value, string $from, string $to): mixed
     {
-        if (is_array($value)) {
-            return array_map(fn (mixed $item): mixed => static::rename($item, $from, $to), $value);
-        }
-
-        if (! is_string($value)) {
-            return $value;
-        }
-
-        return preg_replace('/{{\s*\$' . preg_quote($from, '/') . '\s*}}/', '{{ $' . $to . ' }}', $value) ?? $value;
+        return MergeTags::rename($value, $from, $to);
     }
 
     /**
