@@ -7,6 +7,7 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Schemas\Components\Component;
 use Filament\Support\Icons\Heroicon;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
+use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 
 class CheckboxField extends FormField
 {
@@ -22,6 +23,11 @@ class CheckboxField extends FormField
         return filter_var($value, FILTER_VALIDATE_BOOLEAN)
             ? __('filament-form-builder::fields.yes')
             : __('filament-form-builder::fields.no');
+    }
+
+    public function getFilterConstraints(): array
+    {
+        return [AnswerConstraints::checkbox($this->getKey(), $this->getLabel())->icon(static::icon())];
     }
 
     public static function paletteGroup(): string

@@ -3,7 +3,11 @@
 namespace VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers;
 
 use Filament\Actions;
+use Filament\Actions\Action;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
@@ -31,7 +35,26 @@ class FormSubmissionsRelationManager extends RelationManager
             ->modifyQueryUsing(fn ($query) => $query->withoutGlobalScopes([SoftDeletingScope::class]))
             ->defaultSort('created_at', 'desc')
             ->columns($columns->columns())
-            ->filters($columns->filters())
+            ->filters($columns->filters(), layout: FiltersLayout::Modal)
+            ->filtersFormWidth(Width::ThreeExtraLarge)
+            ->filtersTriggerAction(function (Action $action): Action {
+                // Resetting the rules is undone with one click, so it need not look dangerous.
+                $reset = $action->getExtraModalFooterActions()['resetFilters'] ?? null;
+
+                if ($reset instanceof Action) {
+                    $reset->color('gray');
+                }
+
+                return $action
+                    ->button()
+                    ->label(__('filament-form-builder::general.filters.trigger'))
+                    ->modalHeading(__('filament-form-builder::general.filters.heading'))
+                    ->modalDescription(__('filament-form-builder::general.filters.description'))
+                    ->modalIcon(Heroicon::OutlinedFunnel)
+                    // No sticky header or footer: either makes the window scroll, and that clips the rule picker.
+                    ->extraModalWindowAttributes(['class' => 'ffb-submission-filters']);
+            })
+            ->persistFiltersInSession()
             ->recordActions([
                 Actions\ViewAction::make(),
                 Actions\DeleteAction::make(),

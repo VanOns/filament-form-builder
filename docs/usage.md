@@ -162,6 +162,28 @@ under the label they had, and a choice still reads as the option's label. A
 key the snapshot does not know shows under its own name. The export of a form
 puts these answers together in an "Other data" column, one per line.
 
+## Filtering submissions
+
+The submissions tab of a form filters by rules such as "Name contains jan" or
+"Hours is at least 32", combined with and and or. Every field offers the rules
+that suit its type: text matches whatever its case, a number compares as a
+number, a choice goes by its options, a checkbox by whether it was ticked and
+an upload by whether there is a file. The inverse of a rule, such as "does not
+contain", also matches the submissions that left the field empty. The list of
+all submissions only filters by form.
+
+A field type of your own offers its rules in `getFilterConstraints()`. By
+default every column it fills gets the text rules:
+
+```php
+use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
+
+public function getFilterConstraints(): array
+{
+    return [AnswerConstraints::choice($this->getKey(), $this->getLabel(), Branch::options())];
+}
+```
+
 ## After a submission
 
 Once a visitor's submission is stored, the form type's `afterSubmission()`

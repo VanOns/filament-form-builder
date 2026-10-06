@@ -10,6 +10,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 
 abstract class ChoiceField extends FormField
 {
@@ -47,6 +48,14 @@ abstract class ChoiceField extends FormField
     public function getFilterOptions(): array
     {
         return static::toChoices($this->options);
+    }
+
+    public function getFilterConstraints(): array
+    {
+        return [
+            AnswerConstraints::choice($this->getKey(), $this->getLabel(), $this->getFilterOptions(), static::allowsMultiple())
+                ->icon(static::icon()),
+        ];
     }
 
     public function formatSubmissionValue(mixed $value): mixed

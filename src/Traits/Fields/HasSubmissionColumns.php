@@ -2,17 +2,36 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
+use Filament\QueryBuilder\Constraints\Constraint;
+use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
+
 trait HasSubmissionColumns
 {
     /**
-     * A field with a fixed list of choices answers here; free text does not,
-     * and is searched instead.
+     * A field with a fixed list of choices answers here; free text does not.
      *
      * @return array<string, string> value => label
      */
     public function getFilterOptions(): array
     {
         return [];
+    }
+
+    /**
+     * The rules the submissions table can filter this field's answers by, one
+     * per column it fills.
+     *
+     * @return array<Constraint>
+     */
+    public function getFilterConstraints(): array
+    {
+        $constraints = [];
+
+        foreach ($this->getSubmissionColumns() as $key => $label) {
+            $constraints[] = AnswerConstraints::text($key, $label)->icon(static::icon());
+        }
+
+        return $constraints;
     }
 
     /**

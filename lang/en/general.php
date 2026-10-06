@@ -200,4 +200,17 @@ return [
         'form_type' => 'Form type',
         'other_data' => 'Other data',
     ],
+    'filters' => [
+        'trigger' => 'Filter',
+        'heading' => 'Filter submissions',
+        'description' => 'Show only the submissions that match every rule. A rule such as ‘does not contain’ also counts empty answers.',
+        'contains_any' => [
+            'label' => ['direct' => 'Contains', 'inverse' => 'Does not contain'],
+            'summary' => ['direct' => ':attribute contains :values', 'inverse' => ':attribute does not contain :values'],
+        ],
+        'is_checked' => [
+            'label' => ['direct' => 'Is checked', 'inverse' => 'Is not checked'],
+            'summary' => ['direct' => ':attribute is checked', 'inverse' => ':attribute is not checked'],
+        ],
+    ],
 ];

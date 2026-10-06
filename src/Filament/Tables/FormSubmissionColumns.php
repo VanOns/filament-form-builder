@@ -2,10 +2,14 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\Tables;
 
+use Filament\QueryBuilder\Constraints\Constraint;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\QueryBuilder;
+use Filament\Tables\Filters\QueryBuilder\Constraints\DateConstraint;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -40,32 +44,44 @@ class FormSubmissionColumns
     }
 
     /**
-     * @return array<int, SelectFilter>
+     * @return array<int, QueryBuilder>
      */
     public function filters(): array
     {
-        $filters = [];
+        return [
+            QueryBuilder::make()
+                ->constraints($this->constraints())
+                ->constraintPickerColumns(2)
+                // Rules, or groups of rules joined by OR, but no OR inside an OR.
+                ->maxNestingDepth(2),
+        ];
+    }
 
-        foreach ($this->form->getFields() as $field) {
-            $options = $field->getFilterOptions();
+    /**
+     * Every answer the form asks for, then the moment it was sent.
+     *
+     * @return array<string, Constraint>
+     */
+    public function constraints(): array
+    {
+        $constraints = [];
 
-            if ($options === []) {
-                continue;
+        foreach ($this->form->getFields(inputsOnly: true) as $field) {
+            foreach ($field->getFilterConstraints() as $constraint) {
+                $constraints[$constraint->getName()] = $constraint;
             }
-
-            $key = $field->getKey();
-
-            $filters[] = SelectFilter::make($key)
-                ->label($field->getLabel())
-                ->options($options)
-                ->multiple()
-                ->query(fn (Builder $query, array $data): Builder => $query->when(
-                    $data['values'] ?? [],
-                    fn (Builder $query, array $values) => $query->whereIn($this->path($key), $values),
-                ));
         }
 
-        return $filters;
+        foreach ($this->form->getType()->extraValues() as $key => $label) {
+            $constraints[$key] ??= AnswerConstraints::text($key, $label)->icon(Heroicon::OutlinedCube);
+        }
+
+        // A field could be called created_at, so the date goes by another name.
+        $constraints['submitted_at'] = DateConstraint::make('submitted_at')
+            ->label(__('filament-form-builder::general.submission.submitted_at'))
+            ->attribute('created_at');
+
+        return $constraints;
     }
 
     /**

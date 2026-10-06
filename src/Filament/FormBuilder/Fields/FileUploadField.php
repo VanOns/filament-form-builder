@@ -7,6 +7,7 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Schemas\Components\Component;
 use Filament\Support\Icons\Heroicon;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
+use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 
 class FileUploadField extends FormField
 {
@@ -30,6 +31,11 @@ class FileUploadField extends FormField
     public function getSubmissionColumns(): array
     {
         return [$this->getOriginalKey() => $this->getLabel()];
+    }
+
+    public function getFilterConstraints(): array
+    {
+        return [AnswerConstraints::file($this->getOriginalKey(), $this->getLabel())->icon(static::icon())];
     }
 
     public function getKey(): string

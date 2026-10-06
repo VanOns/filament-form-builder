@@ -200,4 +200,17 @@ return [
         'form_type' => 'Formuliertype',
         'other_data' => 'Overige gegevens',
     ],
+    'filters' => [
+        'trigger' => 'Filteren',
+        'heading' => 'Inzendingen filteren',
+        'description' => 'Toon alleen de inzendingen die aan alle regels voldoen. Een regel als ‘bevat niet’ telt lege antwoorden mee.',
+        'contains_any' => [
+            'label' => ['direct' => 'Bevat', 'inverse' => 'Bevat niet'],
+            'summary' => ['direct' => ':attribute bevat :values', 'inverse' => ':attribute bevat niet :values'],
+        ],
+        'is_checked' => [
+            'label' => ['direct' => 'Is aangevinkt', 'inverse' => 'Is niet aangevinkt'],
+            'summary' => ['direct' => ':attribute is aangevinkt', 'inverse' => ':attribute is niet aangevinkt'],
+        ],
+    ],
 ];

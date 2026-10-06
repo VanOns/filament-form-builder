@@ -4,12 +4,18 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
+use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 
 class NumberField extends InputField
 {
     public function getInputType(): string
     {
         return 'number';
+    }
+
+    public function getFilterConstraints(): array
+    {
+        return [AnswerConstraints::number($this->getKey(), $this->getLabel())->icon(static::icon())];
     }
 
     public static function icon(): string | BackedEnum

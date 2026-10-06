@@ -76,28 +76,6 @@ it('gives the fields a form type has in code a column too', function () {
     expect(columnMap($form))->toHaveKeys(['Name', 'Company name', 'Email address', 'Phone number', 'Message']);
 });
 
-it('offers a filter for a field with a fixed list of choices', function () {
-    $form = customForm([
-        ['type' => 'text', 'label' => 'Voornaam'],
-        ['type' => 'radio', 'label' => 'Aanhef', 'options' => [
-            ['value' => 'dhr', 'label' => 'Dhr.'],
-            ['value' => 'mw', 'label' => 'Mw.'],
-        ]],
-    ]);
-
-    $filters = FormSubmissionColumns::for($form)->filters();
-
-    expect($filters)->toHaveCount(1)
-        ->and($filters[0]->getName())->toBe('aanhef')
-        ->and($filters[0]->getOptions())->toBe(['dhr' => 'Dhr.', 'mw' => 'Mw.']);
-});
-
-it('offers no filter when there is nothing to choose from', function () {
-    $form = customForm([['type' => 'text', 'label' => 'Voornaam']]);
-
-    expect(FormSubmissionColumns::for($form)->filters())->toBe([]);
-});
-
 it('shows the label of a chosen option, not the value that was stored', function () {
     $form = customForm([
         ['type' => 'radio', 'label' => 'Aanhef', 'options' => [

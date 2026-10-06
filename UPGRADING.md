@@ -86,6 +86,8 @@ code. See [Form types](docs/usage.md#form-types).
   `ConditionOperator` and `HasVisibility` is `HasConditions`.
 * On a field class, the static `label()` is `getTypeLabel()`, the protected `rules()` is `fieldRules()`,
   and `$keyPrefix` is gone. `label()` and `rules()` are now fluent setters.
+* The submissions tab of a form filters by rules instead of a select filter per choice field. A field
+  type offers its rules in `getFilterConstraints()`; see [Filtering submissions](docs/usage.md#filtering-submissions).
 
 ### Stored forms and submissions
 
