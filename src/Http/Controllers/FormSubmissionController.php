@@ -65,7 +65,7 @@ class FormSubmissionController
      */
     protected function storeFiles(array $uploads): array
     {
-        $disk = config('filament-form-builder.form-uploads-disk', 'local');
+        $disk = FormSubmission::getFilesDisk();
         $files = [];
 
         foreach ($uploads as $key => $upload) {
@@ -82,7 +82,7 @@ class FormSubmissionController
     public function showFile(int $submissionId, string $key, int $index): StreamedResponse
     {
         $file = FormSubmission::query()->findOrFail($submissionId)->getFiles()[$key][$index] ?? abort(404);
-        $disk = Storage::disk(config('filament-form-builder.form-uploads-disk', 'local'));
+        $disk = Storage::disk(FormSubmission::getFilesDisk());
 
         if (!$disk instanceof FilesystemAdapter || !$disk->exists($file->path)) {
             abort(404);

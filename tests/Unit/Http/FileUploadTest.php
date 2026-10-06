@@ -88,3 +88,31 @@ it('never takes a typed value for a stored file', function () {
     expect($submission->files)->toBeNull()
         ->and($submission->getFiles())->toBe([]);
 });
+
+it('keeps the files of a submission that can still be restored', function () {
+    $submission = uploadSubmission(['cv' => pdf()]);
+    $path = $submission->files['cv'][0]['path'];
+
+    $submission->delete();
+
+    Storage::disk('local')->assertExists($path);
+});
+
+it('deletes the files of a submission that is deleted for good', function () {
+    $submission = uploadSubmission(['cv' => pdf()]);
+    $path = $submission->files['cv'][0]['path'];
+
+    $submission->forceDelete();
+
+    Storage::disk('local')->assertMissing($path);
+});
+
+it('deletes the files of every submission when its form is deleted for good', function () {
+    $submission = uploadSubmission(['cv' => pdf()]);
+    $path = $submission->files['cv'][0]['path'];
+    $submission->delete();
+
+    $submission->form->forceDelete();
+
+    Storage::disk('local')->assertMissing($path);
+});

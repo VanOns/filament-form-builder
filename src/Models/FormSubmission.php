@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\Integration;
@@ -91,6 +92,20 @@ class FormSubmission extends Model
         }
 
         return $files;
+    }
+
+    public static function getFilesDisk(): string
+    {
+        return config('filament-form-builder.form-uploads-disk', 'local');
+    }
+
+    public function deleteFiles(): void
+    {
+        $paths = collect($this->files ?? [])->flatten(1)->pluck('path')->filter()->all();
+
+        if ($paths !== []) {
+            Storage::disk(static::getFilesDisk())->delete($paths);
+        }
     }
 
     /**
@@ -226,5 +241,8 @@ class FormSubmission extends Model
                 $template::afterSubmissionCreated($submission);
             }
         });
+
+        // A soft deleted submission can come back, so its files stay until then.
+        static::forceDeleted(fn (FormSubmission $submission) => $submission->deleteFiles());
     }
 }

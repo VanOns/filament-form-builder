@@ -70,6 +70,15 @@ class Form extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // The database removes the submissions on its own, without the model
+        // events that would take their files along.
+        static::forceDeleting(function (Form $form): void {
+            FormSubmission::withTrashed()->where('form_id', $form->getKey())->each(fn (FormSubmission $submission) => $submission->deleteFiles());
+        });
+    }
+
     /**
      * @return HasMany<FormSubmission, $this>
      */
