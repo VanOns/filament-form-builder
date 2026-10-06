@@ -45,6 +45,29 @@ class AdminPanelProvider extends PanelProvider
 }
 ```
 
+### Exporting submissions
+
+The submissions tables can export to CSV and Excel. Filament runs an export in
+the queue and sends the download link as a database notification, so the app
+needs a queue worker, the `job_batches`, `notifications` and `exports` tables,
+and database notifications in the panel:
+
+```bash
+php artisan make:notifications-table
+php artisan vendor:publish --tag=filament-actions-migrations
+php artisan migrate
+```
+
+```php
+return $panel
+    ->plugin(FilamentFormBuilderPlugin::make())
+    ->databaseNotifications();
+```
+
+Laravel's default jobs migration already creates `job_batches`; an app without
+it adds it with `php artisan make:queue-batches-table`. To leave the export out,
+set `enable_export_action` to `false` in the config.
+
 ## Documentation
 
 Please see the [documentation](docs) for detailed information about installation and usage.

@@ -2,7 +2,12 @@
 
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Models\Export;
+use Filament\Actions\Testing\TestAction;
+use Illuminate\Foundation\Auth\User;
+use Livewire\Livewire;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers\FormSubmissionsRelationManager;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -118,4 +123,16 @@ it('reports how many submissions were exported', function () {
 
     expect(FormSubmissionExporter::getCompletedNotificationBody($export))
         ->toBe('The submissions export is ready: 2 rows exported. 1 row failed to export.');
+});
+
+it('offers the export unless the config turns it off', function () {
+    $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+    $form = formWithFields('Solliciteren', ['Voornaam']);
+    $table = fn () => Livewire::test(FormSubmissionsRelationManager::class, ['ownerRecord' => $form, 'pageClass' => EditForm::class]);
+
+    $table()->assertActionVisible(TestAction::make('export')->table());
+
+    config(['filament-form-builder.enable_export_action' => false]);
+
+    $table()->assertActionHidden(TestAction::make('export')->table());
 });

@@ -26,17 +26,18 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 
 ### Config
 
-| v2                                           | v3                                                    |
-|----------------------------------------------|-------------------------------------------------------|
-| `templates`: class => label                  | `types`: name => class                                |
-| `fields`: a list of classes                  | `fields`: name => class                               |
-| `field_visibility_settings`                  | `field_conditions`                                    |
-| `columns`                                    | Removed, every form has a 12-column grid              |
-| `field_column_settings`                      | Removed, every field has a column span                |
-| `email_notification_enabled`: `false`        | `true`                                                |
-| `form-uploads-disk`: `private`               | `local`                                               |
-| `form-uploads-middleware`: `['web', 'auth']` | `[]`, the download links are signed                   |
-|                                              | `form-uploads-link-days`: how long a link stays valid |
+| v2                                           | v3                                                                              |
+|----------------------------------------------|---------------------------------------------------------------------------------|
+| `templates`: class => label                  | `types`: name => class                                                          |
+| `fields`: a list of classes                  | `fields`: name => class                                                         |
+| `field_visibility_settings`                  | `field_conditions`                                                              |
+| `columns`                                    | Removed, every form has a 12-column grid                                        |
+| `field_column_settings`                      | Removed, every field has a column span                                          |
+| `email_notification_enabled`: `false`        | `true`                                                                          |
+| `form-uploads-disk`: `private`               | `local`                                                                         |
+| `form-uploads-middleware`: `['web', 'auth']` | `[]`, the download links are signed                                             |
+|                                              | `form-uploads-link-days`: how long a link stays valid                           |
+| `enable_export_action`: `false`              | `true`, see [Exporting submissions](docs/installation.md#exporting-submissions) |
 
 ### Templates become form types
 

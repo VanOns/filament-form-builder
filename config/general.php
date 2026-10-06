@@ -44,6 +44,8 @@ return [
         'secret' => env('RECAPTCHA_SECRET', ''),
         'key' => env('RECAPTCHA_KEY', ''),
     ],
-    'enable_export_action' => false,
+    // A queued Filament export: it needs the exports, job_batches and notifications
+    // tables, see the installation docs.
+    'enable_export_action' => true,
     'field_conditions' => true,
 ];
