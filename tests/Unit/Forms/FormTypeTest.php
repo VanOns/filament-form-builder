@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Tests\Fixtures\ApplicationForm;
+use Tests\Fixtures\HalfRowForm;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Forms\FormType;
@@ -110,4 +111,19 @@ it('lets a type answer a submission itself', function () {
     $this->post(route('filament-form-builder.form.store', ['formId' => $form->id]), ['naam' => 'Jan'])
         ->assertOk()
         ->assertSee('Dank je, Jan');
+});
+
+it('starts the fields an editor built and the ones after them on a new row', function () {
+    config(['filament-form-builder.types.half_row' => HalfRowForm::class]);
+
+    $form = Form::create(['title' => 'Halve rij', 'template' => 'half_row', 'custom' => ['fields' => [
+        ['type' => 'text', 'label' => 'Plaats', 'key' => 'plaats', 'column_span' => 6],
+        ['type' => 'text', 'label' => 'Postcode', 'key' => 'postcode', 'column_span' => 6],
+    ]]]);
+
+    expect(array_map(fn (FormField $field): bool => $field->startsNewRow(), $form->getFields()))->toBe([false, true, false, true])
+        ->and($form->getFields()[1]->getWrapperAttributes()->toHtml())
+        ->toContain('data-form-builder-new-row="true"')
+        ->toContain('--form-builder-column-start:1')
+        ->and($form->getFields()[0]->getWrapperAttributes()->toHtml())->not->toContain('new-row');
 });

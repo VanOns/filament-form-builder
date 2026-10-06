@@ -115,9 +115,25 @@ class Form extends Model
     protected function makeFields(): array
     {
         $fields = [];
+        $startsRow = false;
 
+        // The editor's fields form a block of their own, as on the canvas.
         foreach ($this->getType()->fields() as $field) {
-            $fields = [...$fields, ...($field instanceof CustomFields ? $this->makeCustomFields() : [$field])];
+            if ($field instanceof CustomFields) {
+                $custom = $this->makeCustomFields();
+
+                if ($fields !== [] && $custom !== []) {
+                    $custom[0]->newRow();
+                }
+
+                $fields = [...$fields, ...$custom];
+                $startsRow = $fields !== [];
+
+                continue;
+            }
+
+            $fields[] = $startsRow ? $field->newRow() : $field;
+            $startsRow = false;
         }
 
         return $fields;

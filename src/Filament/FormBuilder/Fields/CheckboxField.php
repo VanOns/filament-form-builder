@@ -13,6 +13,11 @@ class CheckboxField extends FormField
     public static string $view = 'filament-form-builder::components.fields.checkbox-field';
     public static string $previewView = 'filament-form-builder::filament.previews.checkbox';
 
+    public static function paletteGroup(): string
+    {
+        return 'choice';
+    }
+
     public static function minWidth(): FieldWidth
     {
         return FieldWidth::THIRD;

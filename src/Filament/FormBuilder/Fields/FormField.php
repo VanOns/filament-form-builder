@@ -35,6 +35,8 @@ abstract class FormField
     use HasAttributes;
     use HasSubmissionColumns;
 
+    protected bool $newRow = false;
+
     /**
      * The wrapper carries where the field sits in the form's grid, so a project
      * can lay the form out from CSS alone without overriding any view.
@@ -43,11 +45,12 @@ abstract class FormField
     {
         $span = $this->getColumnSpan();
 
-        return $this->getAttributes([
+        return $this->getAttributes(array_filter([
             'data-form-builder-input-wrapper' => $this->getKey(),
             'data-form-builder-column-span' => (string) $span,
-            'style' => "--form-builder-column-span:{$span}",
-        ]);
+            'data-form-builder-new-row' => $this->newRow ? 'true' : null,
+            'style' => "--form-builder-column-span:{$span}" . ($this->newRow ? ';--form-builder-column-start:1' : ''),
+        ], fn (?string $value): bool => $value !== null));
     }
 
     /**
@@ -70,6 +73,31 @@ abstract class FormField
     public static function isInput(): bool
     {
         return true;
+    }
+
+    /**
+     * Where the builder's palette lists this field type: `input`, `choice` or
+     * `layout`.
+     */
+    public static function paletteGroup(): string
+    {
+        return 'input';
+    }
+
+    /**
+     * Starts a row of its own, as the first of the fields an editor built, or
+     * the first field from code after them.
+     */
+    public function newRow(bool $condition = true): static
+    {
+        $this->newRow = $condition;
+
+        return $this;
+    }
+
+    public function startsNewRow(): bool
+    {
+        return $this->newRow;
     }
 
     public static function icon(): string | BackedEnum

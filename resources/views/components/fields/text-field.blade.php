@@ -4,4 +4,6 @@
      */
 @endphp
 
-<div>{!! $field->text !!}</div>
+<div {{ $field->getWrapperAttributes() }}>
+    <div>{!! $field->text !!}</div>
+</div>

@@ -4,6 +4,7 @@ use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
 use Tests\Fixtures\ApplicationForm;
+use Tests\Fixtures\HalfRowForm;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextAreaField;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
@@ -357,6 +358,42 @@ it('offers no widths at all when every field takes a full row', function () {
 
     expect(array_column(savedFields($form), 'column_span'))->toBe([6, 6, 12])
         ->and(array_map(fn ($field): int => $field->getColumnSpan(), $form->fresh()->getFields()))->toBe([12, 12, 12]);
+});
+
+it('keeps the fields an editor builds on rows of their own, apart from those in code', function () {
+    config(['filament-form-builder.types.half_row' => HalfRowForm::class]);
+
+    $form = canvasForm([['type' => 'text', 'label' => 'Plaats', 'key' => 'plaats', 'column_span' => 6]], ['template' => 'half_row']);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSee('Custom fields')
+        ->callAction(onCanvas('add', ['type' => 'text']), data: ['label' => 'Postcode'])
+        ->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([6, 6]);
+});
+
+it('says in words when a field shows', function () {
+    $form = canvasForm([
+        ['type' => 'radio', 'label' => 'Rijbewijs', 'key' => 'rijbewijs', 'options' => [['value' => 'ja', 'label' => 'Ja']]],
+        ['type' => 'text', 'label' => 'Vervoer', 'key' => 'vervoer', 'conditions' => [['key' => 'rijbewijs', 'operator' => 'equals', 'value' => 'ja']]],
+        ['type' => 'text', 'label' => 'Toelichting', 'key' => 'toelichting', 'conditionMatch' => 'any', 'conditions' => [
+            ['key' => 'rijbewijs', 'operator' => 'not_empty'],
+            ['key' => 'vervoer', 'operator' => 'empty'],
+        ]],
+    ]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSee('If Rijbewijs = Ja')
+        ->assertSee('2 conditions, one must hold');
+});
+
+it('groups the palette and shows a hidden field by its default value', function () {
+    $form = canvasForm([['type' => 'text', 'label' => 'Bron', 'key' => 'bron', 'hidden' => true, 'defaultValue' => 'website']]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSee(['Input', 'Choice', 'Layout and sending'])
+        ->assertSee('Default value: website');
 });
 
 it('reorders the fields the way they were dragged', function () {

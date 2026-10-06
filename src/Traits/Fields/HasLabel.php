@@ -20,6 +20,16 @@ trait HasLabel
         return ucfirst(Str::replace('-', ' ', Str::kebab($basename)));
     }
 
+    /**
+     * One line on what the field type is for, shown when it is being set up.
+     */
+    public static function getTypeDescription(): ?string
+    {
+        $key = 'filament-form-builder::fields.type_descriptions.' . Str::snake(class_basename(static::class));
+
+        return Lang::has($key) ? __($key) : null;
+    }
+
     public function label(?string $label): static
     {
         $this->label = $label;

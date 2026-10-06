@@ -4,4 +4,6 @@
      */
 @endphp
 
-<{{ $field->headingLevel ?? 'h2' }}>{{ $field->title }}</{{ $field->headingLevel ?? 'h2' }}>
+<div {{ $field->getWrapperAttributes() }}>
+    <{{ $field->headingLevel ?? 'h2' }}>{{ $field->title }}</{{ $field->headingLevel ?? 'h2' }}>
+</div>

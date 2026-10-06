@@ -4,8 +4,6 @@
      */
 @endphp
 
-<button
-    type="submit"
->
-    {{ $field->getLabel() }}
-</button>
+<div {{ $field->getWrapperAttributes() }}>
+    <button type="submit">{{ $field->getLabel() }}</button>
+</div>

@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 
+use BackedEnum;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
@@ -13,7 +14,9 @@ use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\View;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Str;
@@ -160,6 +163,8 @@ class FormCanvas extends Field
     {
         return Action::make('add')
             ->modalHeading(fn (array $arguments, FormCanvas $component): string => $component->resolveFieldType($arguments['type'] ?? null)::getTypeLabel())
+            ->modalDescription(fn (array $arguments, FormCanvas $component): ?string => $component->resolveFieldType($arguments['type'] ?? null)::getTypeDescription())
+            ->modalIcon(fn (array $arguments, FormCanvas $component): string | BackedEnum => $component->resolveFieldType($arguments['type'] ?? null)::icon())
             ->modalSubmitActionLabel(__('filament-form-builder::general.add'))
             ->slideOver()
             ->schema(fn (array $arguments, FormCanvas $component): array => $component->getItemSchema($component->resolveFieldType($arguments['type'] ?? null)))
@@ -183,6 +188,8 @@ class FormCanvas extends Field
     {
         return Action::make('edit')
             ->modalHeading(fn (array $arguments, FormCanvas $component): string => $component->resolveFieldType($component->getItemData($arguments)['type'] ?? null)::getTypeLabel())
+            ->modalDescription(fn (array $arguments, FormCanvas $component): ?string => $component->resolveFieldType($component->getItemData($arguments)['type'] ?? null)::getTypeDescription())
+            ->modalIcon(fn (array $arguments, FormCanvas $component): string | BackedEnum => $component->resolveFieldType($component->getItemData($arguments)['type'] ?? null)::icon())
             ->modalSubmitActionLabel(__('filament-form-builder::general.save'))
             ->slideOver()
             ->fillForm(fn (array $arguments, FormCanvas $component): array => $component->getItemData($arguments))
@@ -324,6 +331,109 @@ class FormCanvas extends Field
     public function getWidthOptions(FormField $field): array
     {
         return array_values(array_filter(FieldWidth::available(), fn (FieldWidth $width): bool => $width->value >= $field::minWidth()->value));
+    }
+
+    public function hasFixedFields(): bool
+    {
+        return array_merge(...$this->getFixedFields()) !== [];
+    }
+
+    /**
+     * The field types grouped the way the palette lists them.
+     *
+     * @return array<string, array<string, class-string<FormField>>>
+     */
+    public function getPaletteGroups(): array
+    {
+        $groups = ['input' => [], 'choice' => [], 'layout' => []];
+
+        foreach ($this->getFieldTypes() as $name => $class) {
+            $groups[$class::paletteGroup()][$name] = $class;
+        }
+
+        return array_filter($groups);
+    }
+
+    /**
+     * When a field shows, for its badge on the canvas: its one rule, or how
+     * many it has and how they combine.
+     */
+    public function getConditionBadge(FormField $field): ?string
+    {
+        if (! $field->hasConditions()) {
+            return null;
+        }
+
+        ['match' => $match, 'rules' => $rules] = $field->getConditions()->toArray();
+
+        if (count($rules) > 1) {
+            return __("filament-form-builder::general.canvas.conditions.badge_{$match}", ['count' => count($rules)]);
+        }
+
+        return __('filament-form-builder::general.canvas.conditions.badge', [
+            'rule' => $this->describeRule($rules[0] ?? [], 'short'),
+        ]);
+    }
+
+    /**
+     * The conditions as one sentence, for under the conditions being edited.
+     *
+     * @param  array<mixed>  $rules
+     */
+    public function describeConditions(array $rules, ?string $match, ?string $except = null): ?string
+    {
+        $described = [];
+
+        foreach ($rules as $rule) {
+            if (is_array($rule) && filled($rule['key'] ?? null) && filled($rule['operator'] ?? null)) {
+                $described[] = $this->describeRule($rule, 'long', $except);
+            }
+        }
+
+        if ($described === []) {
+            return null;
+        }
+
+        return __('filament-form-builder::general.canvas.conditions.summary', [
+            'rules' => implode(__('filament-form-builder::general.canvas.conditions.join_' . ($match === 'any' ? 'any' : 'all')), $described),
+        ]);
+    }
+
+    /**
+     * @param  array<mixed>  $rule
+     */
+    protected function describeRule(array $rule, string $form, ?string $except = null): string
+    {
+        $field = $this->getConditionFields($except)[$rule['key'] ?? ''] ?? null;
+        $value = $rule['value'] ?? null;
+        $operator = ConditionOperator::tryFrom((string) ($rule['operator'] ?? '')) ?? ConditionOperator::EQUALS;
+
+        return __("filament-form-builder::general.canvas.conditions.{$form}.{$operator->value}", [
+            'field' => $field?->getLabel() ?? (string) ($rule['key'] ?? ''),
+            'value' => is_scalar($value) ? ($field?->getFilterOptions()[(string) $value] ?? (string) $value) : '',
+        ]);
+    }
+
+    /**
+     * The fields another field's conditions can look at, by key.
+     *
+     * @return array<string, FormField>
+     */
+    protected function getConditionFields(?string $except): array
+    {
+        $fields = [];
+
+        foreach ($this->getFixedInputs() as $field) {
+            $fields[$field->getKey()] = $field;
+        }
+
+        foreach ($this->getItems() as $uuid => $item) {
+            if ($uuid !== $except && $item::isInput()) {
+                $fields[$item->getKey()] = $item;
+            }
+        }
+
+        return $fields;
     }
 
     /**
@@ -548,7 +658,7 @@ class FormCanvas extends Field
      * Everything on the canvas in order. Only the editor's own fields carry a
      * uuid, as only they can be resized.
      *
-     * @return list<array{uuid: ?string, span: int, min: int}>
+     * @return list<array{uuid: ?string, span: int, min: int, group: string}>
      */
     protected function getFlow(): array
     {
@@ -556,15 +666,15 @@ class FormCanvas extends Field
         $flow = [];
 
         foreach ($before as $field) {
-            $flow[] = ['uuid' => null, 'span' => $this->getCanvasWidth($field)->value, 'min' => $field::minWidth()->value];
+            $flow[] = ['uuid' => null, 'span' => $this->getCanvasWidth($field)->value, 'min' => $field::minWidth()->value, 'group' => 'before'];
         }
 
         foreach ($this->getItems() as $uuid => $item) {
-            $flow[] = ['uuid' => $uuid, 'span' => $this->getCanvasWidth($item)->value, 'min' => $item::minWidth()->value];
+            $flow[] = ['uuid' => $uuid, 'span' => $this->getCanvasWidth($item)->value, 'min' => $item::minWidth()->value, 'group' => 'canvas'];
         }
 
         foreach ($after as $field) {
-            $flow[] = ['uuid' => null, 'span' => $this->getCanvasWidth($field)->value, 'min' => $field::minWidth()->value];
+            $flow[] = ['uuid' => null, 'span' => $this->getCanvasWidth($field)->value, 'min' => $field::minWidth()->value, 'group' => 'after'];
         }
 
         return $flow;
@@ -572,23 +682,27 @@ class FormCanvas extends Field
 
     /**
      * Fields fill a row in order and move to the next when they do not fit.
+     * The editor's fields form a block of their own, so no row holds both
+     * those and fields from code.
      *
-     * @param  list<array{uuid: ?string, span: int, min: int}>  $flow
+     * @param  list<array{uuid: ?string, span: int, min: int, group: string}>  $flow
      * @return list<list<int>> the positions in the flow on each row
      */
     protected function toRows(array $flow): array
     {
         $rows = [];
         $column = FieldWidth::FULL->value;
+        $group = null;
 
         foreach ($flow as $index => $entry) {
-            if ($column + $entry['span'] > FieldWidth::FULL->value) {
+            if ($column + $entry['span'] > FieldWidth::FULL->value || $entry['group'] !== $group) {
                 $rows[] = [];
                 $column = 0;
             }
 
             $rows[count($rows) - 1][] = $index;
             $column += $entry['span'];
+            $group = $entry['group'];
         }
 
         return $rows;
@@ -657,15 +771,19 @@ class FormCanvas extends Field
      */
     protected function getItemSchema(string $type, ?string $except = null): array
     {
-        $fields = Group::make($type::getFields())->columns(2);
+        $fields = [
+            Group::make($type::getFields())->columns(2),
+            View::make('filament-form-builder::filament.partials.settings-preview')
+                ->viewData(fn (Get $get): array => ['field' => new $type((array) $get(''))]),
+        ];
 
         if (! $type::isInput()) {
-            return [$fields];
+            return $fields;
         }
 
         $tabs = [
             Tabs\Tab::make(__('filament-form-builder::general.general'))
-                ->schema([$fields]),
+                ->schema($fields),
             Tabs\Tab::make(__('filament-form-builder::fields.advanced'))
                 ->schema($this->getAdvancedSchema($type, $except)),
         ];
@@ -727,19 +845,9 @@ class FormCanvas extends Field
      */
     protected function getConditionsSchema(?string $except): array
     {
-        $fields = [];
-
-        foreach ($this->getFixedInputs() as $field) {
-            $fields[$field->getKey()] = $field;
-        }
-
-        foreach ($this->getItems() as $uuid => $item) {
-            if ($uuid !== $except && $item::isInput()) {
-                $fields[$item->getKey()] = $item;
-            }
-        }
-
+        $fields = $this->getConditionFields($except);
         $needsValue = fn (Get $get): bool => ConditionOperator::tryFrom((string) $get('operator'))?->needsValue() ?? false;
+        $choices = fn (Get $get): array => ($fields[$get('key')] ?? null)?->getFilterOptions() ?? [];
 
         return [
             ToggleButtons::make('conditionMatch')
@@ -755,7 +863,7 @@ class FormCanvas extends Field
             Repeater::make('conditions')
                 ->hiddenLabel()
                 ->default([])
-                ->columns(3)
+                ->columns(2)
                 ->reorderable(false)
                 ->live()
                 ->addActionLabel(__('filament-form-builder::fields.add_condition'))
@@ -772,13 +880,22 @@ class FormCanvas extends Field
                         ->selectablePlaceholder(false)
                         ->required()
                         ->live(),
+                    // A choice field offers its own options to pick from.
+                    ToggleButtons::make('value')
+                        ->label(__('filament-form-builder::fields.value'))
+                        ->options($choices)
+                        ->inline()
+                        ->columnSpanFull()
+                        ->required($needsValue)
+                        ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) !== []),
                     TextInput::make('value')
                         ->label(__('filament-form-builder::fields.value'))
-                        // A choice field suggests its own options.
-                        ->datalist(fn (Get $get): array => array_keys(($fields[$get('key')] ?? null)?->getFilterOptions() ?? []))
+                        ->columnSpanFull()
                         ->required($needsValue)
-                        ->visible($needsValue),
+                        ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) === []),
                 ]),
+            Text::make(fn (Get $get): ?string => $this->describeConditions($get('conditions') ?? [], $get('conditionMatch'), $except))
+                ->visible(fn (Get $get): bool => filled($get('conditions'))),
         ];
     }
 

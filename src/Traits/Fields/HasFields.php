@@ -2,8 +2,8 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
-use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 
@@ -61,10 +61,11 @@ trait HasFields
                 ->label(__('filament-form-builder::fields.label')),
             TextInput::make('description')
                 ->label(__('filament-form-builder::fields.description')),
-            Checkbox::make('required')
+            Toggle::make('required')
                 ->default(false)
                 ->columnSpanFull()
-                ->label(__('filament-form-builder::fields.required')),
+                ->label(__('filament-form-builder::fields.required'))
+                ->helperText(__('filament-form-builder::fields.required_helper')),
         ];
     }
 }

@@ -19,6 +19,11 @@ enum GridLayout: string
         return $layout instanceof self ? $layout : (self::tryFrom((string) $layout) ?? self::FLEXIBLE);
     }
 
+    public function getLabel(): string
+    {
+        return __('filament-form-builder::general.layouts.' . $this->value);
+    }
+
     /**
      * @return list<FieldWidth>
      */

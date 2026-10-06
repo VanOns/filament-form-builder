@@ -87,6 +87,11 @@ abstract class ChoiceField extends FormField
             ->multiple(static::allowsMultiple());
     }
 
+    public static function paletteGroup(): string
+    {
+        return 'choice';
+    }
+
     public static function getFields(): array
     {
         return [

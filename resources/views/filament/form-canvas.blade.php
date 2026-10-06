@@ -1,7 +1,6 @@
 @php
     use Filament\Support\Facades\FilamentAsset;
     use Filament\Support\Icons\Heroicon;
-    use Illuminate\Support\Js;
     use VanOns\FilamentFormBuilder\Enums\FieldWidth;
     use VanOns\FilamentFormBuilder\Enums\GridLayout;
 
@@ -9,11 +8,12 @@
     $livewireKey = $getLivewireKey();
     $items = $getItems();
     [$fixedBefore, $fixedAfter] = $getFixedFields();
+    $hasFixedFields = $hasFixedFields();
     $acceptsFields = $acceptsFields();
+    $layout = GridLayout::current();
     $widths = collect(FieldWidth::available())->mapWithKeys(fn (FieldWidth $width): array => [$width->value => $width->getLabel()])->all();
     $canResize = count($widths) > 1;
     $minimums = collect($getFieldTypes())->map(fn (string $class): int => $class::minWidth()->value)->all();
-    $editAction = $getAction('edit');
     $cloneAction = $getAction('clone');
     $deleteAction = $getAction('delete');
 @endphp
@@ -24,121 +24,102 @@
             x-load
             x-load-src="{{ FilamentAsset::getAlpineComponentSrc('form-canvas', 'van-ons/filament-form-builder') }}"
             x-data="formCanvasComponent({ key: @js($key), widths: @js($widths), minimums: @js($minimums) })"
+            x-on:modal-closed.window="editing = null"
         @endif
         @class(['ffb-canvas', 'ffb-canvas-readonly' => ! $acceptsFields])
     >
-        <div x-ref="grid" class="ffb-canvas-grid" data-layout="{{ GridLayout::current()->value }}">
-            @foreach ($fixedBefore as $fixedField)
-                @include('filament-form-builder::filament.partials.canvas-fixed-field', ['field' => $fixedField])
-            @endforeach
+        <div class="ffb-canvas-main">
+            <div class="ffb-canvas-toolbar">
+                <span class="ffb-canvas-layout">{{ __('filament-form-builder::general.canvas.layout', ['layout' => $layout->getLabel()]) }}</span>
 
-            @if ($acceptsFields)
-                @forelse ($items as $uuid => $item)
-                    @php($width = $getCanvasWidth($item))
-                    @php($options = $getWidthOptions($item))
+                <div class="ffb-canvas-legend">
+                    @if ($hasFixedFields)
+                        <span><x-filament::icon :icon="Heroicon::OutlinedLockClosed" class="ffb-canvas-legend-icon" />{{ __('filament-form-builder::general.canvas.legend.fixed') }}</span>
+                    @endif
+                    <span><x-filament::icon :icon="Heroicon::OutlinedEyeSlash" class="ffb-canvas-legend-icon" />{{ __('filament-form-builder::general.canvas.legend.hidden') }}</span>
+                    <span><x-filament::icon :icon="Heroicon::OutlinedArrowTurnDownRight" class="ffb-canvas-legend-icon ffb-canvas-legend-icon-primary" />{{ __('filament-form-builder::general.canvas.legend.conditions') }}</span>
+                </div>
+            </div>
 
-                    <div
-                        wire:key="{{ $livewireKey }}.items.{{ $uuid }}"
-                        data-item="{{ $uuid }}"
-                        data-span="{{ $width->value }}"
-                        data-minimum="{{ $item::minWidth()->value }}"
-                        @class(['ffb-canvas-item', 'ffb-canvas-item-hidden' => $item->isHidden()])
-                        style="--ffb-span: {{ $width->value }}"
-                    >
-                        <div class="ffb-canvas-item-toolbar">
-                            <x-filament::icon :icon="$item::icon()" class="ffb-canvas-item-icon" />
-                            <span class="ffb-canvas-item-type">{{ $item::getTypeLabel() }}</span>
-                            @if ($item->isHidden())
-                                <x-filament::icon
-                                    :icon="Heroicon::OutlinedEyeSlash"
-                                    :title="__('filament-form-builder::fields.hidden_badge')"
-                                    class="ffb-canvas-item-icon ffb-canvas-item-flag"
-                                />
-                            @endif
-                            @if ($item->hasConditions())
-                                <x-filament::icon
-                                    :icon="Heroicon::OutlinedArrowTurnDownRight"
-                                    :title="__('filament-form-builder::fields.conditions')"
-                                    class="ffb-canvas-item-icon ffb-canvas-item-flag"
-                                />
-                            @endif
-                            @if ($canResize && ($item->isHidden() || count($options) < 2))
-                                <span class="ffb-canvas-item-span">{{ $width->getLabel() }}</span>
-                            @elseif ($canResize)
-                                <x-filament::dropdown placement="bottom-end">
-                                    <x-slot name="trigger">
-                                        <button
-                                            type="button"
-                                            title="{{ __('filament-form-builder::general.canvas.width') }}"
-                                            class="ffb-canvas-item-span ffb-canvas-width-trigger"
-                                        >
-                                            {{ $width->getLabel() }}
-                                            <x-filament::icon :icon="Heroicon::ChevronDown" class="ffb-canvas-width-chevron" />
-                                        </button>
-                                    </x-slot>
+            <div class="ffb-canvas-scroll">
+                <div class="ffb-canvas-board">
+                    @foreach ($fixedBefore as $fixedField)
+                        @include('filament-form-builder::filament.partials.canvas-item', ['field' => $fixedField, 'uuid' => null])
+                    @endforeach
 
-                                    <x-filament::dropdown.list>
-                                        @foreach ($options as $option)
-                                            <x-filament::dropdown.list.item
-                                                :color="$option === $width ? 'primary' : 'gray'"
-                                                x-on:click="resize({{ Js::from($uuid) }}, {{ $option->value }}); close()"
-                                            >
-                                                <span class="ffb-canvas-width-option">
-                                                    <span class="ffb-canvas-width-bar" style="--ffb-fill: {{ $option->value }}"></span>
-                                                    <span class="ffb-canvas-width-label">{{ $option->getLabel() }}</span>
-                                                    <span>{{ $option->getDescription() }}</span>
-                                                </span>
-                                            </x-filament::dropdown.list.item>
-                                        @endforeach
-                                    </x-filament::dropdown.list>
-                                </x-filament::dropdown>
+                    @if ($acceptsFields)
+                        <div @class(['ffb-canvas-zone', 'ffb-canvas-zone-marked' => $hasFixedFields])>
+                            @if ($hasFixedFields)
+                                <p class="ffb-canvas-zone-label">
+                                    <strong>{{ __('filament-form-builder::general.canvas.zone') }}</strong>
+                                    <span>{{ __('filament-form-builder::general.canvas.zone_hint') }}</span>
+                                </p>
                             @endif
-                            <div class="ffb-canvas-item-actions">
-                                {{ $cloneAction(['item' => $uuid]) }}
-                                {{ $deleteAction(['item' => $uuid]) }}
+
+                            <div x-ref="grid" class="ffb-canvas-grid" data-layout="{{ $layout->value }}">
+                                @forelse ($items as $uuid => $item)
+                                    @include('filament-form-builder::filament.partials.canvas-item', ['field' => $item, 'uuid' => $uuid])
+                                @empty
+                                    <div class="ffb-canvas-empty">
+                                        <span class="ffb-canvas-empty-icon">
+                                            <x-filament::icon :icon="Heroicon::OutlinedPlus" />
+                                        </span>
+                                        <p class="ffb-canvas-empty-heading">{{ __('filament-form-builder::general.canvas.empty_heading') }}</p>
+                                        <p class="ffb-canvas-empty-description">{{ __('filament-form-builder::general.canvas.empty') }}</p>
+                                    </div>
+                                @endforelse
                             </div>
                         </div>
+                    @endif
 
-                        <div
-                            role="button"
-                            tabindex="0"
-                            x-on:click="edit(@js($uuid))"
-                            x-on:keydown.enter="edit(@js($uuid))"
-                            class="ffb-canvas-item-preview"
-                        >
-                            @include($item->getPreviewView(), ['field' => $item])
-                        </div>
-                    </div>
-                @empty
-                    <div class="ffb-canvas-empty">
-                        {{ __('filament-form-builder::general.canvas.empty') }}
-                    </div>
-                @endforelse
-            @endif
-
-            @foreach ($fixedAfter as $fixedField)
-                @include('filament-form-builder::filament.partials.canvas-fixed-field', ['field' => $fixedField])
-            @endforeach
-        </div>
-
-        @if ($acceptsFields)
-            <div class="ffb-canvas-sidebar">
-                <p class="ffb-canvas-sidebar-heading">{{ __('filament-form-builder::general.canvas.fields') }}</p>
-
-                <div x-ref="palette" wire:ignore class="ffb-canvas-palette">
-                    @foreach ($getFieldTypes() as $type => $class)
-                        <button
-                            type="button"
-                            data-type="{{ $type }}"
-                            x-on:click="add(@js($type))"
-                            class="ffb-canvas-palette-item"
-                        >
-                            <x-filament::icon :icon="$class::icon()" />
-                            <span>{{ $class::getTypeLabel() }}</span>
-                        </button>
+                    @foreach ($fixedAfter as $fixedField)
+                        @include('filament-form-builder::filament.partials.canvas-item', ['field' => $fixedField, 'uuid' => null])
                     @endforeach
                 </div>
             </div>
+        </div>
+
+        @if ($acceptsFields)
+            <aside class="ffb-canvas-sidebar" x-data="{ search: '' }" wire:ignore>
+                <label class="ffb-canvas-search">
+                    <x-filament::icon :icon="Heroicon::OutlinedMagnifyingGlass" class="ffb-canvas-search-icon" />
+                    <input
+                        type="search"
+                        aria-label="{{ __('filament-form-builder::general.canvas.search') }}"
+                        x-model="search"
+                        placeholder="{{ __('filament-form-builder::general.canvas.search') }}"
+                        class="ffb-canvas-search-input"
+                    />
+                </label>
+
+                @foreach ($getPaletteGroups() as $group => $types)
+                    @php($labels = collect($types)->map(fn (string $class): string => mb_strtolower($class::getTypeLabel()))->values()->all())
+
+                    <div
+                        class="ffb-canvas-palette-group"
+                        x-show="! search || @js($labels).some((label) => label.includes(search.toLowerCase()))"
+                    >
+                        <p class="ffb-canvas-palette-heading">{{ __("filament-form-builder::general.canvas.groups.{$group}") }}</p>
+
+                        <div class="ffb-canvas-palette" data-palette>
+                            @foreach ($types as $type => $class)
+                                <button
+                                    type="button"
+                                    data-type="{{ $type }}"
+                                    x-on:click="add(@js($type))"
+                                    x-show="! search || @js(mb_strtolower($class::getTypeLabel())).includes(search.toLowerCase())"
+                                    class="ffb-canvas-palette-item"
+                                >
+                                    <x-filament::icon :icon="$class::icon()" class="ffb-canvas-palette-icon" />
+                                    <span>{{ $class::getTypeLabel() }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+
+                <p class="ffb-canvas-palette-hint">{{ __('filament-form-builder::general.canvas.palette_hint') }}</p>
+            </aside>
         @endif
     </div>
 </x-dynamic-component>

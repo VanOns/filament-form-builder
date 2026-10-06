@@ -16,6 +16,11 @@ class SubmitField extends FormField
         return [];
     }
 
+    public static function paletteGroup(): string
+    {
+        return 'layout';
+    }
+
     public static function icon(): string | BackedEnum
     {
         return Heroicon::OutlinedPaperAirplane;

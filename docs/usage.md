@@ -48,8 +48,10 @@ class VacancyApplication extends FormType
 
 - `CustomFields::make()` marks where the fields an editor builds go. A type
   without it has no canvas.
-- The canvas shows the type's own fields around the editor's, locked. Their keys
-  stay reserved, so an editor's field never takes one.
+- The canvas shows the type's own fields around the editor's, locked, and marks
+  the editor's part as "Custom fields". That part always starts and ends on a
+  row of its own, on the page too. The type's keys stay reserved, so an editor's
+  field never takes one.
 - A hidden field renders as `<input type="hidden">` holding its default value,
   which suits context such as the vacancy a visitor applies for.
 - A type without fields of its own and without `CustomFields::make()` shows no
@@ -359,7 +361,7 @@ narrow screen:
 }
 
 [data-form-builder-input-wrapper] {
-    grid-column: span var(--form-builder-column-span, 12);
+    grid-column: var(--form-builder-column-start, auto) / span var(--form-builder-column-span, 12);
 }
 
 @media (max-width: 40rem) {
@@ -369,6 +371,10 @@ narrow screen:
 }
 ```
 
-The span is also available as `data-form-builder-column-span` for projects that
-would rather select on attributes than custom properties. The package ships no
+The fields an editor builds form a block of their own: the first of them starts
+a new row, and so does the first field from code after them. Their wrapper
+carries `--form-builder-column-start: 1` and `data-form-builder-new-row`, which
+the rule above picks up. The span is also available as
+`data-form-builder-column-span` for projects that would rather select on
+attributes than custom properties. The package ships no
 CSS of its own, so nothing changes visually until you add rules like these.

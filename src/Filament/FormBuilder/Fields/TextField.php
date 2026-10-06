@@ -23,6 +23,11 @@ class TextField extends FormField
         return $this;
     }
 
+    public static function paletteGroup(): string
+    {
+        return 'layout';
+    }
+
     public static function minWidth(): FieldWidth
     {
         return FieldWidth::THIRD;

@@ -2,6 +2,9 @@ export default function formCanvasComponent({ key, widths, minimums }) {
     return {
         isDragging: false,
 
+        // The field whose settings are open, until its modal closes.
+        editing: null,
+
         // The field being dragged, the canvas as it was when the drag began, the
         // pointer, and the widths the canvas shows for where the field would land.
         drag: null,
@@ -11,7 +14,7 @@ export default function formCanvasComponent({ key, widths, minimums }) {
             // Mouse-driven dragging behaves the same in every browser, unlike native drag and drop.
             const dragOptions = { forceFallback: true, fallbackOnBody: true, animation: 150 }
 
-            this.palette = window.Sortable.create(this.$refs.palette, {
+            this.palettes = [...this.$root.querySelectorAll('[data-palette]')].map((palette) => window.Sortable.create(palette, {
                 group: { name: group, pull: 'clone', put: false },
                 sort: false,
                 draggable: '[data-type]',
@@ -20,7 +23,7 @@ export default function formCanvasComponent({ key, widths, minimums }) {
                 // Once a new field is on the canvas, place() decides where it goes.
                 onMove: (event) => ! (event.to === this.$refs.grid && this.$refs.grid.contains(event.dragged)),
                 onEnd: (event) => this.stopDrag(event.item),
-            })
+            }))
 
             this.grid = window.Sortable.create(this.$refs.grid, {
                 group: { name: group, pull: false, put: true },
@@ -75,7 +78,7 @@ export default function formCanvasComponent({ key, widths, minimums }) {
         },
 
         destroy() {
-            this.palette?.destroy()
+            this.palettes?.forEach((palette) => palette.destroy())
             this.grid?.destroy()
         },
 
@@ -151,14 +154,9 @@ export default function formCanvasComponent({ key, widths, minimums }) {
         takeSnapshot(dragged) {
             const origin = this.$refs.grid.getBoundingClientRect()
             const entries = []
-            let isAfter = false
 
             for (const child of this.$refs.grid.children) {
-                if (child.matches('[data-item], .ffb-canvas-empty')) {
-                    isAfter = true
-                }
-
-                if (! child.classList.contains('ffb-canvas-item')) {
+                if (! child.matches('[data-item]')) {
                     continue
                 }
 
@@ -166,12 +164,11 @@ export default function formCanvasComponent({ key, widths, minimums }) {
 
                 entries.push({
                     element: child,
-                    uuid: child.dataset.item ?? null,
-                    group: child.dataset.item ? 'canvas' : (isAfter ? 'after' : 'before'),
+                    uuid: child.dataset.item,
                     isDragged: child === dragged,
                     span: Number(child.dataset.span),
                     minimum: Number(child.dataset.minimum),
-                    shareable: Boolean(child.dataset.item) && ! child.classList.contains('ffb-canvas-item-hidden'),
+                    shareable: ! child.classList.contains('ffb-canvas-item-hidden'),
                     left: rect.left - origin.left,
                     right: rect.right - origin.left,
                     top: rect.top - origin.top,
@@ -207,12 +204,7 @@ export default function formCanvasComponent({ key, widths, minimums }) {
                 row.end = row.start + row.members.length
             }
 
-            return {
-                others,
-                rows: rows.filter((row) => row.members.length > 0),
-                first: others.filter((entry) => entry.group === 'before').length,
-                last: others.filter((entry) => entry.group !== 'after').length,
-            }
+            return { others, rows: rows.filter((row) => row.members.length > 0) }
         },
 
         // Between rows, or near the top or bottom edge of one, the field gets a
@@ -329,9 +321,8 @@ export default function formCanvasComponent({ key, widths, minimums }) {
             const origin = this.$refs.grid.getBoundingClientRect()
             const slot = this.slotAt(drag.pointer.x - origin.left, drag.pointer.y - origin.top)
             const spans = { ...this.closeOrigin(slot), ...slot.spans }
-            const index = Math.min(Math.max(slot.index, drag.snapshot.first), drag.snapshot.last)
-            const reference = drag.snapshot.others[index]?.element ?? null
-            const placed = JSON.stringify([index, slot.width, spans])
+            const reference = drag.snapshot.others[slot.index]?.element ?? null
+            const placed = JSON.stringify([slot.index, slot.width, spans])
 
             if (drag.element.nextElementSibling === reference && placed === drag.placed) {
                 return
@@ -387,6 +378,7 @@ export default function formCanvasComponent({ key, widths, minimums }) {
                 return
             }
 
+            this.editing = item
             this.$wire.mountAction('edit', { item }, { schemaComponent: key })
         },
     }

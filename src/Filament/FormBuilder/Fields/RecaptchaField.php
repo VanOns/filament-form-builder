@@ -23,6 +23,11 @@ class RecaptchaField extends FormField
             : [];
     }
 
+    public static function paletteGroup(): string
+    {
+        return 'layout';
+    }
+
     public static function minWidth(): FieldWidth
     {
         return FieldWidth::HALF;
