@@ -1,7 +1,10 @@
 <?php
 
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
+use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
 it('can create a form', function () {
     $form = Form::create(['title' => 'Contact']);
@@ -49,4 +52,23 @@ it('getWrapperAttributes carries the column count for CSS to lay out', function 
 
     expect($attributes)->toContain('data-form-builder-columns="3"')
         ->and($attributes)->toContain('--form-builder-columns:3');
+});
+
+it('returns only the input fields when asked, whatever was asked first', function () {
+    $form = Form::create([
+        'title' => 'Bellen',
+        'template' => CustomForm::class,
+        'custom' => ['fields' => [
+            ['fieldType' => TitleField::class, 'title' => 'Bel me'],
+            ['fieldType' => TextInputField::class, 'label' => 'Naam'],
+        ]],
+    ]);
+
+    expect($form->getFields())->toHaveCount(2)
+        ->and($form->getFields(inputsOnly: true))->toHaveCount(1)
+        ->and($form->getFields())->toHaveCount(2);
+});
+
+it('is not custom without a template', function () {
+    expect(Form::create(['title' => 'Leeg'])->isCustom())->toBeFalse();
 });

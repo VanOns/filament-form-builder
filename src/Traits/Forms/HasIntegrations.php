@@ -7,11 +7,6 @@ use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 trait HasIntegrations
 {
-    /**
-     * @var array<int, array<string, mixed>>
-     */
-    protected static array $integrationResponses = [];
-
     public static function hasIntegrations(): bool
     {
         return !empty(Integration::getIntegrations());
@@ -24,15 +19,24 @@ trait HasIntegrations
 
     public static function triggerIntegrations(FormSubmission $submission): void
     {
-        if (!self::hasIntegrations()) {
+        if (!static::hasIntegrations()) {
             return;
         }
 
-        foreach ($submission->getIntegrations() as $integration) {
-            self::triggerIntegration($integration);
+        $responses = [];
+
+        foreach (static::getIntegrations($submission) as $integration) {
+            static::triggerIntegration($integration);
+
+            $responses[] = [
+                'integration' => get_class($integration),
+                'response' => $integration->responseData(),
+            ];
         }
 
-        self::saveIntegrationResponses($submission);
+        $submission->update([
+            'integrations' => $responses,
+        ]);
     }
 
     public static function triggerIntegration(Integration $integration): void
@@ -43,22 +47,5 @@ trait HasIntegrations
             $integration->setResponse($e->getMessage())
                 ->setSuccess(false);
         }
-
-        self::storeIntegrationResponse($integration);
-    }
-
-    protected static function storeIntegrationResponse(Integration $integration): void
-    {
-        self::$integrationResponses[] = [
-            'integration' => get_class($integration),
-            'response' => $integration->responseData(),
-        ];
-    }
-
-    protected static function saveIntegrationResponses(FormSubmission $submission): void
-    {
-        $submission->update([
-            'integrations' => self::$integrationResponses,
-        ]);
     }
 }

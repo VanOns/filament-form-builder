@@ -41,7 +41,7 @@ class Form extends Model
     use HasCustomFields;
 
     /**
-     * @var array<FormField>
+     * @var array<int, FormField>
      */
     protected array $fields;
     protected FilamentForm $formComponent;

@@ -22,17 +22,17 @@ trait HasNotifications
 
     public static function triggerNotifications(FormSubmission $submission): void
     {
-        if (!self::hasNotifications()) {
+        if (!static::hasNotifications()) {
             return;
         }
 
-        self::sendNotifications($submission);
+        static::sendNotifications($submission);
     }
 
     public static function sendNotifications(FormSubmission $submission): void
     {
-        foreach (self::getNotifications($submission) as $notification) {
-            self::sendNotification($notification, $submission);
+        foreach (static::getNotifications($submission) as $notification) {
+            static::sendNotification($notification, $submission);
         }
     }
 

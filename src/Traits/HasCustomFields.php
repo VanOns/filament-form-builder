@@ -3,37 +3,42 @@
 namespace VanOns\FilamentFormBuilder\Traits;
 
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 
 trait HasCustomFields
 {
     /**
-     * @return array<string, FormField>
+     * @return array<int, FormField>
      */
     public function getFields(bool $inputsOnly = false): array
     {
-        if (!isset($this->fields) && $this->isCustom()) {
-            $fields = $this->custom['fields'] ?? [];
+        $this->fields ??= $this->makeFields();
 
-            $fieldInstaces = [];
-            foreach ($fields as $field) {
-                /* @var class-string<FormField> $type */
-                if (($type = $field['fieldType'] ?? null)) {
-                    if ($inputsOnly && !$type::isInput()) {
-                        continue;
-                    }
-                    /* @var FormField $fieldInstace */
-                    $fieldInstace = new $type($field);
-                    $fieldInstace->setGridColumns($this->getColumns());
-                    $fieldInstaces[] = $fieldInstace;
-                }
-            }
+        return $inputsOnly
+            ? array_values(array_filter($this->fields, fn (FormField $field): bool => $field::isInput()))
+            : $this->fields;
+    }
 
-            $this->fields = $fieldInstaces;
-        } elseif (!$this->template::isCustom()) {
-            $this->fields = [];
+    /**
+     * @return array<int, FormField>
+     */
+    protected function makeFields(): array
+    {
+        if (!$this->isCustom()) {
+            return [];
         }
 
-        return $this->fields;
+        $fields = [];
+
+        foreach ($this->custom['fields'] ?? [] as $data) {
+            $type = $data['fieldType'] ?? null;
+
+            if (is_string($type) && is_subclass_of($type, FormField::class)) {
+                $fields[] = (new $type($data))->setGridColumns($this->getColumns());
+            }
+        }
+
+        return $fields;
     }
 
     /**
@@ -77,6 +82,8 @@ trait HasCustomFields
 
     public function isCustom(): bool
     {
-        return $this->template::isCustom();
+        $template = TemplateHelper::resolve($this->template);
+
+        return $template !== null && $template::isCustom();
     }
 }
