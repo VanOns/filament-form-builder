@@ -93,6 +93,8 @@ return [
     'export_form_submissions' => 'Exporteer formulier inzendingen',
     'view_submissions_of_form' => 'Alle inzendingen van dit formulier',
     'settings_explanation' => 'Configureer instellingen voor dit formulier.',
+    'form_fields' => 'Velden',
+    'form_fields_explanation' => 'De velden van dit formulier liggen vast in code.',
     'custom_form_explanation' => 'Bouw een aangepast formulier met de velden die je nodig hebt.',
     'notification_logs' => 'Notificatielogboek',
     'notification_logs_description' => 'Overzicht van alle verstuurde notificatie-e-mails voor deze inzending',

@@ -101,6 +101,23 @@ class FormCanvas extends Field
     }
 
     /**
+     * Whether an editor may add fields: on a canvas of its own, or where the
+     * form type placed CustomFields::make().
+     */
+    public function acceptsFields(): bool
+    {
+        $fields = $this->evaluate($this->fixedFields) ?? [];
+
+        foreach ($fields as $field) {
+            if ($field instanceof CustomFields) {
+                return true;
+            }
+        }
+
+        return $fields === [];
+    }
+
+    /**
      * @return array{0: array<int, FormField>, 1: array<int, FormField>}
      */
     public function getFixedFields(): array

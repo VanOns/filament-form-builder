@@ -167,10 +167,14 @@ class FormResource extends Resource
 
     public static function getCustomSection(): Section
     {
-        return Section::make(__('filament-form-builder::general.custom_form'))
-            ->description(__('filament-form-builder::general.custom_form_explanation'))
+        return Section::make(fn (Get $get): string => static::hasCustomFields($get)
+            ? __('filament-form-builder::general.custom_form')
+            : __('filament-form-builder::general.form_fields'))
+            ->description(fn (Get $get): string => static::hasCustomFields($get)
+                ? __('filament-form-builder::general.custom_form_explanation')
+                : __('filament-form-builder::general.form_fields_explanation'))
             ->icon('heroicon-o-cube')
-            ->visible(self::hasCustomFields(...))
+            ->visible(fn (Get $get): bool => filled(static::getFormType($get)?->fields()))
             ->schema([
                 FormCanvas::make('custom.fields')
                     ->hiddenLabel()

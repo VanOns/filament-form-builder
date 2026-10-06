@@ -51,6 +51,11 @@ class VacancyApplication extends FormType
   stay reserved, so an editor's field never takes one.
 - A hidden field renders as `<input type="hidden">` holding its default value,
   which suits context such as the vacancy a visitor applies for.
+- A type without fields of its own and without `CustomFields::make()` shows no
+  fields section at all; one with fields but no marker shows them read-only.
+
+Every form renders through the `components/form` view. Pass another with
+`<x-render-form :form="$form" view="forms.vacancy" />`.
 
 ### Hooks
 

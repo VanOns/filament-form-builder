@@ -5,6 +5,7 @@ use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
 use Tests\Fixtures\ApplicationForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
+use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 beforeEach(function () {
@@ -174,4 +175,31 @@ it('shows the fields of the form type around the canvas and keeps their keys fre
         ->call('save');
 
     expect(array_column(savedFields($form), 'key'))->toBe(['naam_2']);
+});
+
+it('shows the fields of a type without room for more, without letting anyone add one', function () {
+    $form = canvasForm([['type' => 'text', 'label' => 'Uit een eerder type', 'key' => 'eerder']], ['template' => 'contact']);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSee('The fields of this form are defined in code.')
+        ->assertSee('Company name')
+        ->assertDontSee('Uit een eerder type')
+        ->assertDontSeeHtml('data-type="text"')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(array_column(savedFields($form), 'key'))->toBe(['eerder']);
+});
+
+it('keeps the fields an editor built while the form has a type without fields', function () {
+    config(['filament-form-builder.types.bare' => get_class(new class (new Form()) extends FormType {})]);
+
+    $form = canvasForm([['type' => 'text', 'label' => 'Naam', 'key' => 'naam']], ['template' => 'bare']);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertDontSee('The fields of this form are defined in code.')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(array_column(savedFields($form), 'key'))->toBe(['naam']);
 });

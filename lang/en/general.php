@@ -93,6 +93,8 @@ return [
     'export_form_submissions' => 'Export form submissions',
     'view_submissions_of_form' => 'All submissions of this form',
     'settings_explanation' => 'Configure settings for this form.',
+    'form_fields' => 'Fields',
+    'form_fields_explanation' => 'The fields of this form are defined in code.',
     'custom_form_explanation' => 'Build a custom form with the fields you need.',
     'notification_logs' => 'Notification logs',
     'notification_logs_description' => 'Overview of all notification emails sent for this submission',
