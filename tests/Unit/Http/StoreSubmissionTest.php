@@ -1,5 +1,6 @@
 <?php
 
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\EmailField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
 use VanOns\FilamentFormBuilder\Models\Form;
@@ -53,4 +54,28 @@ it('stores only the fields a template validates or labels', function () {
         'phone_number' => '0612345678',
         'message' => 'Hallo',
     ]);
+});
+
+it('takes the submitter from the first e-mail field that was filled in', function () {
+    $form = Form::create([
+        'title' => 'Offerte',
+        'template' => CustomForm::class,
+        'custom' => ['fields' => [
+            ['fieldType' => EmailField::class, 'label' => 'Werkmail', 'key' => 'werkmail'],
+            ['fieldType' => EmailField::class, 'label' => 'E-mailadres', 'key' => 'e-mailadres'],
+        ]],
+    ]);
+
+    expect(submit($form, ['e-mailadres' => 'jan@example.com'])->submitter_email)->toBe('jan@example.com');
+});
+
+it('prefers a submitter e-mail that was posted as such', function () {
+    $form = Form::create([
+        'title' => 'Offerte',
+        'template' => CustomForm::class,
+        'custom' => ['fields' => [['fieldType' => EmailField::class, 'label' => 'E-mailadres', 'key' => 'e-mailadres']]],
+    ]);
+
+    expect(submit($form, ['e-mailadres' => 'jan@example.com', 'submitter_email' => 'piet@example.com'])->submitter_email)
+        ->toBe('piet@example.com');
 });

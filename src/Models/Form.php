@@ -15,6 +15,7 @@ use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\EmailField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
 use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
@@ -138,6 +139,24 @@ class Form extends Model
             ...array_map(fn (string $key): string => Str::before($key, '.'), array_keys($component->rules())),
             ...array_keys($component->attributes()),
         ]));
+    }
+
+    /**
+     * The first e-mail field of a custom form the visitor filled in.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function findSubmitterEmail(array $data): ?string
+    {
+        foreach ($this->getFields(inputsOnly: true) as $field) {
+            $value = $data[$field->getKey()] ?? null;
+
+            if ($field instanceof EmailField && is_string($value) && filled($value)) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     /**

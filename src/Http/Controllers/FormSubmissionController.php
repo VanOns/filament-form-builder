@@ -30,10 +30,7 @@ class FormSubmissionController
 
         $data = $template::modifyDataUsing($data, $form);
 
-        $submitterEmail = $request->input('submitter_email');
-        if (empty($submitterEmail) && !empty($emailData = Arr::only($data, static::getPossibleEmailFields()))) {
-            $submitterEmail = head($emailData);
-        }
+        $submitterEmail = $request->input('submitter_email') ?: $form->findSubmitterEmail($data);
 
         $submission = FormSubmission::query()
             ->create([
@@ -101,21 +98,5 @@ class FormSubmissionController
             ['X-Content-Type-Options' => 'nosniff'],
             $inline ? 'inline' : 'attachment',
         );
-    }
-
-    /**
-     * @return array<string>
-     */
-    public static function getPossibleEmailFields(): array
-    {
-        return [
-            'email',
-            'e-mail',
-            'emailadres',
-            'email_adres',
-            'e-mail_adres',
-            'e-mail_address',
-            'mail_address',
-        ];
     }
 }
