@@ -1,7 +1,7 @@
 <?php
 
 use Filament\Tables\Columns\TextColumn;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\SelectField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\RadioField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
 use VanOns\FilamentFormBuilder\Filament\Tables\FormSubmissionColumns;
@@ -101,7 +101,7 @@ it('falls back to the rule keys of a template that declares none', function () {
 it('offers a filter for a field with a fixed list of choices', function () {
     $form = customForm([
         ['fieldType' => TextInputField::class, 'label' => 'Voornaam'],
-        ['fieldType' => SelectField::class, 'label' => 'Aanhef', 'options' => [
+        ['fieldType' => RadioField::class, 'label' => 'Aanhef', 'options' => [
             ['value' => 'dhr', 'label' => 'Dhr.'],
             ['value' => 'mw', 'label' => 'Mw.'],
         ]],
@@ -122,7 +122,7 @@ it('offers no filter when there is nothing to choose from', function () {
 
 it('shows the label of a chosen option, not the value that was stored', function () {
     $form = customForm([
-        ['fieldType' => SelectField::class, 'label' => 'Aanhef', 'options' => [
+        ['fieldType' => RadioField::class, 'label' => 'Aanhef', 'options' => [
             ['value' => 'dhr', 'label' => 'Dhr.'],
             ['value' => 'mw', 'label' => 'Mw.'],
         ]],

@@ -11,7 +11,7 @@
             <div class="ffb-preview-option">
                 <span @class([
                     'ffb-preview-check',
-                    'ffb-preview-check-round' => ! $field->multiple,
+                    'ffb-preview-check-round' => ! $field::allowsMultiple(),
                     'ffb-preview-check-on' => in_array($option['value'] ?? null, $defaults, true),
                 ])></span>
                 {{ $option['label'] ?? $option['value'] ?? '' }}

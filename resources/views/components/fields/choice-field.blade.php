@@ -1,7 +1,9 @@
 @php
     /**
-     * @var \VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\SelectField $field
+     * @var \VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\ChoiceField $field
      */
+    $multiple = $field::allowsMultiple();
+    $selected = (array) old($field->getKey(), []);
 @endphp
 
 <div {{ $field->getWrapperAttributes() }}>
@@ -13,14 +15,10 @@
     @foreach($field->options as $option)
         <label>
             <input
-                @type="{{ $field->multiple ? 'checkbox' : 'radio' }}"
-                name="{{ $field->getKey() . ($field->multiple ? '[]' : '') }}"
-                @if ($field->multiple)
-                    @checked(in_array($option['value'] ?? '', old($field->getKey(), [])))
-                @else
-                    @checked(old($field->getKey()) == $option['value'] ?? '')
-                @endif
+                type="{{ $multiple ? 'checkbox' : 'radio' }}"
+                name="{{ $field->getKey() . ($multiple ? '[]' : '') }}"
                 value="{{ $option['value'] ?? '' }}"
+                @checked(in_array($option['value'] ?? '', $selected, true))
                 {{ $field->getAttributes(withRequired: false) }}
             >
             {{ $option['label'] ?? '' }}

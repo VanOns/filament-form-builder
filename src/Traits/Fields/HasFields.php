@@ -12,7 +12,7 @@ trait HasFields
     public ?bool $large = false;
     public null|int|string $column_span = null;
     public null|int|string $column_start = null;
-    public ?string $description;
+    public ?string $description = null;
 
     /**
      * The column count of the form this field belongs to, handed over when the

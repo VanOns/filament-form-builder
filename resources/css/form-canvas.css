@@ -240,6 +240,23 @@
     border-style: dashed;
 }
 
+.ffb-preview-dropdown {
+    position: relative;
+    padding-right: 2rem;
+}
+
+.ffb-preview-dropdown::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 0.875rem;
+    width: 0.375rem;
+    height: 0.375rem;
+    border-right: 1.5px solid var(--gray-400);
+    border-bottom: 1.5px solid var(--gray-400);
+    transform: translateY(-70%) rotate(45deg);
+}
+
 .ffb-preview-recaptcha {
     max-width: 16rem;
 }

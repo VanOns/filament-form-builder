@@ -12,7 +12,7 @@ class TitleField extends FormField
     public static string $view = 'filament-form-builder::components.fields.title-field';
     public static string $previewView = 'filament-form-builder::filament.previews.title';
 
-    public ?string $title;
+    public ?string $title = null;
     public ?string $headingLevel = 'h2';
 
     public static function icon(): string | BackedEnum

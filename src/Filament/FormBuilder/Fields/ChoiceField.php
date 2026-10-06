@@ -2,45 +2,33 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
-use BackedEnum;
-use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
-class SelectField extends FormField
+abstract class ChoiceField extends FormField
 {
-    public static string $view = 'filament-form-builder::components.fields.select-field';
-    public static string $previewView = 'filament-form-builder::filament.previews.select';
+    public static string $view = 'filament-form-builder::components.fields.choice-field';
+    public static string $previewView = 'filament-form-builder::filament.previews.choice';
 
     /**
-     * @var array<int, array{value?: string, label?: string}>
+     * @var array<int|string, array{value?: string, label?: string}>
      */
     public array $options = [];
-    public ?bool $multiple = false;
+
+    abstract public static function allowsMultiple(): bool;
 
     /**
      * @return array<string, string>
      */
     public function getFilterOptions(): array
     {
-        $options = [];
-
-        foreach ($this->options as $option) {
-            $value = $option['value'] ?? null;
-
-            if ($value !== null && $value !== '') {
-                $options[$value] = $option['label'] ?? $value;
-            }
-        }
-
-        return $options;
+        return static::toChoices($this->options);
     }
 
     public function formatSubmissionValue(mixed $value): mixed
@@ -59,44 +47,32 @@ class SelectField extends FormField
      */
     public function getRules(): array
     {
-        $values = Arr::pluck($this->options, 'value');
+        $allowed = Rule::in(Arr::pluck($this->options, 'value'));
+
+        if (static::allowsMultiple()) {
+            return [
+                $this->getKey() => [...$this->getDefaultRules(), 'array'],
+                $this->getKey() . '.*' => [$allowed],
+            ];
+        }
 
         return [
-            $this->getKey() => array_filter([
-                ...$this->getDefaultRules(),
-                !$this->multiple
-                    ? Rule::in($values)
-                    : null,
-            ]),
-            $this->getKey() . '.*' => array_filter([
-                $this->multiple
-                    ? Rule::in($values)
-                    : null,
-            ]),
+            $this->getKey() => [...$this->getDefaultRules(), $allowed],
         ];
-    }
-
-    public static function icon(): string | BackedEnum
-    {
-        return Heroicon::OutlinedListBullet;
     }
 
     public static function getDefaultValueComponent(): ?Component
     {
         return Select::make('defaultValue')
             ->label(__('filament-form-builder::fields.default_value'))
-            ->options(fn (Get $get): array => (new self(['options' => (array) $get('options')]))->getFilterOptions())
-            ->multiple(fn (Get $get): bool => (bool) $get('multiple'));
+            ->options(fn (Get $get): array => static::toChoices((array) $get('options')))
+            ->multiple(static::allowsMultiple());
     }
 
     public static function getFields(): array
     {
         return [
             ...static::getDefaultFields(),
-            Checkbox::make('multiple')
-                ->columnSpanFull()
-                ->label(__('filament-form-builder::fields.multiple_choice_question'))
-                ->default(false),
             Repeater::make('options')
                 ->grid()
                 ->itemLabel(function (?array $state) {
@@ -127,5 +103,24 @@ class SelectField extends FormField
                         ->required(),
                 ]),
         ];
+    }
+
+    /**
+     * @param  array<mixed>  $options
+     * @return array<string, string>
+     */
+    protected static function toChoices(array $options): array
+    {
+        $choices = [];
+
+        foreach ($options as $option) {
+            $value = is_array($option) ? ($option['value'] ?? null) : null;
+
+            if (is_string($value) && $value !== '') {
+                $choices[$value] = is_string($option['label'] ?? null) ? $option['label'] : $value;
+            }
+        }
+
+        return $choices;
     }
 }

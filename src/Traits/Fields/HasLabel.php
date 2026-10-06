@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 
 trait HasLabel
 {
-    public ?string $label;
+    public ?string $label = null;
 
     public static function label(): string
     {
