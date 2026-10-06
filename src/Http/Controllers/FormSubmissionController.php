@@ -8,7 +8,6 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -110,7 +109,7 @@ class FormSubmissionController
      */
     public static function getPossibleEmailFields(): array
     {
-        $possibleEmailFields = [
+        return [
             'email',
             'e-mail',
             'emailadres',
@@ -119,10 +118,5 @@ class FormSubmissionController
             'e-mail_address',
             'mail_address',
         ];
-
-        return array_merge(
-            $possibleEmailFields,
-            array_map(fn ($field) => FormField::$keyPrefix . $field, $possibleEmailFields)
-        );
     }
 }

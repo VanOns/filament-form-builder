@@ -17,11 +17,10 @@ function placeholderSubmission(array $data = [], ?string $email = null): FormSub
 }
 
 it('exposes the submitted values, the form title and the submitter', function () {
-    $submission = placeholderSubmission(['key_naam' => 'Jesse'], 'jesse@example.test');
+    $submission = placeholderSubmission(['naam' => 'Jesse'], 'jesse@example.test');
 
     expect(SubmissionPlaceholders::make($submission)->values())
         ->toMatchArray([
-            'key_naam' => 'Jesse',
             'naam' => 'Jesse',
             'form_title' => 'Contact',
             'submitter_email' => 'jesse@example.test',
@@ -35,39 +34,39 @@ it('lets a submitted field win from the form title', function () {
 });
 
 it('drops empty values so their placeholder stays recognisable', function () {
-    $submission = placeholderSubmission(['key_naam' => '']);
+    $submission = placeholderSubmission(['naam' => '']);
 
-    expect(SubmissionPlaceholders::make($submission)->values())->not->toHaveKey('key_naam');
+    expect(SubmissionPlaceholders::make($submission)->values())->not->toHaveKey('naam');
 });
 
 it('flattens a multi-value field the way the mail does', function () {
-    $submission = placeholderSubmission(['key_interesses' => ['php', 'laravel']]);
+    $submission = placeholderSubmission(['interesses' => ['php', 'laravel']]);
 
-    expect(SubmissionPlaceholders::make($submission)->values()['key_interesses'])->toBe('php, laravel');
+    expect(SubmissionPlaceholders::make($submission)->values()['interesses'])->toBe('php, laravel');
 });
 
 it('replaces both placeholder spellings and leaves unknown ones alone', function () {
-    $submission = placeholderSubmission(['key_naam' => 'Jesse']);
+    $submission = placeholderSubmission(['naam' => 'Jesse']);
 
-    expect(SubmissionPlaceholders::make($submission)->replace('Hoi {{ $key_naam }} en {{$key_naam}}, {{ $key_x }}'))
-        ->toBe('Hoi Jesse en Jesse, {{ $key_x }}');
+    expect(SubmissionPlaceholders::make($submission)->replace('Hoi {{ $naam }} en {{$naam}}, {{ $x }}'))
+        ->toBe('Hoi Jesse en Jesse, {{ $x }}');
 });
 
 it('does not treat a placeholder a visitor typed as a placeholder', function () {
-    $submission = placeholderSubmission(['key_naam' => '{{ $submitter_email }}'], 'jesse@example.test');
+    $submission = placeholderSubmission(['naam' => '{{ $submitter_email }}'], 'jesse@example.test');
 
-    expect(SubmissionPlaceholders::make($submission)->replace('Hoi {{ $key_naam }}'))
+    expect(SubmissionPlaceholders::make($submission)->replace('Hoi {{ $naam }}'))
         ->toBe('Hoi {{ $submitter_email }}');
 });
 
 it('still replaces the placeholders in an e-mail notification', function () {
-    $submission = placeholderSubmission(['key_naam' => 'Jesse'], 'jesse@example.test');
+    $submission = placeholderSubmission(['naam' => 'Jesse'], 'jesse@example.test');
 
     $notification = new EmailNotification($submission, [
         'subject' => 'Inzending {{ $form_title }}',
-        'content' => '<p>Hoi {{ $key_naam }}, we hebben je bericht ontvangen.</p>',
+        'content' => '<p>Hoi {{ $naam }}, we hebben je bericht ontvangen.</p>',
         'senderName' => '{{ $form_title }}',
-        'receivers' => ['key_naam', 'info@example.test'],
+        'receivers' => ['naam', 'info@example.test'],
     ]);
 
     expect($notification->subject)->toBe('Inzending Contact')
@@ -78,11 +77,11 @@ it('still replaces the placeholders in an e-mail notification', function () {
 });
 
 it('strips a placeholder the e-mail cannot fill in', function () {
-    $submission = placeholderSubmission(['key_naam' => 'Jesse']);
+    $submission = placeholderSubmission(['naam' => 'Jesse']);
 
     $notification = new EmailNotification($submission, [
         'subject' => 'Inzending',
-        'content' => '<p>Hoi {{ $key_onbekend }}.</p>',
+        'content' => '<p>Hoi {{ $onbekend }}.</p>',
     ]);
 
     expect($notification->content)->toBe('<p>Hoi .</p>');

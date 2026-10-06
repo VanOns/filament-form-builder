@@ -256,13 +256,16 @@ class FormCanvas extends Field
         $schema = [
             TextInput::make('key')
                 ->label(__('filament-form-builder::fields.key'))
-                ->prefix($type::$keyPrefix)
                 ->placeholder(fn (Get $get): ?string => filled($get('label')) ? $this->normalizeKey($type, $get('label')) : null)
                 ->helperText(__('filament-form-builder::fields.key_helper'))
                 ->rules([
                     $type::getKeyValidationRule(),
                     fn (): Closure => function (string $attribute, mixed $value, Closure $fail) use ($type, $takenKeys): void {
-                        if (in_array($this->normalizeKey($type, (string) $value), $takenKeys, true)) {
+                        $key = $this->normalizeKey($type, (string) $value);
+
+                        if (in_array($key, $type::$reservedKeys, true)) {
+                            $fail(__('filament-form-builder::fields.key_reserved'));
+                        } elseif (in_array($key, $takenKeys, true)) {
                             $fail(__('filament-form-builder::fields.key_taken'));
                         }
                     },
@@ -341,8 +344,8 @@ class FormCanvas extends Field
         }
 
         $field = new $type([...$item, 'key' => filled($item['key'] ?? null) ? $this->normalizeKey($type, (string) $item['key']) : null]);
-        $base = $field->getBaseKey();
-        $takenKeys = $this->getTakenKeys($except);
+        $base = $field->getKey();
+        $takenKeys = [...$this->getTakenKeys($except), ...$type::$reservedKeys];
 
         $key = $base;
 
@@ -358,7 +361,7 @@ class FormCanvas extends Field
      */
     protected function normalizeKey(string $type, string $key): string
     {
-        return $type::cleanKey(Str::snake(Str::chopStart($key, $type::$keyPrefix)));
+        return $type::cleanKey(Str::snake($key));
     }
 
     /**
@@ -370,7 +373,7 @@ class FormCanvas extends Field
 
         foreach ($this->getItems() as $uuid => $item) {
             if ($uuid !== $except && $item::isInput()) {
-                $keys[] = $item->getBaseKey();
+                $keys[] = $item->getKey();
             }
         }
 
@@ -382,7 +385,7 @@ class FormCanvas extends Field
         $items = $this->getRawState() ?? [];
 
         foreach ($items as $uuid => $item) {
-            if (in_array($item['visibleWhenKey'] ?? null, [$from, Str::after($from, FormField::$keyPrefix)], true)) {
+            if (($item['visibleWhenKey'] ?? null) === $from) {
                 $items[$uuid]['visibleWhenKey'] = $to;
             }
         }

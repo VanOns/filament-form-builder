@@ -206,7 +206,7 @@ class FormResource extends Resource
                 TextInput::make('submit_notification_query')
                     ->label(__('filament-form-builder::general.submit_notification_query'))
                     ->helperText(__('filament-form-builder::general.submit_notification_query_explanation'))
-                    ->placeholder('name={{ $key_name }}&form={{ $form_title }}')
+                    ->placeholder('name={{ $name }}&form={{ $form_title }}')
                     ->visible(static::hasSubmitNotificationQueryEnabled(...))
                     ->columnSpanFull(),
                 static::getPlaceholderListEntry()

@@ -25,7 +25,7 @@ is no longer appended on submit. An editor writes the parameters with the same
 placeholders the e-mail notification uses:
 
 ```
-vestiging={{ $key_vestiging }}&form={{ $form_title }}
+vestiging={{ $vestiging }}&form={{ $form_title }}
 ```
 
 `SubmissionPlaceholders::appendQuery()` fills them in from the submission,

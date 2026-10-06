@@ -44,5 +44,5 @@ it('never spans past the last column', function () {
 });
 
 it('keeps the existing wrapper key attribute', function () {
-    expect(field()->getWrapperAttributes()->toHtml())->toContain('data-form-builder-input-wrapper="key_voornaam"');
+    expect(field()->getWrapperAttributes()->toHtml())->toContain('data-form-builder-input-wrapper="voornaam"');
 });

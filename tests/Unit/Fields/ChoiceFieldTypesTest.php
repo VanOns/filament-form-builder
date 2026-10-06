@@ -25,7 +25,7 @@ function choice(string $type, array $data = []): ChoiceField
 
 function choicePasses(ChoiceField $field, mixed $value): bool
 {
-    return Validator::make(['key_aanhef' => $value], $field->getRules())->passes();
+    return Validator::make(['aanhef' => $value], $field->getRules())->passes();
 }
 
 it('accepts one of its own options', function (string $type) {

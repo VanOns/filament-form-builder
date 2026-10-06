@@ -13,7 +13,7 @@ it('drops the required rule of a field the visitor never sees', function () {
 it('keeps the required rule of a visible field', function () {
     $field = new TextInputField(['key' => 'bron', 'required' => true]);
 
-    expect($field->getRules())->toBe(['key_bron' => ['required']]);
+    expect($field->getRules())->toBe(['bron' => ['required']]);
 });
 
 it('never hides a field that has no value to send on its own', function (string $type) {

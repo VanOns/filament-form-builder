@@ -37,20 +37,20 @@ it('exports only the fields of the form it was opened from', function () {
     $sollicitatie = formWithFields('Solliciteren', ['Voornaam', 'Achternaam']);
     $klacht = formWithFields('Klacht', ['Onderwerp']);
 
-    FormSubmission::create(['form_id' => $klacht->id, 'data' => ['key_onderwerp' => 'Te traag']]);
+    FormSubmission::create(['form_id' => $klacht->id, 'data' => ['onderwerp' => 'Te traag']]);
 
     FormSubmissionExporter::$form = $sollicitatie;
 
-    expect(exportColumnMap())->toHaveKeys(['data.key_voornaam', 'data.key_achternaam'])
-        ->and(exportColumnMap())->not->toHaveKey('data.key_onderwerp');
+    expect(exportColumnMap())->toHaveKeys(['data.voornaam', 'data.achternaam'])
+        ->and(exportColumnMap())->not->toHaveKey('data.onderwerp');
 });
 
 it('heads the columns with the labels the editor typed', function () {
     FormSubmissionExporter::$form = formWithFields('Solliciteren', ['Voornaam']);
 
     // Without the form it falls back to the key, headlined: "Voornaam" either
-    // way here, but a key like `key_tel_nr` would read as "Tel Nr".
-    expect(exportColumnMap()['data.key_voornaam'])->toBe('Voornaam');
+    // way here, but a key like `tel_nr` would read as "Tel Nr".
+    expect(exportColumnMap()['data.voornaam'])->toBe('Voornaam');
 });
 
 it('keeps a column for a field the form no longer has', function () {
@@ -60,19 +60,19 @@ it('keeps a column for a field the form no longer has', function () {
 
     FormSubmission::create([
         'form_id' => $form->id,
-        'data' => ['key_voornaam' => 'Jesse', 'key_telefoon' => '0612345678'],
+        'data' => ['voornaam' => 'Jesse', 'telefoon' => '0612345678'],
     ]);
 
     FormSubmissionExporter::$form = $form;
 
-    expect(exportColumnMap())->toHaveKeys(['data.key_voornaam', 'data.key_telefoon'])
-        ->and(exportColumnMap()['data.key_voornaam'])->toBe('Voornaam')
-        ->and(exportColumnMap()['data.key_telefoon'])->toBe('Telefoon');
+    expect(exportColumnMap())->toHaveKeys(['data.voornaam', 'data.telefoon'])
+        ->and(exportColumnMap()['data.voornaam'])->toBe('Voornaam')
+        ->and(exportColumnMap()['data.telefoon'])->toBe('Telefoon');
 });
 
 it('falls back to the keys found in the submissions', function () {
     $form = formWithFields('Solliciteren', ['Voornaam']);
-    FormSubmission::create(['form_id' => $form->id, 'data' => ['key_voornaam' => 'Jesse']]);
+    FormSubmission::create(['form_id' => $form->id, 'data' => ['voornaam' => 'Jesse']]);
 
-    expect(exportColumnMap())->toHaveKey('data.key_voornaam');
+    expect(exportColumnMap())->toHaveKey('data.voornaam');
 });

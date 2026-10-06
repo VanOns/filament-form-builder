@@ -25,13 +25,13 @@ it('stores only the fields a custom form asks for', function () {
     ]);
 
     $submission = submit($form, [
-        'key_naam' => 'Jan',
-        'key_title_field' => 'not a field',
+        'naam' => 'Jan',
+        'title_field' => 'not a field',
         'is_admin' => '1',
         'submitter_email' => 'jan@example.com',
     ]);
 
-    expect($submission->data)->toBe(['key_naam' => 'Jan'])
+    expect($submission->data)->toBe(['naam' => 'Jan'])
         ->and($submission->submitter_email)->toBe('jan@example.com');
 });
 

@@ -3,7 +3,6 @@
 namespace VanOns\FilamentFormBuilder\Classes;
 
 use Exception;
-use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -32,9 +31,8 @@ class SubmissionPlaceholders
             return $this->values;
         }
 
-        // Later keys win: a submitted field beats a template fallback, and
-        // `form_title` when an editor named a field that way.
-        $values = array_filter([
+        // Later keys win: a submitted field beats a template fallback.
+        return $this->values = array_filter([
             'form_title' => $this->formSubmission->form->title,
             ...$this->templatePlaceholders(),
             ...$this->formSubmission->getFormattedData(
@@ -42,8 +40,6 @@ class SubmissionPlaceholders
             ),
             'submitter_email' => $this->formSubmission->submitter_email,
         ], fn ($value) => $value !== null && $value !== '');
-
-        return $this->values = $this->withoutKeyPrefixAliases($values);
     }
 
     public function replace(string $subject, ?callable $escape = null): string
@@ -106,27 +102,4 @@ class SubmissionPlaceholders
         return [];
     }
 
-    /**
-     * Forms from before the `key_` prefix used `{{ $naam }}`, so register both.
-     *
-     * @param  array<string, mixed>  $values
-     * @return array<string, mixed>
-     */
-    protected function withoutKeyPrefixAliases(array $values): array
-    {
-        $prefix = 'key_';
-        $aliases = [];
-
-        foreach ($values as $key => $value) {
-            if (str_starts_with($key, $prefix)) {
-                $alias = Str::after($key, $prefix);
-
-                if (!array_key_exists($alias, $values)) {
-                    $aliases[$alias] = $value;
-                }
-            }
-        }
-
-        return array_merge($values, $aliases);
-    }
 }

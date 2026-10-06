@@ -14,7 +14,7 @@ function passes(string $type, mixed $value): bool
 {
     $field = new $type(['key' => 'answer', 'label' => 'Answer']);
 
-    return Validator::make(['key_answer' => $value], array_filter($field->getRules()))->passes();
+    return Validator::make(['answer' => $value], array_filter($field->getRules()))->passes();
 }
 
 it('renders each type as its own HTML input type', function (string $type, string $inputType) {

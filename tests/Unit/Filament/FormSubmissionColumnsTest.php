@@ -48,8 +48,8 @@ it('gives every input field of a custom form a column', function () {
     expect(columnMap($form))->toBe([
         'Created at' => 'created_at',
         'Submitter email' => 'submitter_email',
-        'Voornaam' => 'data.key_voornaam',
-        'Achternaam' => 'data.key_achternaam',
+        'Voornaam' => 'data.voornaam',
+        'Achternaam' => 'data.achternaam',
     ]);
 });
 
@@ -70,7 +70,7 @@ it('hides the field columns until someone asks for them', function () {
     $columns = collect(FormSubmissionColumns::for($form)->columns())
         ->keyBy(fn (TextColumn $column): string => $column->getName());
 
-    expect($columns->get('data.key_voornaam')->isToggledHiddenByDefault())->toBeTrue()
+    expect($columns->get('data.voornaam')->isToggledHiddenByDefault())->toBeTrue()
         ->and($columns->get('created_at')->isToggleable())->toBeFalse();
 });
 
@@ -79,7 +79,7 @@ it('shortens a label that is a whole paragraph', function () {
     $form = customForm([['fieldType' => TextInputField::class, 'label' => $consent, 'key' => 'akkoord']]);
 
     $label = collect(FormSubmissionColumns::for($form)->columns())
-        ->first(fn (TextColumn $column): bool => $column->getName() === 'data.key_akkoord')
+        ->first(fn (TextColumn $column): bool => $column->getName() === 'data.akkoord')
         ->getLabel();
 
     expect(strlen($label))->toBeLessThan(strlen($consent))
@@ -110,7 +110,7 @@ it('offers a filter for a field with a fixed list of choices', function () {
     $filters = FormSubmissionColumns::for($form)->filters();
 
     expect($filters)->toHaveCount(1)
-        ->and($filters[0]->getName())->toBe('key_aanhef')
+        ->and($filters[0]->getName())->toBe('aanhef')
         ->and($filters[0]->getOptions())->toBe(['dhr' => 'Dhr.', 'mw' => 'Mw.']);
 });
 
@@ -129,7 +129,7 @@ it('shows the label of a chosen option, not the value that was stored', function
     ]);
 
     $column = collect(FormSubmissionColumns::for($form)->columns())
-        ->first(fn (TextColumn $column): bool => $column->getName() === 'data.key_aanhef');
+        ->first(fn (TextColumn $column): bool => $column->getName() === 'data.aanhef');
 
     expect($column->formatState('mw'))->toBe('Mw.')
         // A value the field no longer offers still has to show something.

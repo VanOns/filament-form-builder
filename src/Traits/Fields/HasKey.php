@@ -7,12 +7,18 @@ use Illuminate\Support\Str;
 trait HasKey
 {
     public ?string $key = null;
-    public static string $keyPrefix = 'key_';
 
     /**
      * @var array<string>
      */
-    public static array $disallowedKeyCharacters = ['.', '*', ' '];
+    public static array $disallowedKeyCharacters = ['.', '*', ' ', '[', ']'];
+
+    /**
+     * Names the request or the placeholders already use for something else.
+     *
+     * @var array<string>
+     */
+    public static array $reservedKeys = ['_token', '_method', 'g-recaptcha-response', 'form_title', 'all_fields'];
 
     public static function cleanKey(string $key): string
     {
@@ -24,13 +30,8 @@ trait HasKey
         return 'not_regex:/[' . preg_quote(implode('', static::$disallowedKeyCharacters), '/') . '\s]/';
     }
 
-    public function getBaseKey(): string
-    {
-        return static::cleanKey(filled($this->key) ? $this->key : Str::snake($this->label ?? class_basename(static::class)));
-    }
-
     public function getKey(): string
     {
-        return static::$keyPrefix . $this->getBaseKey();
+        return static::cleanKey(filled($this->key) ? $this->key : Str::snake($this->label ?? class_basename(static::class)));
     }
 }

@@ -88,13 +88,8 @@ class FormSubmissionExporter extends Exporter
 
     protected static function getExportColumn(string $key): ExportColumn
     {
-        $keyLabel = str($key)
-            ->replaceFirst('key_', '')
-            ->headline()
-            ->toString();
-
         return ExportColumn::make("data.{$key}")
-            ->label($keyLabel);
+            ->label(str($key)->headline()->toString());
     }
 
     public static function getCompletedNotificationBody(Export $export): string
