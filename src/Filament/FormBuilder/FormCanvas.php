@@ -164,6 +164,12 @@ class FormCanvas extends Field
             ->color('danger')
             ->iconButton()
             ->size(Size::Small)
+            ->requiresConfirmation()
+            ->modalHeading(fn (array $arguments, FormCanvas $component): string => __('filament-form-builder::general.canvas.delete_heading', [
+                'label' => ($component->getItems()[$arguments['item'] ?? ''] ?? null)?->getLabel() ?? '',
+            ]))
+            ->modalDescription(__('filament-form-builder::general.canvas.delete_description'))
+            ->modalSubmitActionLabel(__('filament-forms::components.builder.actions.delete.label'))
             ->action(function (array $arguments, FormCanvas $component): void {
                 $items = $component->getRawState() ?? [];
                 unset($items[$arguments['item']]);

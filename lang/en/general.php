@@ -109,5 +109,7 @@ return [
         'widen' => 'Wider',
         'no_options' => 'No options yet',
         'more_options' => '+ :count more',
+        'delete_heading' => 'Delete ":label"?',
+        'delete_description' => 'The field disappears from the form once you save. Answers that were already submitted stay with their submissions.',
     ],
 ];

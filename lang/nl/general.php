@@ -109,5 +109,7 @@ return [
         'widen' => 'Breder',
         'no_options' => 'Nog geen opties',
         'more_options' => '+ :count meer',
+        'delete_heading' => '":label" verwijderen?',
+        'delete_description' => 'Het veld verdwijnt uit het formulier zodra je opslaat. Antwoorden die al zijn ingestuurd blijven bij hun inzending bewaard.',
     ],
 ];
