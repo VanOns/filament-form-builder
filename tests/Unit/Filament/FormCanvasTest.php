@@ -243,6 +243,16 @@ it('shows only the width of a field that can take no other', function () {
         ->assertDontSeeHtml('ffb-canvas-width-trigger');
 });
 
+it('puts the submit button on a row of its own', function () {
+    $form = rowOf([6]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->callAction(onCanvas('add', ['type' => 'submit', 'width' => 6]), data: ['label' => 'Versturen'])
+        ->call('save');
+
+    expect(array_column(savedFields($form), 'column_span'))->toBe([6, 12]);
+});
+
 it('gives a new field a row of its own where the room left is too narrow for it', function () {
     $form = rowOf([9]);
 

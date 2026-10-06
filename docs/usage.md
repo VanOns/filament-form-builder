@@ -332,7 +332,8 @@ and a copy shares its original's row or gets one of its own below.
 
 Each field type has a minimum width, below which the builder offers nothing: a
 third for titles, text blocks, text areas, uploads and checkboxes, half for
-reCAPTCHA, a quarter for the rest. A type of your own sets its own:
+reCAPTCHA, a quarter for the rest. The submit button always takes the full row,
+so it sits on a row of its own. A type of your own sets its own:
 
 ```php
 public static function minWidth(): FieldWidth

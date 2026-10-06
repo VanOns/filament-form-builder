@@ -15,7 +15,7 @@ class HalfRowForm extends FormType
         return [
             TextInputField::make('naam')->label('Naam')->span(FieldWidth::HALF),
             CustomFields::make(),
-            SubmitField::make('verstuur')->span(FieldWidth::HALF),
+            SubmitField::make('verstuur'),
         ];
     }
 }

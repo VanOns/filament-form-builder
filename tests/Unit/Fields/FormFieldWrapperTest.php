@@ -2,6 +2,7 @@
 
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\RecaptchaField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\SubmitField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextAreaField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 
@@ -29,7 +30,8 @@ it('keeps a stored span to a width a row can hold', function () {
 
 it('never reads a field narrower than its type works at', function () {
     expect((new TextAreaField(['key' => 'bericht', 'column_span' => 3]))->getWidth())->toBe(FieldWidth::THIRD)
-        ->and((new RecaptchaField(['column_span' => 4]))->getColumnSpan())->toBe(6);
+        ->and((new RecaptchaField(['column_span' => 4]))->getColumnSpan())->toBe(6)
+        ->and(SubmitField::make('verstuur')->span(FieldWidth::HALF)->getColumnSpan())->toBe(12);
 });
 
 it('keeps the existing wrapper key attribute', function () {

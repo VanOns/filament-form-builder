@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 use BackedEnum;
 use Filament\Forms\Components\TextInput;
 use Filament\Support\Icons\Heroicon;
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 
 class SubmitField extends FormField
 {
@@ -19,6 +20,11 @@ class SubmitField extends FormField
     public static function paletteGroup(): string
     {
         return 'layout';
+    }
+
+    public static function minWidth(): FieldWidth
+    {
+        return FieldWidth::FULL;
     }
 
     public static function icon(): string | BackedEnum
