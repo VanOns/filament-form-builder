@@ -106,3 +106,17 @@ it('does not read a placeholder typed into a field as one in the field overview'
 
     expect($notification->content)->toContain('<b>Naam</b>: {{ $submitter_email }}</p>');
 });
+
+it('points the placeholders of a renamed key at its new name', function () {
+    $renamed = SubmissionPlaceholders::rename([
+        'subject' => 'Van {{ $naam }} ({{$naam}})',
+        'content' => ['<p>{{ $naam }} en {{ $naam_2 }}</p>'],
+        'sender' => null,
+    ], 'naam', 'volledige_naam');
+
+    expect($renamed)->toBe([
+        'subject' => 'Van {{ $volledige_naam }} ({{ $volledige_naam }})',
+        'content' => ['<p>{{ $volledige_naam }} en {{ $naam_2 }}</p>'],
+        'sender' => null,
+    ]);
+});

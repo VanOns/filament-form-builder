@@ -21,6 +21,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\FontFamily;
@@ -36,6 +37,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\Integration;
+use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
@@ -177,8 +179,31 @@ class FormResource extends Resource
             ->visible(self::hasCustomFields(...))
             ->schema([
                 FormCanvas::make('custom.fields')
-                    ->hiddenLabel(),
+                    ->hiddenLabel()
+                    ->afterKeyRenamed(static::renameKeyInNotifications(...)),
             ])->columnSpanFull();
+    }
+
+    public static function renameKeyInNotifications(string $from, string $to, Get $get, Set $set): void
+    {
+        $set('submit_notification_query', SubmissionPlaceholders::rename($get('submit_notification_query'), $from, $to));
+
+        $notifications = [];
+
+        foreach ($get('notifications') ?? [] as $uuid => $notification) {
+            $notification = SubmissionPlaceholders::rename($notification, $from, $to);
+            // While the form is open, a receiver is `['email' => ...]` rather than a string.
+            $notification['receivers'] = array_map(
+                fn (mixed $receiver): mixed => is_array($receiver)
+                    ? array_map(fn (mixed $value): mixed => $value === $from ? $to : $value, $receiver)
+                    : ($receiver === $from ? $to : $receiver),
+                $notification['receivers'] ?? [],
+            );
+
+            $notifications[$uuid] = $notification;
+        }
+
+        $set('notifications', $notifications);
     }
 
     public static function getSubmitNotificationSection(): Section

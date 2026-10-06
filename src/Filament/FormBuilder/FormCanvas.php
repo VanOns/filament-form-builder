@@ -26,6 +26,8 @@ class FormCanvas extends Field
 
     protected int | Closure | null $gridColumns = null;
 
+    protected ?Closure $afterKeyRenamed = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -58,6 +60,17 @@ class FormCanvas extends Field
     public function gridColumns(int | Closure | null $columns): static
     {
         $this->gridColumns = $columns;
+
+        return $this;
+    }
+
+    /**
+     * Runs after an editor renamed a key, so whatever outside the canvas still
+     * names the old key can follow. Receives `$from` and `$to`.
+     */
+    public function afterKeyRenamed(?Closure $callback): static
+    {
+        $this->afterKeyRenamed = $callback;
 
         return $this;
     }
@@ -134,6 +147,7 @@ class FormCanvas extends Field
 
                 if ($oldKey !== null && $newKey !== null && $oldKey !== $newKey) {
                     $component->renameVisibilityKey($oldKey, $newKey);
+                    $component->evaluate($component->afterKeyRenamed, ['from' => $oldKey, 'to' => $newKey]);
                 }
             });
     }

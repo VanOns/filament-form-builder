@@ -40,6 +40,23 @@ class SubmissionPlaceholders
         ], fn ($value) => $value !== null && $value !== '');
     }
 
+    /**
+     * Points every `{{ $from }}` in the given text, or in the strings of the
+     * given array, at `$to` instead.
+     */
+    public static function rename(mixed $value, string $from, string $to): mixed
+    {
+        if (is_array($value)) {
+            return array_map(fn (mixed $item): mixed => static::rename($item, $from, $to), $value);
+        }
+
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        return preg_replace('/{{\s*\$' . preg_quote($from, '/') . '\s*}}/', '{{ $' . $to . ' }}', $value) ?? $value;
+    }
+
     public function replace(string $subject, ?callable $escape = null): string
     {
         $replacements = [];
