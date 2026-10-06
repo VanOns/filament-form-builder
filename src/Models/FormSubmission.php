@@ -236,12 +236,6 @@ class FormSubmission extends Model
     {
         parent::boot();
 
-        static::created(function (FormSubmission $submission) {
-            if ($template = TemplateHelper::resolve($submission->form->template)) {
-                $template::afterSubmissionCreated($submission);
-            }
-        });
-
         // A soft deleted submission can come back, so its files stay until then.
         static::forceDeleted(fn (FormSubmission $submission) => $submission->deleteFiles());
     }

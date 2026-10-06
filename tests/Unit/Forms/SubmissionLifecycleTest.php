@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Queue;
 use VanOns\FilamentFormBuilder\Classes\Integration;
+use VanOns\FilamentFormBuilder\Jobs\RunFormIntegrationsJob;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
@@ -33,6 +34,13 @@ function lifecycleForm(string $template = CustomForm::class): Form
     ]);
 }
 
+function postTo(Form $form): FormSubmission
+{
+    test()->post(route('filament-form-builder.form.store', ['formId' => $form->id]));
+
+    return FormSubmission::query()->where('form_id', $form->id)->latest('id')->firstOrFail();
+}
+
 beforeEach(function () {
     Queue::fake();
     config([
@@ -41,14 +49,22 @@ beforeEach(function () {
     ]);
 });
 
-it('sends the notifications of a form', function () {
-    FormSubmission::create(['form_id' => lifecycleForm()->id, 'data' => []]);
+it('sends the notifications of a form and queues its integrations', function () {
+    postTo(lifecycleForm());
 
     expect(FormSubmissionNotificationLog::count())->toBe(1);
+    Queue::assertPushed(RunFormIntegrationsJob::class);
+});
+
+it('sends nothing for a submission created in code', function () {
+    FormSubmission::create(['form_id' => lifecycleForm()->id, 'data' => []]);
+
+    expect(FormSubmissionNotificationLog::count())->toBe(0);
+    Queue::assertNotPushed(RunFormIntegrationsJob::class);
 });
 
 it('sends nothing for a template that turned notifications off', function () {
-    FormSubmission::create(['form_id' => lifecycleForm(SilentForm::class)->id, 'data' => []]);
+    postTo(lifecycleForm(SilentForm::class));
 
     expect(FormSubmissionNotificationLog::count())->toBe(0);
 });
@@ -58,6 +74,9 @@ it('keeps the integration responses of one submission out of the next', function
 
     $first = FormSubmission::create(['form_id' => $form->id, 'data' => []]);
     $second = FormSubmission::create(['form_id' => $form->id, 'data' => []]);
+
+    (new RunFormIntegrationsJob($first))->handle();
+    (new RunFormIntegrationsJob($second))->handle();
 
     expect($first->fresh()->integrations)->toHaveCount(1)
         ->and($second->fresh()->integrations)->toHaveCount(1)

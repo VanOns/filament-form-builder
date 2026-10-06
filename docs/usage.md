@@ -17,6 +17,13 @@ Stored forms only know the name, so a field class can be renamed, moved or
 swapped for a project's own subclass by changing its entry here. Add an entry
 to offer a field type of your own in the builder's palette.
 
+## After a submission
+
+Once a visitor's submission is stored, the template's `afterSubmissionCreated()`
+sends the e-mail notifications and queues a `RunFormIntegrationsJob` for the
+form's integrations. A submission created in code, by a seeder or an import,
+triggers neither.
+
 ## Submit notification
 
 Each form has a "what happens after submission" section with two branches:

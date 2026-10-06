@@ -40,6 +40,8 @@ class FormSubmissionController
                 'files' => $files ?: null,
             ]);
 
+        $template::afterSubmissionCreated($submission);
+
         if ($response = $template::successResponse($submission)) {
             return $response;
         }

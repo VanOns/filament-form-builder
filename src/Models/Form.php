@@ -27,6 +27,7 @@ use VanOns\FilamentFormBuilder\Traits\HasCustomFields;
  * @property string|class-string<FilamentForm> $template
  * @property array<string, mixed> $custom
  * @property array<int, mixed> $notifications
+ * @property array<int, array<string, mixed>>|null $integrations
  * @property array<string, mixed> $settings
  * @property string $submit_notification_type
  * @property string $submit_notification_content

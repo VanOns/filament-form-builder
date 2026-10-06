@@ -83,10 +83,7 @@ interface FilamentForm extends HasNotifications, HasIntegrations
     public static function modifyDataUsing(array $data, Form $form): array;
 
     /**
-     * Hook to perform actions after a form submission is created.
-     *
-     * @param FormSubmission $submission
-     * @return void
+     * Runs once a visitor's submission is stored, not for one created in code.
      */
     public static function afterSubmissionCreated(FormSubmission $submission): void;
 
