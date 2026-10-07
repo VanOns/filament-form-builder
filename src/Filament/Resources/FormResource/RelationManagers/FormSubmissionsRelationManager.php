@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Filament\Tables\FormSubmissionColumns;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 class FormSubmissionsRelationManager extends RelationManager
@@ -64,7 +65,7 @@ class FormSubmissionsRelationManager extends RelationManager
             ->headerActions([
                 Actions\ExportAction::make()
                     ->label(__('filament-form-builder::general.export_form_submissions'))
-                    ->visible(config('filament-form-builder.enable_export_action') === true)
+                    ->visible(fn (): bool => FilamentFormBuilderPlugin::get()->hasExportAction())
                     ->beforeFormFilled(function () use ($form): void {
                         FormSubmissionExporter::$form = $form;
                     })
@@ -78,7 +79,7 @@ class FormSubmissionsRelationManager extends RelationManager
                     Actions\RestoreBulkAction::make(),
                     Actions\ExportBulkAction::make()
                         ->label(__('filament-form-builder::general.export_form_submissions'))
-                        ->visible(config('filament-form-builder.enable_export_action') === true)
+                        ->visible(fn (): bool => FilamentFormBuilderPlugin::get()->hasExportAction())
                         ->beforeFormFilled(function () use ($form): void {
                             FormSubmissionExporter::$form = $form;
                         })

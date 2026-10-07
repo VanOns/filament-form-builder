@@ -146,7 +146,7 @@ class ViewFormSubmission extends ViewRecord
         return Section::make(__('filament-form-builder::general.notifications_label'))
             ->icon(Heroicon::OutlinedEnvelope)
             ->afterHeader([$this->getCount($logs->count())])
-            ->hidden($logs->isEmpty() && !config('filament-form-builder.email_notification_enabled'))
+            ->hidden($logs->isEmpty() && !config('filament-form-builder.email_notifications'))
             ->schema([
                 View::make('filament-form-builder::filament.submission.notifications')
                     ->viewData(['logs' => $logs]),

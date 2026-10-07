@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class FormSubmissionResource extends Resource
@@ -46,11 +47,7 @@ class FormSubmissionResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        if (config('filament-form-builder.add_nav_group')) {
-            return __('filament-form-builder::general.navigation-group');
-        }
-
-        return null;
+        return FilamentFormBuilderPlugin::get()->getNavigationGroup();
     }
 
     public static function table(Table $table): Table
@@ -92,7 +89,7 @@ class FormSubmissionResource extends Resource
             ->headerActions([
                 Actions\ExportAction::make()
                     ->label(__('filament-form-builder::general.export_form_submissions'))
-                    ->visible(config('filament-form-builder.enable_export_action') === true)
+                    ->visible(fn (): bool => FilamentFormBuilderPlugin::get()->hasExportAction())
                     ->beforeFormFilled(fn () => FormSubmissionExporter::$form = null)
                     ->exporter(FormSubmissionExporter::class),
             ])
@@ -104,7 +101,7 @@ class FormSubmissionResource extends Resource
                     Actions\ExportBulkAction::make()
                         ->beforeFormFilled(fn () => FormSubmissionExporter::$form = null)
                         ->label(__('filament-form-builder::general.export_form_submissions'))
-                        ->visible(config('filament-form-builder.enable_export_action') === true)
+                        ->visible(fn (): bool => FilamentFormBuilderPlugin::get()->hasExportAction())
                         ->exporter(FormSubmissionExporter::class),
                 ]),
             ]);

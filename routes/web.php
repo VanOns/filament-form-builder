@@ -11,14 +11,14 @@ Route::name('filament-form-builder.')
             ->middleware(
                 [
                     'throttle:filament-form-builder-submissions',
-                    ...config('filament-form-builder.form-middleware', []),
+                    ...config('filament-form-builder.form_middleware', []),
                 ]
             )
             ->name('form.store');
         Route::get('submissions/{submissionId}/files/{key}/{index}', [FormSubmissionController::class, 'showFile'])
             ->middleware([
                 ValidateSignature::class,
-                ...config('filament-form-builder.form-uploads-middleware', []),
+                ...config('filament-form-builder.uploads.middleware', []),
             ])
             ->whereNumber(['submissionId', 'index'])
             ->name('form.download-file');

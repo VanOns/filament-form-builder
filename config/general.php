@@ -4,27 +4,10 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 use VanOns\FilamentFormBuilder\Forms;
 
 return [
-    'add_nav_group' => true,
     'types' => [
         'custom' => Forms\CustomForm::class,
         'contact' => Forms\ContactForm::class,
     ],
-    'integrations' => [
-        // Insert integrations here
-    ],
-    'rate-limit-hour' => 60,
-    'email_notification_enabled' => true,
-    'submit_notification_query_enabled' => true,
-    'form-middleware' => ['web'],
-    'form-uploads-middleware' => [],
-    'form-uploads-disk' => 'local',
-    'form-uploads-max-size' => 10240,
-    'form-uploads-link-days' => 7,
-    // Uploads a notification attaches, in kilobytes together; the rest stay a link.
-    'form-uploads-attach-max-size' => 10240,
-    // How freely fields sit side by side: 'flexible' (quarters, thirds and
-    // halves), 'two_columns' (halves only) or 'full_width' (one field a row).
-    'layout' => 'flexible',
     'fields' => [
         'title' => Fields\TitleField::class,
         'text_block' => Fields\TextField::class,
@@ -41,13 +24,34 @@ return [
         'recaptcha' => Fields\RecaptchaField::class,
         'submit' => Fields\SubmitField::class,
     ],
+    'integrations' => [
+        // Insert integrations here
+    ],
+    // How freely fields sit side by side: 'flexible' (quarters, thirds and
+    // halves), 'two_columns' (halves only) or 'full_width' (one field a row).
+    'layout' => 'flexible',
+    'field_conditions' => true,
+    'email_notifications' => true,
+    'redirect_query' => true,
+    'form_middleware' => ['web'],
+    'rate_limit_per_hour' => 60,
+    'uploads' => [
+        'disk' => 'local',
+        // In kilobytes, per file.
+        'max_size' => 10240,
+        'link_days' => 7,
+        // Uploads a notification attaches, in kilobytes together; the rest stay a link.
+        'attach_max_size' => 10240,
+        'middleware' => [],
+    ],
     'recaptcha' => [
         'enabled' => env('RECAPTCHA_ENABLED', false),
         'secret' => env('RECAPTCHA_SECRET', ''),
         'key' => env('RECAPTCHA_KEY', ''),
     ],
+    // Defaults for every panel; a panel sets its own on the plugin.
+    'navigation_group' => true,
     // A queued Filament export: it needs the exports, job_batches and notifications
     // tables, see the installation docs.
-    'enable_export_action' => true,
-    'field_conditions' => true,
+    'export_action' => true,
 ];

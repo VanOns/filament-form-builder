@@ -102,7 +102,7 @@ class FormSubmission extends Model
 
     public static function getFilesDisk(): string
     {
-        return config('filament-form-builder.form-uploads-disk', 'local');
+        return config('filament-form-builder.uploads.disk', 'local');
     }
 
     public function deleteFiles(): void

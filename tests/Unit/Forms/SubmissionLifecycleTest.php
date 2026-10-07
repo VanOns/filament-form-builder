@@ -44,7 +44,7 @@ function postTo(Form $form): FormSubmission
 beforeEach(function () {
     Queue::fake();
     config([
-        'filament-form-builder.email_notification_enabled' => true,
+        'filament-form-builder.email_notifications' => true,
         'filament-form-builder.integrations' => [RecordingIntegration::class],
         'filament-form-builder.types.silent' => SilentForm::class,
     ]);

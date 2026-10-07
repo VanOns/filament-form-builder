@@ -34,12 +34,17 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 | `field_visibility_settings`                  | `field_conditions`                                                                    |
 | `columns`                                    | Removed, every form has a 12-column grid                                              |
 | `field_column_settings`                      | Removed, every field has a column span                                                |
-| `email_notification_enabled`: `false`        | `true`                                                                                |
-| `form-uploads-disk`: `private`               | `local`                                                                               |
-| `form-uploads-middleware`: `['web', 'auth']` | `[]`, the download links are signed                                                   |
-|                                              | `form-uploads-link-days`: how long a link stays valid                                 |
-|                                              | `form-uploads-attach-max-size`: how many kilobytes of uploads a notification attaches |
-| `enable_export_action`: `false`              | `true`, see [Exporting submissions](docs/installation.md#exporting-submissions)       |
+| `email_notification_enabled`: `false`        | `email_notifications`: `true`                                                         |
+| `submit_notification_query_enabled`          | `redirect_query`                                                                      |
+| `rate-limit-hour`                            | `rate_limit_per_hour`                                                                 |
+| `form-middleware`                            | `form_middleware`                                                                     |
+| `form-uploads-disk`: `private`               | `uploads.disk`: `local`                                                               |
+| `form-uploads-max-size`                      | `uploads.max_size`                                                                    |
+| `form-uploads-middleware`: `['web', 'auth']` | `uploads.middleware`: `[]`, the download links are signed                             |
+|                                              | `uploads.link_days`: how long a link stays valid                                      |
+|                                              | `uploads.attach_max_size`: how many kilobytes of uploads a notification attaches      |
+| `add_nav_group`                              | `navigation_group`, or `->navigationGroup()` on the plugin per panel                  |
+| `enable_export_action`: `false`              | `export_action`: `true`, or `->exportAction()` on the plugin per panel, see [Exporting submissions](docs/installation.md#exporting-submissions) |
 
 ### Templates become form types
 

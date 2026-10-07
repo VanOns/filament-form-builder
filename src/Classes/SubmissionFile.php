@@ -54,7 +54,7 @@ class SubmissionFile implements Stringable
 
     public static function linkDays(): int
     {
-        return (int) config('filament-form-builder.form-uploads-link-days', 7);
+        return (int) config('filament-form-builder.uploads.link_days', 7);
     }
 
     public function exists(): bool

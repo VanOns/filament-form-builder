@@ -162,7 +162,7 @@ class EmailNotification
      */
     protected function getAttachments(): array
     {
-        $limit = (int) config('filament-form-builder.form-uploads-attach-max-size', 10240) * 1024;
+        $limit = (int) config('filament-form-builder.uploads.attach_max_size', 10240) * 1024;
         $attachments = [];
         $total = 0;
 

@@ -13,7 +13,7 @@ trait HasNotifications
 {
     public function hasNotifications(): bool
     {
-        return config('filament-form-builder.email_notification_enabled') === true;
+        return config('filament-form-builder.email_notifications') === true;
     }
 
     /**

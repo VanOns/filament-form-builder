@@ -50,7 +50,7 @@ class FileUploadField extends FormField
 
     protected function getMaxSize(): ?int
     {
-        $maxSize = config('filament-form-builder.form-uploads-max-size');
+        $maxSize = config('filament-form-builder.uploads.max_size');
 
         return is_int($maxSize) ? $maxSize : null;
     }

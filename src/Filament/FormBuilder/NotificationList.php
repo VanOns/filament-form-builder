@@ -399,7 +399,7 @@ class NotificationList extends Field
                     Toggle::make('attach_files')
                         ->label(__('filament-form-builder::general.notifications.attach_files'))
                         ->helperText(__('filament-form-builder::general.notifications.attach_files_helper', [
-                            'size' => Number::fileSize((int) config('filament-form-builder.form-uploads-attach-max-size', 10240) * 1024),
+                            'size' => Number::fileSize((int) config('filament-form-builder.uploads.attach_max_size', 10240) * 1024),
                         ])),
                 ]),
             ...$this->getSenderSchema(),

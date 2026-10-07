@@ -112,7 +112,7 @@ class SubmitNotifications extends Group
                 ->visible($isType(SubmitNotificationType::URL)),
             Group::make(fn (Get $get): array => static::getQuerySchema($get))
                 ->visible(fn (Get $get, Livewire $livewire): bool => $isType(SubmitNotificationType::URL)($get, $livewire)
-                    && (static::getFormType($livewire)?->hasSubmitNotificationQuery() ?? config('filament-form-builder.submit_notification_query_enabled', true) === true)),
+                    && (static::getFormType($livewire)?->hasSubmitNotificationQuery() ?? config('filament-form-builder.redirect_query', true) === true)),
         ];
     }
 

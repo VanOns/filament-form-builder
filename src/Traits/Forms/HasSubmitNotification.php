@@ -40,7 +40,7 @@ trait HasSubmitNotification
      */
     public function hasSubmitNotificationQuery(): bool
     {
-        return config('filament-form-builder.submit_notification_query_enabled', true) === true;
+        return config('filament-form-builder.redirect_query', true) === true;
     }
 
     /**

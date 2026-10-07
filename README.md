@@ -65,8 +65,9 @@ return $panel
 ```
 
 Laravel's default jobs migration already creates `job_batches`; an app without
-it adds it with `php artisan make:queue-batches-table`. To leave the export out,
-set `enable_export_action` to `false` in the config.
+it adds it with `php artisan make:queue-batches-table`. To leave the export out
+of a panel, call `->exportAction(false)` on the plugin; `export_action` in the
+config sets it for every panel.
 
 ## Documentation
 

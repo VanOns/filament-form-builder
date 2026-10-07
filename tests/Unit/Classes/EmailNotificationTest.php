@@ -97,7 +97,7 @@ it('attaches the uploads that fit within the limit', function () {
     Storage::fake('local');
     Storage::disk('local')->put('form_uploads/cv.pdf', str_repeat('a', 6 * 1024));
     Storage::disk('local')->put('form_uploads/portfolio.zip', str_repeat('a', 6 * 1024));
-    config(['filament-form-builder.form-uploads-attach-max-size' => 10]);
+    config(['filament-form-builder.uploads.attach_max_size' => 10]);
 
     $submission = mailSubmission(mailForm(), files: ['cv' => [
         ['path' => 'form_uploads/cv.pdf', 'name' => 'cv.pdf'],

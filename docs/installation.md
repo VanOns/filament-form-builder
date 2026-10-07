@@ -29,6 +29,20 @@ class AdminPanelProvider extends PanelProvider
 }
 ```
 
+A panel can set its own navigation group and export on the plugin; without
+them it takes `navigation_group` and `export_action` from the config:
+
+```php
+FilamentFormBuilderPlugin::make()
+    ->navigationGroup('Website') // false for none, true for the package's own
+    ->exportAction(false);
+```
+
+Everything else, such as the form types, the uploads and reCAPTCHA, is also
+used outside the panel, where a visitor sends a form or a job sends its mails,
+so it stays in the config. Publish it with
+`php artisan vendor:publish --tag=filament-form-builder-config`.
+
 ## Exporting submissions
 
 The submissions tables can export to CSV and Excel. Filament runs an export in
@@ -49,5 +63,6 @@ return $panel
 ```
 
 Laravel's default jobs migration already creates `job_batches`; an app without
-it adds it with `php artisan make:queue-batches-table`. To leave the export out,
-set `enable_export_action` to `false` in the config.
+it adds it with `php artisan make:queue-batches-table`. To leave the export out
+of a panel, call `->exportAction(false)` on the plugin; `export_action` in the
+config sets it for every panel.

@@ -6,8 +6,11 @@ use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers\FormSubmissionsRelationManager;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -142,7 +145,20 @@ it('offers the export unless the config turns it off', function () {
 
     $table()->assertActionVisible(TestAction::make('export')->table());
 
-    config(['filament-form-builder.enable_export_action' => false]);
+    config(['filament-form-builder.export_action' => false]);
 
     $table()->assertActionHidden(TestAction::make('export')->table());
+
+    FilamentFormBuilderPlugin::get()->exportAction();
+
+    $table()->assertActionVisible(TestAction::make('export')->table());
+});
+
+it('lists the forms in the navigation group a panel sets', function () {
+    $plugin = FilamentFormBuilderPlugin::get();
+
+    expect(FormResource::getNavigationGroup())->toBe(__('filament-form-builder::general.navigation-group'))
+        ->and($plugin->navigationGroup('Website')->getNavigationGroup())->toBe('Website')
+        ->and(FormSubmissionResource::getNavigationGroup())->toBe('Website')
+        ->and($plugin->navigationGroup(false)->getNavigationGroup())->toBeNull();
 });

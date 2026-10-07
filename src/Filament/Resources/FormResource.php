@@ -38,6 +38,7 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\NotificationList;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\SubmitNotifications;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers\FormSubmissionsRelationManager;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
@@ -65,11 +66,7 @@ class FormResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        if (config('filament-form-builder.add_nav_group')) {
-            return __('filament-form-builder::general.navigation-group');
-        }
-
-        return null;
+        return FilamentFormBuilderPlugin::get()->getNavigationGroup();
     }
 
     public static function form(Schema $schema): Schema

@@ -211,7 +211,7 @@ how often they went out. A notification is edited in a slide-over:
   the form.
 - **Sending**: always, or only when the answers meet conditions, the same rules
   fields use to show.
-- **Attachments**: the uploads go along up to `form-uploads-attach-max-size`
+- **Attachments**: the uploads go along up to `uploads.attach_max_size`
   kilobytes together; larger ones stay a link.
 - A switch on the card turns a notification off without deleting it, and
   **Test mail to me** sends it, filled in with the latest submission, to the
@@ -279,7 +279,7 @@ outcome that applies, for a type that handles the response itself.
 ### Passing field data via the query string
 
 The URL branch has an optional query string, stored in the outcome's `query`.
-Set the `submit_notification_query_enabled` config
+Set the `redirect_query` config
 flag to `false` to hide the field, or override `hasSubmitNotificationQuery()` on
 a form type to drop it for that type alone. Either way a stored query string
 is no longer appended on submit.
@@ -380,7 +380,7 @@ public function hasNotificationMessage(): bool
 ```
 
 A third toggle hides only the query string, leaving the URL itself editable. It
-defaults to the `submit_notification_query_enabled` config flag:
+defaults to the `redirect_query` config flag:
 
 ```php
 public function hasSubmitNotificationQuery(): bool
@@ -410,11 +410,11 @@ public function modifySubmitNotification(FormSubmission $submission): void
 
 ### File uploads
 
-Uploaded files are stored on the `form-uploads-disk` (default `local`) and kept in
+Uploaded files are stored on the `uploads.disk` (default `local`) and kept in
 the submission's `files` column, apart from the answers. They are served through
-signed links that stay valid for `form-uploads-link-days` days (default 7), so a
+signed links that stay valid for `uploads.link_days` days (default 7), so a
 notification mail can link to them for someone without an account. Add middleware
-to `form-uploads-middleware` to put the links behind a login as well.
+to `uploads.middleware` to put the links behind a login as well.
 
 
 ## Field widths

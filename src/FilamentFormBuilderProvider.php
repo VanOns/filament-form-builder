@@ -90,7 +90,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
         RateLimiter::for(
             'filament-form-builder-submissions',
             function (Request $request) {
-                $limit = config('filament-form-builder.rate-limit-hour', 60);
+                $limit = config('filament-form-builder.rate_limit_per_hour', 60);
 
                 return Limit::perHour($limit)
                     ->by($request->user()?->id ?: $request->ip());

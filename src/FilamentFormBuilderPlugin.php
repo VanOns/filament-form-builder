@@ -4,6 +4,8 @@ namespace VanOns\FilamentFormBuilder;
 
 use Closure;
 use Filament\Contracts\Plugin;
+use Filament\Exceptions\NoDefaultPanelSetException;
+use Filament\FilamentManager;
 use Filament\Forms\Components\TextInput;
 use Filament\Panel;
 use Filament\Schemas\Components\Component;
@@ -23,9 +25,68 @@ class FilamentFormBuilderPlugin implements Plugin
 
     protected static ?Closure $resolveRedirectUrlUsing = null;
 
+    protected string | bool | Closure | null $navigationGroup = null;
+
+    protected bool | Closure | null $hasExportAction = null;
+
     public static function make(): static
     {
         return app(static::class);
+    }
+
+    /**
+     * The plugin of the panel being served, else of the default panel, else
+     * one with the config's defaults.
+     */
+    public static function get(): static
+    {
+        try {
+            $panel = app(FilamentManager::class)->getCurrentOrDefaultPanel();
+        } catch (NoDefaultPanelSetException) {
+            $panel = null;
+        }
+
+        $plugin = $panel?->getPlugins()['filament-form-builder'] ?? null;
+
+        return $plugin instanceof static ? $plugin : static::make();
+    }
+
+    /**
+     * Where this panel lists the forms and submissions: true for the
+     * package's own group, false for none, or a group of your own.
+     */
+    public function navigationGroup(string | bool | Closure | null $group = true): static
+    {
+        $this->navigationGroup = $group;
+
+        return $this;
+    }
+
+    public function getNavigationGroup(): ?string
+    {
+        $group = value($this->navigationGroup ?? config('filament-form-builder.navigation_group', true));
+
+        return match (true) {
+            is_string($group) => $group,
+            (bool) $group => __('filament-form-builder::general.navigation-group'),
+            default => null,
+        };
+    }
+
+    /**
+     * Whether this panel offers the submissions export, a queued Filament
+     * export that needs the tables the installation docs list.
+     */
+    public function exportAction(bool | Closure $condition = true): static
+    {
+        $this->hasExportAction = $condition;
+
+        return $this;
+    }
+
+    public function hasExportAction(): bool
+    {
+        return (bool) value($this->hasExportAction ?? config('filament-form-builder.export_action', true));
     }
 
     /**
