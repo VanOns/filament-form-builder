@@ -5,12 +5,14 @@ namespace VanOns\FilamentFormBuilder\Filament\Resources;
 use BackedEnum;
 use Closure;
 use Filament\Actions;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Actions as SchemaActions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Html;
@@ -276,10 +278,29 @@ class FormResource extends Resource
             ];
         }
 
+        // Seldom needed, so a link brings the rows up until a form has some.
+        $isShown = fn (Get $get): bool => (bool) $get('show_query');
+
         return [
+            Hidden::make('show_query')
+                ->formatStateUsing(fn (?FormModel $record): bool => filled($record?->submit_notification_query))
+                ->dehydrated(false),
+            SchemaActions::make([
+                Action::make('addQueryParameters')
+                    ->label(__('filament-form-builder::general.submit_notification_query'))
+                    ->icon(Heroicon::Plus)
+                    ->link()
+                    ->action(function (Set $set): void {
+                        $set('submit_notification_query', [(string) Str::uuid() => ['name' => null, 'value' => null]]);
+                        $set('show_query', true);
+                    }),
+            ])
+                ->key('submit_notification_query_link')
+                ->visible(fn (Get $get): bool => !$isShown($get)),
             QueryParameters::make('submit_notification_query')
                 ->label(__('filament-form-builder::general.submit_notification_query'))
-                ->helperText(__('filament-form-builder::general.submit_notification_query_helper')),
+                ->helperText(__('filament-form-builder::general.submit_notification_query_helper'))
+                ->visible($isShown),
             static::getRedirectExample(),
         ];
     }

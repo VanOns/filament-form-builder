@@ -273,6 +273,7 @@ flag to `false` to hide the field, or override `hasSubmitNotificationQuery()` on
 a form type to drop it for that type alone. Either way a stored query string
 is no longer appended on submit.
 
+Few forms need them, so until a form has parameters a link brings up the rows.
 An editor adds the parameters one row at a time, a name and a value of text
 and merge tags, and they are stored as text: fixed text URL-encoded, tags as
 the placeholders the e-mail notification understands:

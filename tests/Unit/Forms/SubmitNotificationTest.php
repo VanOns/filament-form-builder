@@ -1,5 +1,6 @@
 <?php
 
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\QueryParameters;
@@ -83,10 +84,24 @@ it('edits the parameters as rows and keeps a query string with more than that as
         ->and($text->refresh()->submit_notification_query)->toBe('bedankt&naam={{ $naam }}');
 });
 
+it('keeps the parameters behind a link until a form has some', function () {
+    test()->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+
+    $redirecting = ['submit_notification_type' => 'url', 'submit_notification_url' => 'https://example.test/bedankt'];
+
+    Livewire::test(EditForm::class, ['record' => thankingForm($redirecting)->getRouteKey()])
+        ->assertFormFieldHidden('submit_notification_query')
+        ->callAction(TestAction::make('addQueryParameters')->schemaComponent('submit_notification_query_link', schema: 'form'))
+        ->assertFormFieldVisible('submit_notification_query');
+
+    Livewire::test(EditForm::class, ['record' => thankingForm([...$redirecting, 'submit_notification_query' => 'naam={{ $naam }}'])->getRouteKey()])
+        ->assertFormFieldVisible('submit_notification_query');
+});
+
 it('refuses a parameter name that would break the URL', function () {
     test()->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
 
-    $form = thankingForm(['submit_notification_type' => 'url', 'submit_notification_url' => 'https://example.test/bedankt']);
+    $form = thankingForm(['submit_notification_type' => 'url', 'submit_notification_url' => 'https://example.test/bedankt', 'submit_notification_query' => 'naam=jan']);
 
     Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
         ->fillForm(['submit_notification_query' => [['name' => 'naam&admin=1', 'value' => '<p>jan</p>']]])
