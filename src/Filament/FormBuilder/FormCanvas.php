@@ -871,6 +871,17 @@ class FormCanvas extends Field
                 ->validationMessages(['not_regex' => __('filament-form-builder::fields.key_invalid_characters')]),
         ];
 
+        if ($type::hasColumnLabelSetting()) {
+            $schema[] = TextInput::make('columnLabel')
+                ->label(__('filament-form-builder::fields.column_label'))
+                ->placeholder(fn (Get $get): ?string => $get('label'))
+                ->helperText(__('filament-form-builder::fields.column_label_helper'));
+        }
+
+        $schema[] = Toggle::make('showColumn')
+            ->label(__('filament-form-builder::fields.show_column'))
+            ->helperText(__('filament-form-builder::fields.show_column_helper'));
+
         if ($type::canBeHidden()) {
             $schema[] = Toggle::make('hidden')
                 ->label(__('filament-form-builder::fields.hidden'))

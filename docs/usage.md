@@ -199,7 +199,14 @@ same form, also with the `k` and `j` keys.
 
 ## Filtering submissions
 
-The submissions tab of a form filters by rules such as "Name contains jan" or
+The submissions tab of a form has a column per field, hidden until someone
+turns it on, except for the fields an editor marks "Show as a column"
+(`->showColumn()` in code). A field's "Column name" (`->columnLabel('Hours')`)
+is its short name there and wherever answers are listed apart from the form:
+the export, the filters, the merge tags and the mails. The detail page keeps
+the question.
+
+The tab filters by rules such as "Name contains jan" or
 "Hours is at least 32", combined with and and or. Every field offers the rules
 that suit its type: text matches whatever its case, a number compares as a
 number, a choice goes by its options, a checkbox by whether it was ticked and
@@ -215,7 +222,7 @@ use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 
 public function getFilterConstraints(): array
 {
-    return [AnswerConstraints::choice($this->getKey(), $this->getLabel(), Branch::options())];
+    return [AnswerConstraints::choice($this->getKey(), $this->getColumnLabel(), Branch::options())];
 }
 ```
 

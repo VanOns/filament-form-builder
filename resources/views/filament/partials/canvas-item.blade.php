@@ -42,6 +42,12 @@
                 <span class="ffb-canvas-badge-text">{{ __('filament-form-builder::general.canvas.key_taken_by_type_badge') }}</span>
             </span>
         @endif
+        @if ($field::isInput() && $field->shouldShowColumn())
+            <span class="ffb-canvas-badge" title="{{ __('filament-form-builder::general.canvas.column_badge_tooltip') }}">
+                <x-filament::icon :icon="Heroicon::OutlinedTableCells" class="ffb-canvas-badge-icon" />
+                {{ __('filament-form-builder::general.canvas.column_badge') }}
+            </span>
+        @endif
         @if (filled($field->queryParameter ?? null))
             <span class="ffb-canvas-badge" title="{{ __('filament-form-builder::general.canvas.query_badge') }}">
                 <x-filament::icon :icon="Heroicon::OutlinedLink" class="ffb-canvas-badge-icon" />

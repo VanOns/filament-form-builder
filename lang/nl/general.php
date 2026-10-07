@@ -236,6 +236,8 @@ return [
         'hidden_from_query' => 'Uit ?:parameter in de URL',
         'hidden_from_query_or' => 'Uit ?:parameter in de URL, anders: :value',
         'query_badge' => 'Gevuld vanuit de URL',
+        'column_badge' => 'Kolom',
+        'column_badge_tooltip' => 'Staat standaard als kolom in de inzendingen',
         'preview' => 'Voorbeeld',
         'conditions' => [
             'badge' => 'Als :rule',

@@ -85,20 +85,27 @@ class FormSubmissionColumns
     }
 
     /**
-     * One column per field, hidden until someone asks for it: a form of twenty
-     * fields would otherwise open as an unreadable wall.
+     * One column per field, hidden unless the field asks to be shown: a form of
+     * twenty fields would otherwise open as an unreadable wall.
      *
      * @return array<int, TextColumn>
      */
     private function fieldColumns(): array
     {
         $columns = [];
+        $shown = [];
+
+        foreach ($this->form->getFields(inputsOnly: true) as $field) {
+            if ($field->shouldShowColumn()) {
+                $shown += $field->getSubmissionColumns();
+            }
+        }
 
         foreach ($this->form->getSubmissionFields() as $key => $label) {
             $columns[] = TextColumn::make("data.{$key}")
                 ->label(Str::limit($label, 40))
                 ->state(fn (FormSubmission $record): ?string => $record->getDisplayText($key, fileNames: true))
-                ->toggleable(isToggledHiddenByDefault: true)
+                ->toggleable(isToggledHiddenByDefault: !array_key_exists($key, $shown))
                 // Filament would look for a `data` column; these live inside it.
                 ->sortable(query: function (Builder $query, string $direction) use ($key): Builder {
                     $query->orderBy($this->path($key), $direction);

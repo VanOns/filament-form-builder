@@ -30,12 +30,12 @@ class FileUploadField extends FormField
 
     public function getSubmissionColumns(): array
     {
-        return [$this->getOriginalKey() => $this->getLabel()];
+        return [$this->getOriginalKey() => $this->getColumnLabel()];
     }
 
     public function getFilterConstraints(): array
     {
-        return [AnswerConstraints::file($this->getOriginalKey(), $this->getLabel())];
+        return [AnswerConstraints::file($this->getOriginalKey(), $this->getColumnLabel())];
     }
 
     public function getKey(): string

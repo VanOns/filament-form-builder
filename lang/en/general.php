@@ -236,6 +236,8 @@ return [
         'hidden_from_query' => 'From ?:parameter in the URL',
         'hidden_from_query_or' => 'From ?:parameter in the URL, else: :value',
         'query_badge' => 'Filled from the URL',
+        'column_badge' => 'Column',
+        'column_badge_tooltip' => 'Shown as a column in the submissions by default',
         'preview' => 'Preview',
         'conditions' => [
             'badge' => 'If :rule',

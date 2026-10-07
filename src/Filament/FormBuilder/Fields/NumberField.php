@@ -21,7 +21,7 @@ class NumberField extends InputField
 
     public function getFilterConstraints(): array
     {
-        return [AnswerConstraints::number($this->getKey(), $this->getLabel())];
+        return [AnswerConstraints::number($this->getKey(), $this->getColumnLabel())];
     }
 
     public static function icon(): string | BackedEnum

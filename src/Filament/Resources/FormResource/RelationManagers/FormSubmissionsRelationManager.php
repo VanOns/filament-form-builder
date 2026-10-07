@@ -25,6 +25,17 @@ class FormSubmissionsRelationManager extends RelationManager
     // submissions resource, so this stays a view onto the same records.
     protected static ?string $relatedResource = FormSubmissionResource::class;
 
+    // Every form has columns of its own, so each keeps which of them someone turned on.
+    public function getTableColumnsSessionKey(): string
+    {
+        return parent::getTableColumnsSessionKey() . '_' . $this->getOwnerRecord()->getKey();
+    }
+
+    public function getHasReorderedTableColumnsSessionKey(): string
+    {
+        return parent::getHasReorderedTableColumnsSessionKey() . '_' . $this->getOwnerRecord()->getKey();
+    }
+
     public function table(Table $table): Table
     {
         /** @var Form $form */

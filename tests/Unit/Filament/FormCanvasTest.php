@@ -105,6 +105,33 @@ it('fills a field from a parameter of the page URL, set on the canvas', function
         ->assertSeeHtml('<span class="ffb-canvas-badge-text">?vacature</span>');
 });
 
+it('gives a field a short column name and shows it as a column, set on the canvas', function () {
+    $form = canvasForm([['type' => 'number', 'label' => 'Hoeveel uur per week wil je werken?', 'key' => 'uren']]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    $uuid = array_keys($page->get('data.custom.fields'))[0];
+
+    $page->mountAction(onCanvas('edit', ['item' => $uuid]))
+        ->assertFormFieldExists('columnLabel');
+
+    $page->callAction(onCanvas('edit', ['item' => $uuid]), data: ['columnLabel' => 'Uren', 'showColumn' => true])
+        ->call('save');
+
+    expect(savedFields($form)[0])->toMatchArray(['columnLabel' => 'Uren', 'showColumn' => true]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSeeHtml('title="Shown as a column in the submissions by default"');
+});
+
+it('asks a consent for no second short name', function () {
+    $form = canvasForm([['type' => 'consent', 'text' => '<p>Akkoord</p>', 'label' => 'Privacy', 'key' => 'privacy']]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    $uuid = array_keys($page->get('data.custom.fields'))[0];
+
+    $page->mountAction(onCanvas('edit', ['item' => $uuid]))
+        ->assertFormFieldExists('showColumn')
+        ->assertFormFieldDoesNotExist('columnLabel');
+});
+
 it('takes conditions, notifications and outcomes along when a key is renamed', function () {
     $form = canvasForm([
         ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam'],

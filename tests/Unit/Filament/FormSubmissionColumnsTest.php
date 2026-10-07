@@ -1,6 +1,10 @@
 <?php
 
 use Filament\Tables\Columns\TextColumn;
+use Illuminate\Foundation\Auth\User;
+use Livewire\Livewire;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers\FormSubmissionsRelationManager;
 use VanOns\FilamentFormBuilder\Filament\Tables\FormSubmissionColumns;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -58,6 +62,29 @@ it('hides the field columns until someone asks for them', function () {
         ->and($columns->get('created_at')->isToggleable())->toBeFalse();
 });
 
+it('shows the columns of the fields that ask for it, under their short name', function () {
+    $form = customForm([
+        ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam', 'showColumn' => true],
+        ['type' => 'number', 'label' => 'Hoeveel uur per week wil je werken?', 'key' => 'uren', 'columnLabel' => 'Uren', 'showColumn' => true],
+        ['type' => 'text', 'label' => 'Opmerking', 'key' => 'opmerking'],
+    ]);
+
+    $columns = collect(FormSubmissionColumns::for($form)->columns())
+        ->keyBy(fn (TextColumn $column): string => $column->getName());
+
+    expect($columns->get('data.voornaam')->isToggledHiddenByDefault())->toBeFalse()
+        ->and($columns->get('data.uren')->getLabel())->toBe('Uren')
+        ->and($columns->get('data.uren')->isToggledHiddenByDefault())->toBeFalse()
+        ->and($columns->get('data.opmerking')->isToggledHiddenByDefault())->toBeTrue()
+        ->and($form->getSubmissionFields())->toMatchArray(['uren' => 'Uren'])
+        ->and($form->getMergeTagGroups()[0]['tags']['uren']['label'])->toBe('Uren');
+
+    $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['uren' => '32']]);
+
+    expect($submission->getAnswers()['current'][0]->label)->toBe('Hoeveel uur per week wil je werken?')
+        ->and($submission->getFormattedData(formatKeys: true))->toBe(['Uren' => '32']);
+});
+
 it('shortens a label that is a whole paragraph', function () {
     $consent = 'Ik ga ermee akkoord dat mijn gegevens via deze website tot 4 weken worden bewaard';
     $form = customForm([['type' => 'text', 'label' => $consent, 'key' => 'akkoord']]);
@@ -90,4 +117,23 @@ it('shows the label of a chosen option, not the value that was stored', function
     expect($cell('mw'))->toBe('Mw.')
         // A value the field no longer offers still has to show something.
         ->and($cell('onbekend'))->toBe('onbekend');
+});
+
+it('keeps which columns are on per form, so one form does not decide for another', function () {
+    test()->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+    $fields = [['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam', 'showColumn' => true]];
+    $first = customForm($fields);
+    $second = Form::create(['title' => 'Terugbellen', 'template' => 'custom', 'custom' => ['fields' => $fields]]);
+    $table = fn (Form $form) => Livewire::test(FormSubmissionsRelationManager::class, ['ownerRecord' => $form, 'pageClass' => EditForm::class]);
+
+    $page = $table($first);
+    expect($page->instance()->isTableColumnToggledHidden('data.voornaam'))->toBeFalse();
+
+    $page->call('applyTableColumnManager', array_map(
+        fn (array $column): array => $column['name'] === 'data.voornaam' ? [...$column, 'isToggled' => false] : $column,
+        $page->get('tableColumns'),
+    ));
+
+    expect($table($first)->instance()->isTableColumnToggledHidden('data.voornaam'))->toBeTrue()
+        ->and($table($second)->instance()->isTableColumnToggledHidden('data.voornaam'))->toBeFalse();
 });

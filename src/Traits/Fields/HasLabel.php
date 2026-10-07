@@ -9,6 +9,8 @@ trait HasLabel
 {
     public ?string $label = null;
 
+    public ?string $columnLabel = null;
+
     public static function getTypeLabel(): string
     {
         $basename = class_basename(static::class);
@@ -40,5 +42,26 @@ trait HasLabel
     public function getLabel(): string
     {
         return $this->label ?? static::getTypeLabel();
+    }
+
+    /**
+     * A short name for the tables, the export, the filters and the mails,
+     * where a whole question would be too long.
+     */
+    public function columnLabel(?string $label): static
+    {
+        $this->columnLabel = $label;
+
+        return $this;
+    }
+
+    public function getColumnLabel(): string
+    {
+        return filled($this->columnLabel) ? $this->columnLabel : $this->getLabel();
+    }
+
+    public static function hasColumnLabelSetting(): bool
+    {
+        return true;
     }
 }

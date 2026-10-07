@@ -47,6 +47,12 @@ class ConsentField extends CheckboxField
         return $text !== '' ? $text : static::getTypeLabel();
     }
 
+    // Its own "name in overviews" already is the short name.
+    public static function hasColumnLabelSetting(): bool
+    {
+        return false;
+    }
+
     public function getTextHtml(): HtmlString
     {
         $text = $this->getCleanText();

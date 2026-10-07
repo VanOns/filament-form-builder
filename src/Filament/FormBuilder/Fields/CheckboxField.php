@@ -60,7 +60,7 @@ class CheckboxField extends FormField
 
     public function getFilterConstraints(): array
     {
-        return [AnswerConstraints::checkbox($this->getKey(), $this->getLabel())];
+        return [AnswerConstraints::checkbox($this->getKey(), $this->getColumnLabel())];
     }
 
     public static function paletteGroup(): string

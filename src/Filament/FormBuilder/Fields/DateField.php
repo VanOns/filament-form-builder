@@ -77,7 +77,7 @@ class DateField extends InputField
 
     public function getFilterConstraints(): array
     {
-        return [AnswerConstraints::date($this->getKey(), $this->getLabel())];
+        return [AnswerConstraints::date($this->getKey(), $this->getColumnLabel())];
     }
 
     public static function icon(): string | BackedEnum

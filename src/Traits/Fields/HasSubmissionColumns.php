@@ -8,6 +8,24 @@ use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 
 trait HasSubmissionColumns
 {
+    public bool $showColumn = false;
+
+    /**
+     * Shows the field's column in the submissions table without anyone
+     * turning it on first.
+     */
+    public function showColumn(bool $condition = true): static
+    {
+        $this->showColumn = $condition;
+
+        return $this;
+    }
+
+    public function shouldShowColumn(): bool
+    {
+        return $this->showColumn;
+    }
+
     /**
      * A field with a fixed list of choices answers here; free text does not.
      *
@@ -70,7 +88,7 @@ trait HasSubmissionColumns
      */
     public function getSubmissionColumns(): array
     {
-        return [$this->getKey() => $this->getLabel()];
+        return [$this->getKey() => $this->getColumnLabel()];
     }
 
     /**

@@ -52,7 +52,7 @@ abstract class ChoiceField extends FormField
 
     public function getFilterConstraints(): array
     {
-        return [AnswerConstraints::choice($this->getKey(), $this->getLabel(), $this->getFilterOptions(), static::allowsMultiple())];
+        return [AnswerConstraints::choice($this->getKey(), $this->getColumnLabel(), $this->getFilterOptions(), static::allowsMultiple())];
     }
 
     public function formatSubmissionValue(mixed $value): mixed
