@@ -81,6 +81,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
             Css::make('form-submission', __DIR__.'/../resources/css/form-submission.css'),
             AlpineComponent::make('form-canvas', __DIR__.'/../resources/js/components/form-canvas.js'),
             AlpineComponent::make('merge-tag-picker', __DIR__.'/../resources/js/components/merge-tag-picker.js'),
+            AlpineComponent::make('recipients-input', __DIR__.'/../resources/js/components/recipients-input.js'),
         ], 'van-ons/filament-form-builder');
     }
 

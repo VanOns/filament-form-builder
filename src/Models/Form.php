@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Casts\RedirectUrl;
+use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
 use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
@@ -276,6 +277,45 @@ class Form extends Model
                 'submission_url' => $withSubmissionLink ? $tag('submission_url', Heroicon::OutlinedArrowTopRightOnSquare) : null,
             ])],
         ];
+    }
+
+    /**
+     * The answers a notification can be sent to, as `field:key` => label.
+     *
+     * @return array<string, string>
+     */
+    public function getEmailRecipients(): array
+    {
+        $recipients = [];
+
+        foreach ($this->getFields(inputsOnly: true) as $field) {
+            foreach ($field->getEmailColumns() as $key => $label) {
+                $recipients[EmailNotification::FIELD_PREFIX . $key] = $label;
+            }
+        }
+
+        return $recipients;
+    }
+
+    /**
+     * Older notifications can send to a field that holds no address or is
+     * gone, which mails nobody; the label says so.
+     */
+    public function getRecipientLabel(string $recipient): string
+    {
+        if (!str_starts_with($recipient, EmailNotification::FIELD_PREFIX)) {
+            return $recipient;
+        }
+
+        $key = substr($recipient, strlen(EmailNotification::FIELD_PREFIX));
+
+        if ($label = $this->getEmailRecipients()[$recipient] ?? null) {
+            return $label;
+        }
+
+        return ($label = $this->getSubmissionFields()[$key] ?? null)
+            ? __('filament-form-builder::general.notifications.not_email_field', ['label' => $label])
+            : __('filament-form-builder::general.merge_tags.missing', ['key' => $key]);
     }
 
     /**

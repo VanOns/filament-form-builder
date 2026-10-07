@@ -191,6 +191,28 @@ sends the e-mail notifications and queues a `RunFormIntegrationsJob` for the
 form's integrations. A submission created in code, by a seeder or an import,
 triggers neither.
 
+### E-mail notifications
+
+The e-mail tab shows a form's notifications as cards: who they go to, when, and
+how often they went out. A notification is edited in a slide-over:
+
+- **To**: fields of the form that hold an e-mail address, or addresses typed in.
+  Every recipient gets a mail of their own.
+- **Reply to**: a field or an address, so a reply goes to the person who sent
+  the form.
+- **Sending**: always, or only when the answers meet conditions, the same rules
+  fields use to show.
+- **Attachments**: the uploads go along up to `form-uploads-attach-max-size`
+  kilobytes together; larger ones stay a link.
+- A switch on the card turns a notification off without deleting it, and
+  **Test mail to me** sends it, filled in with the latest submission, to the
+  person editing it.
+
+A new notification starts empty, as a confirmation to the person who sent the
+form, or as a message for staff with every answer and a link to the
+submission. A field type of your own offers its e-mail columns as recipients
+in `getEmailColumns()`.
+
 ### Merge tags
 
 The subject, the content and the sender name of an e-mail notification take

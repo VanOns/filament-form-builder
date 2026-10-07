@@ -6,22 +6,17 @@ use BackedEnum;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
-use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Forms\CustomFields;
@@ -366,52 +361,7 @@ class FormCanvas extends Field
 
         ['match' => $match, 'rules' => $rules] = $field->getConditions()->toArray();
 
-        if (count($rules) > 1) {
-            return __("filament-form-builder::general.canvas.conditions.badge_{$match}", ['count' => count($rules)]);
-        }
-
-        return __('filament-form-builder::general.canvas.conditions.badge', [
-            'rule' => $this->describeRule($rules[0] ?? [], 'short'),
-        ]);
-    }
-
-    /**
-     * The conditions as one sentence, for under the conditions being edited.
-     *
-     * @param  array<mixed>  $rules
-     */
-    public function describeConditions(array $rules, ?string $match, ?string $except = null): ?string
-    {
-        $described = [];
-
-        foreach ($rules as $rule) {
-            if (is_array($rule) && filled($rule['key'] ?? null) && filled($rule['operator'] ?? null)) {
-                $described[] = $this->describeRule($rule, 'long', $except);
-            }
-        }
-
-        if ($described === []) {
-            return null;
-        }
-
-        return __('filament-form-builder::general.canvas.conditions.summary', [
-            'rules' => implode(__('filament-form-builder::general.canvas.conditions.join_' . ($match === 'any' ? 'any' : 'all')), $described),
-        ]);
-    }
-
-    /**
-     * @param  array<mixed>  $rule
-     */
-    protected function describeRule(array $rule, string $form, ?string $except = null): string
-    {
-        $field = $this->getConditionFields($except)[$rule['key'] ?? ''] ?? null;
-        $value = $rule['value'] ?? null;
-        $operator = ConditionOperator::tryFrom((string) ($rule['operator'] ?? '')) ?? ConditionOperator::EQUALS;
-
-        return __("filament-form-builder::general.canvas.conditions.{$form}.{$operator->value}", [
-            'field' => $field?->getLabel() ?? (string) ($rule['key'] ?? ''),
-            'value' => is_scalar($value) ? ($field?->getFilterOptions()[(string) $value] ?? (string) $value) : '',
-        ]);
+        return (new ConditionsEditor($this->getConditionFields(null)))->badge($rules, $match);
     }
 
     /**
@@ -845,58 +795,7 @@ class FormCanvas extends Field
      */
     protected function getConditionsSchema(?string $except): array
     {
-        $fields = $this->getConditionFields($except);
-        $needsValue = fn (Get $get): bool => ConditionOperator::tryFrom((string) $get('operator'))?->needsValue() ?? false;
-        $choices = fn (Get $get): array => ($fields[$get('key')] ?? null)?->getFilterOptions() ?? [];
-
-        return [
-            ToggleButtons::make('conditionMatch')
-                ->label(__('filament-form-builder::fields.condition_match'))
-                ->options([
-                    'all' => __('filament-form-builder::fields.condition_match_all'),
-                    'any' => __('filament-form-builder::fields.condition_match_any'),
-                ])
-                ->default('all')
-                ->formatStateUsing(fn (?string $state): string => $state ?? 'all')
-                ->grouped()
-                ->visible(fn (Get $get): bool => count($get('conditions') ?? []) > 1),
-            Repeater::make('conditions')
-                ->hiddenLabel()
-                ->default([])
-                ->columns(2)
-                ->reorderable(false)
-                ->live()
-                ->addActionLabel(__('filament-form-builder::fields.add_condition'))
-                ->schema([
-                    Select::make('key')
-                        ->label(__('filament-form-builder::fields.condition_field'))
-                        ->options(array_map(fn (FormField $field): string => $field->getLabel(), $fields))
-                        ->required()
-                        ->live(),
-                    Select::make('operator')
-                        ->label(__('filament-form-builder::fields.condition_operator'))
-                        ->options(ConditionOperator::options())
-                        ->default(ConditionOperator::EQUALS->value)
-                        ->selectablePlaceholder(false)
-                        ->required()
-                        ->live(),
-                    // A choice field offers its own options to pick from.
-                    ToggleButtons::make('value')
-                        ->label(__('filament-form-builder::fields.value'))
-                        ->options($choices)
-                        ->inline()
-                        ->columnSpanFull()
-                        ->required($needsValue)
-                        ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) !== []),
-                    TextInput::make('value')
-                        ->label(__('filament-form-builder::fields.value'))
-                        ->columnSpanFull()
-                        ->required($needsValue)
-                        ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) === []),
-                ]),
-            Text::make(fn (Get $get): ?string => $this->describeConditions($get('conditions') ?? [], $get('conditionMatch'), $except))
-                ->visible(fn (Get $get): bool => filled($get('conditions'))),
-        ];
+        return (new ConditionsEditor($this->getConditionFields($except)))->schema();
     }
 
     /**

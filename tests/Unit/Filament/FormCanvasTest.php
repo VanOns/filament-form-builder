@@ -105,7 +105,8 @@ it('takes conditions and notifications along when a key is renamed', function ()
         // Opened in the editor, the text from before became merge tags.
         ->and(MergeTags::ids($form->notifications[0]['subject']))->toBe(['roepnaam'])
         ->and(MergeTags::ids($form->notifications[0]['content']))->toBe(['roepnaam'])
-        ->and($form->notifications[0]['receivers'])->toBe(['roepnaam']);
+        // Saved in the current shape, the receivers of before became `to`.
+        ->and($form->notifications[0]['to'])->toBe(['field:roepnaam']);
 });
 
 it('sets a field to the width picked for it', function () {

@@ -58,20 +58,20 @@ it('does not treat a placeholder a visitor typed as a placeholder', function () 
 });
 
 it('still replaces the placeholders in an e-mail notification', function () {
-    $submission = placeholderSubmission(['naam' => 'Jesse']);
+    $submission = placeholderSubmission(['naam' => 'Jesse', 'email' => 'jesse@example.test']);
 
     $notification = new EmailNotification($submission, [
         'subject' => 'Inzending {{ $form_title }}',
         'content' => '<p>Hoi {{ $naam }}, we hebben je bericht ontvangen.</p>',
         'senderName' => '{{ $form_title }}',
-        'receivers' => ['naam', 'info@example.test'],
+        'receivers' => ['email', 'info@example.test', 'naam'],
     ]);
 
     expect($notification->subject)->toBe('Inzending Contact')
         ->and($notification->content)->toBe('<p>Hoi Jesse, we hebben je bericht ontvangen.</p>')
         ->and($notification->senderName)->toBe('Contact')
-        // A receiver naming a field resolves to its value, anything else is used as typed.
-        ->and($notification->receivers)->toBe(['Jesse', 'info@example.test']);
+        // A receiver naming a field resolves to its answer; one that is no address is left out.
+        ->and($notification->receivers)->toBe(['jesse@example.test', 'info@example.test']);
 });
 
 it('strips a placeholder the e-mail cannot fill in', function () {

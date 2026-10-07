@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
+ * @property ?string $notification_id
  * @property string $status
  * @property string $notification_subject
  * @property string|null $sender
@@ -22,6 +23,7 @@ class FormSubmissionNotificationLog extends Model
 {
     protected $fillable = [
         'form_submission_id',
+        'notification_id',
         'notification_subject',
         'sender',
         'recipient',

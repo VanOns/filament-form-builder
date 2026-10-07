@@ -7,30 +7,22 @@ use Filament\Actions;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Component;
-use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Width;
-
-use function Filament\Support\generate_icon_html;
-
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -38,13 +30,14 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Js;
 use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\NotificationList;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers\FormSubmissionsRelationManager;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
@@ -191,19 +184,22 @@ class FormResource extends Resource
     {
         $set('submit_notification_query', SubmissionPlaceholders::rename($get('submit_notification_query'), $from, $to));
 
+        $field = fn (?string $recipient): ?string => $recipient === EmailNotification::FIELD_PREFIX . $from ? EmailNotification::FIELD_PREFIX . $to : $recipient;
         $notifications = [];
 
-        foreach ($get('notifications') ?? [] as $uuid => $notification) {
-            $notification = SubmissionPlaceholders::rename($notification, $from, $to);
-            // While the form is open, a receiver is `['email' => ...]` rather than a string.
-            $notification['receivers'] = array_map(
-                fn (mixed $receiver): mixed => is_array($receiver)
-                    ? array_map(fn (mixed $value): mixed => $value === $from ? $to : $value, $receiver)
-                    : ($receiver === $from ? $to : $receiver),
-                $notification['receivers'] ?? [],
+        foreach ($get('notifications') ?? [] as $id => $notification) {
+            foreach (['subject', 'content', 'senderName'] as $text) {
+                $notification[$text] = MergeTags::rename($notification[$text] ?? null, $from, $to);
+            }
+
+            $notification['to'] = array_map($field, $notification['to'] ?? []);
+            $notification['reply_to'] = $field($notification['reply_to'] ?? null);
+            $notification['conditions'] = array_map(
+                fn (array $rule): array => ($rule['key'] ?? null) === $from ? [...$rule, 'key' => $to] : $rule,
+                $notification['conditions'] ?? [],
             );
 
-            $notifications[$uuid] = $notification;
+            $notifications[$id] = $notification;
         }
 
         $set('notifications', $notifications);
@@ -257,198 +253,9 @@ class FormResource extends Resource
             ->visible(self::hasNotificationsEnabled(...))
             ->icon('heroicon-o-bell-alert')
             ->schema([
-                Callout::make(__('filament-form-builder::general.notifications.sender_callout'))
-                    ->warning()
-                    ->columnSpanFull(),
-                Callout::make(fn (Get $get): ?string => static::getMissingTagsWarning($get))
-                    ->warning()
-                    ->visible(fn (Get $get): bool => static::getMissingTagsWarning($get) !== null)
-                    ->columnSpanFull(),
-                Repeater::make('notifications')
-                    ->label(__('filament-form-builder::general.email_notifications'))
-                    ->hiddenLabel()
-                    ->columnSpanFull()
-                    ->columns(3)
-                    ->grid([
-                        '2xl' => 2,
-                    ])
-                    ->collapsed()
-                    ->default([])
-                    ->afterStateHydrated(static function (Component $component, ?array $rawState): void {
-                        $component->rawState(
-                            collect($rawState ?? [])
-                                ->mapWithKeys(fn ($itemData) => [(string) Str::uuid() => $itemData])
-                                ->toArray(),
-                        );
-                    })
-                    ->itemLabel(function (array $state, Get $get): string {
-                        $subject = MergeTags::render($state['subject'] ?? null, static::getLiveForm($get)->getMergeTags(), asText: true);
-
-                        return $subject !== ''
-                            ? "{$subject} - " . __('filament-form-builder::general.email_notification')
-                            : __('filament-form-builder::general.email_notification');
-                    })
-                    ->schema([
-                        static::getMergeTagLine('subject')
-                            ->columnSpanFull()
-                            ->label(__('filament-form-builder::general.notifications.subject'))
-                            ->required(),
-                        RichEditor::make('content')
-                            ->columnSpanFull()
-                            ->label(__('filament-form-builder::general.notifications.content'))
-                            ->mergeTags(fn (Get $get, mixed $state): array => static::getMergeTagsFor($get, $state))
-                            ->tools(fn (Get $get): RichEditorTool => static::getMergeTagTool($get))
-                            ->extraAttributes(['class' => 'ffb-merge-tag-editor'])
-                            ->required(),
-                        Fieldset::make(__('filament-form-builder::general.notifications.sender'))
-                            ->columnSpanFull()
-                            ->schema([
-                                TextInput::make('sender')
-                                    ->helperText(__('filament-form-builder::general.notifications.sender_hint'))
-                                    ->label(__('filament-form-builder::general.notifications.email'))
-                                    ->placeholder(config('mail.from.address', 'email@example.com'))
-                                    ->email(),
-                                static::getMergeTagLine('senderName')
-                                    ->helperText(__('filament-form-builder::general.notifications.name_hint'))
-                                    ->label(__('filament-form-builder::general.notifications.name'))
-                                    ->placeholder(config('mail.from.name')),
-                            ]),
-                        Repeater::make('receivers')
-                            ->reorderable(false)
-                            ->columnStart(1)
-                            ->columnSpanFull()
-                            ->label(__('filament-form-builder::general.notifications.receivers'))
-                            ->hint(__('filament-form-builder::general.notifications.email_or_field_hint'))
-                            ->grid(3)
-                            ->addActionLabel(__('filament-form-builder::general.add'))
-                            ->addActionAlignment(Alignment::Start)
-                            ->default([])
-                            ->simple(
-                                TextInput::make('email')
-                                    ->regex('/^\S*$/')
-                                    ->placeholder(__('filament-form-builder::general.notifications.email_or_field'))
-                                    ->required(),
-                            ),
-                    ]),
-            ])->columns();
-    }
-
-    /**
-     * The form as it stands in the editor, so tags follow the canvas before
-     * it is saved.
-     */
-    public static function getLiveForm(Get $get): FormModel
-    {
-        return new FormModel([
-            'template' => $get('data.template', isAbsolute: true),
-            'custom' => $get('data.custom', isAbsolute: true) ?? [],
-        ]);
-    }
-
-    /**
-     * The tags an editor offers, plus any tag its content holds that the form
-     * no longer has, so it still reads as something.
-     *
-     * @return array<string, string>
-     */
-    public static function getMergeTagsFor(Get $get, mixed $state, bool $withAllFields = true): array
-    {
-        $tags = static::getLiveForm($get)->getMergeTags($withAllFields);
-
-        foreach (MergeTags::ids($state) as $id) {
-            $tags[$id] ??= __('filament-form-builder::general.merge_tags.missing', ['key' => $id]);
-        }
-
-        return $tags;
-    }
-
-    /**
-     * One line of text with merge tags, such as a subject.
-     */
-    public static function getMergeTagLine(string $name): RichEditor
-    {
-        return RichEditor::make($name)
-            ->toolbarButtons(['mergeTags'])
-            ->mergeTags(fn (Get $get, mixed $state): array => static::getMergeTagsFor($get, $state, withAllFields: false))
-            ->tools(fn (Get $get): RichEditorTool => static::getMergeTagTool($get, withAllFields: false))
-            ->extraAttributes(['class' => 'ffb-merge-tag-editor ffb-merge-tag-line']);
-    }
-
-    /**
-     * Filament's tag button, opening the package's picker instead of the flat
-     * list: grouped, with the icon of each field type and a search.
-     */
-    public static function getMergeTagTool(Get $get, bool $withAllFields = true): RichEditorTool
-    {
-        $groups = [];
-        $icons = [];
-
-        foreach (static::getLiveForm($get)->getMergeTagGroups($withAllFields) as $group) {
-            $tags = [];
-
-            foreach ($group['tags'] as $id => $tag) {
-                $icon = $tag['icon'] instanceof BackedEnum ? (string) $tag['icon']->value : $tag['icon'];
-                $icons[$icon] ??= generate_icon_html($tag['icon'])?->toHtml() ?? '';
-                $tags[] = ['id' => (string) $id, 'label' => $tag['label'], 'icon' => $icon];
-            }
-
-            if ($tags !== []) {
-                $groups[] = ['label' => $group['label'], 'tags' => $tags];
-            }
-        }
-
-        $picker = Js::from(['groups' => $groups, 'icons' => $icons]);
-
-        return RichEditorTool::make('mergeTags')
-            ->label(__('filament-forms::components.rich_editor.tools.merge_tags'))
-            ->icon('fi-o-merge-tag')
-            ->iconAlias('forms:components.rich-editor.toolbar.merge-tags')
-            ->activeJsExpression('false')
-            ->jsHandler("\$dispatch('ffb-merge-tags', { anchor: \$el, insert: (id) => insertMergeTag(id), ...{$picker} })");
-    }
-
-    public static function getMissingTagsWarning(Get $get): ?string
-    {
-        $known = static::getLiveForm($get)->getMergeTags();
-        $missing = [];
-
-        foreach ($get('notifications') ?? [] as $notification) {
-            foreach (['subject', 'content', 'senderName'] as $field) {
-                $missing = [...$missing, ...array_diff(MergeTags::ids($notification[$field] ?? null), array_keys($known))];
-            }
-        }
-
-        $missing = array_values(array_unique($missing));
-
-        return $missing === [] ? null : trans_choice('filament-form-builder::general.merge_tags.unknown_warning', count($missing), [
-            'tags' => implode(', ', $missing),
-        ]);
-    }
-
-    /**
-     * Content from before merge tags holds `{{ $key }}` as text; the editors
-     * show it as tags.
-     *
-     * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
-     */
-    public static function withMergeTags(array $data): array
-    {
-        $data['notifications'] = array_map(function (mixed $notification): mixed {
-            if (!is_array($notification)) {
-                return $notification;
-            }
-
-            foreach (['subject', 'content', 'senderName'] as $field) {
-                if (is_string($notification[$field] ?? null)) {
-                    $notification[$field] = MergeTags::fromLegacy($notification[$field]);
-                }
-            }
-
-            return $notification;
-        }, $data['notifications'] ?? []);
-
-        return $data;
+                NotificationList::make('notifications')
+                    ->hiddenLabel(),
+            ]);
     }
 
     public static function getPlaceholderListEntry(): TextEntry

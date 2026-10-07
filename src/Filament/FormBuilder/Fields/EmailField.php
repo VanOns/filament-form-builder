@@ -14,6 +14,11 @@ class EmailField extends InputField
         return 'email';
     }
 
+    public function getEmailColumns(): array
+    {
+        return $this->getSubmissionColumns();
+    }
+
     public static function icon(): string | BackedEnum
     {
         return Heroicon::OutlinedEnvelope;

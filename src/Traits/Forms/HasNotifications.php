@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
 use Throwable;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
+use VanOns\FilamentFormBuilder\Classes\SubmissionFile;
 use VanOns\FilamentFormBuilder\Jobs\SendFormNotificationJob;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
@@ -41,10 +42,20 @@ trait HasNotifications
 
     public function sendNotification(EmailNotification $notification, FormSubmission $submission): void
     {
+        if (!$notification->shouldSend()) {
+            return;
+        }
+
+        $attachments = array_map(
+            fn (SubmissionFile $file): array => ['path' => $file->path, 'name' => $file->name],
+            $notification->attachments,
+        );
+
         foreach ($notification->receivers as $receiver) {
             try {
                 $log = FormSubmissionNotificationLog::create([
                     'form_submission_id' => $submission->id,
+                    'notification_id' => $notification->id,
                     'notification_subject' => $notification->subject,
                     'sender' => $notification->sender,
                     'recipient' => $receiver,
@@ -59,6 +70,8 @@ trait HasNotifications
                     receiver: $receiver,
                     formSubmission: $submission,
                     senderName: $notification->senderName,
+                    replyTo: $notification->replyTo,
+                    attachments: $attachments,
                 );
             } catch (Throwable $e) {
                 report($e);

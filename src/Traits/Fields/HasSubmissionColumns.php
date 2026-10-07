@@ -54,6 +54,17 @@ trait HasSubmissionColumns
     }
 
     /**
+     * The columns that hold an e-mail address, which a notification can be
+     * sent to.
+     *
+     * @return array<string, string> key => label
+     */
+    public function getEmailColumns(): array
+    {
+        return [];
+    }
+
+    /**
      * The keys a visitor posts for this field. Any other column is filled in by
      * the field or its form type, so it is never taken from the request.
      *

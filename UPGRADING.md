@@ -14,8 +14,8 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 ### Installing
 
 * Publish and run the migrations: `php artisan vendor:publish --tag=filament-form-builder-migrations`,
-  then `php artisan migrate`. They add `form_submissions.files` and
-  `form_submissions.field_snapshot`, and drop `form_submissions.submitter_email`.
+  then `php artisan migrate`. They add `form_submissions.files`, `form_submissions.field_snapshot` and
+  `form_submission_notification_logs.notification_id`, and drop `form_submissions.submitter_email`.
 * `forms.template` now holds the name a form type is registered under instead of a template class: set
   it to `custom`, `contact` or the name of your own type.
 * Republish the config, or compare yours with [`config/general.php`](config/general.php).
@@ -26,18 +26,19 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 
 ### Config
 
-| v2                                           | v3                                                                              |
-|----------------------------------------------|---------------------------------------------------------------------------------|
-| `templates`: class => label                  | `types`: name => class                                                          |
-| `fields`: a list of classes                  | `fields`: name => class                                                         |
-| `field_visibility_settings`                  | `field_conditions`                                                              |
-| `columns`                                    | Removed, every form has a 12-column grid                                        |
-| `field_column_settings`                      | Removed, every field has a column span                                          |
-| `email_notification_enabled`: `false`        | `true`                                                                          |
-| `form-uploads-disk`: `private`               | `local`                                                                         |
-| `form-uploads-middleware`: `['web', 'auth']` | `[]`, the download links are signed                                             |
-|                                              | `form-uploads-link-days`: how long a link stays valid                           |
-| `enable_export_action`: `false`              | `true`, see [Exporting submissions](docs/installation.md#exporting-submissions) |
+| v2                                           | v3                                                                                    |
+|----------------------------------------------|---------------------------------------------------------------------------------------|
+| `templates`: class => label                  | `types`: name => class                                                                |
+| `fields`: a list of classes                  | `fields`: name => class                                                               |
+| `field_visibility_settings`                  | `field_conditions`                                                                    |
+| `columns`                                    | Removed, every form has a 12-column grid                                              |
+| `field_column_settings`                      | Removed, every field has a column span                                                |
+| `email_notification_enabled`: `false`        | `true`                                                                                |
+| `form-uploads-disk`: `private`               | `local`                                                                               |
+| `form-uploads-middleware`: `['web', 'auth']` | `[]`, the download links are signed                                                   |
+|                                              | `form-uploads-link-days`: how long a link stays valid                                 |
+|                                              | `form-uploads-attach-max-size`: how many kilobytes of uploads a notification attaches |
+| `enable_export_action`: `false`              | `true`, see [Exporting submissions](docs/installation.md#exporting-submissions)       |
 
 ### Templates become form types
 
@@ -89,6 +90,10 @@ code. See [Form types](docs/usage.md#form-types).
   and `$keyPrefix` is gone. `label()` and `rules()` are now fluent setters.
 * The submissions tab of a form filters by rules instead of a select filter per choice field. A field
   type offers its rules in `getFilterConstraints()`; see [Filtering submissions](docs/usage.md#filtering-submissions).
+
+* A notification lists its recipients in `to`, an address or `field:key` for the answer of a field,
+  where v2 had `receivers`. It also has an `id`, `enabled`, `reply_to`, `conditions` and `attach_files`.
+  A notification stored before is read as one of now and saved that way once its form is saved.
 
 ### Stored forms and submissions
 

@@ -28,6 +28,11 @@ class SendFormNotificationJob implements ShouldQueue
         public string $receiver,
         public FormSubmission $formSubmission,
         public ?string $senderName = null,
+        public ?string $replyTo = null,
+        /**
+         * @var list<array{path: string, name: string}>
+         */
+        public array $attachments = [],
     ) {
     }
 
@@ -40,6 +45,8 @@ class SendFormNotificationJob implements ShouldQueue
                 formSubmission: $this->formSubmission,
                 sender: $this->sender,
                 senderName: $this->senderName,
+                replyToAddress: $this->replyTo,
+                files: $this->attachments,
             ));
 
         FormSubmissionNotificationLog::find($this->notificationLogId)?->update([
