@@ -15,6 +15,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
@@ -32,6 +33,8 @@ class FormCanvas extends Field
     protected array | Closure $fixedFields = [];
 
     protected ?Closure $afterKeyRenamed = null;
+
+    protected ?Closure $keyUsages = null;
 
     protected function setUp(): void
     {
@@ -81,6 +84,45 @@ class FormCanvas extends Field
         $this->afterKeyRenamed = $callback;
 
         return $this;
+    }
+
+    /**
+     * Lists what outside the canvas still names one of a field's keys, for the
+     * warning before it is deleted. Receives `$keys`, returns descriptions.
+     */
+    public function keyUsagesUsing(?Closure $callback): static
+    {
+        $this->keyUsages = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Where a field is still named: the conditions of other fields, and
+     * whatever outside the canvas reports.
+     *
+     * @return list<string>
+     */
+    public function getKeyUsages(string $uuid): array
+    {
+        $field = $this->getItems()[$uuid] ?? null;
+
+        if ($field === null) {
+            return [];
+        }
+
+        $keys = array_values(array_unique([$field->getKey(), ...array_keys($field->getSubmissionColumns())]));
+        $usages = [];
+
+        foreach ($this->getItems() as $otherUuid => $other) {
+            $rules = $otherUuid === $uuid ? [] : $other->getConditions()->rules;
+
+            if (array_intersect(array_column($rules, 'key'), $keys) !== []) {
+                $usages[] = __('filament-form-builder::general.canvas.usage_conditions', ['label' => $other->getLabel()]);
+            }
+        }
+
+        return [...$usages, ...$this->evaluate($this->keyUsages, ['keys' => $keys]) ?? []];
     }
 
     /**
@@ -249,7 +291,13 @@ class FormCanvas extends Field
             ->modalHeading(fn (array $arguments, FormCanvas $component): string => __('filament-form-builder::general.canvas.delete_heading', [
                 'label' => ($component->getItems()[$arguments['item'] ?? ''] ?? null)?->getLabel() ?? '',
             ]))
-            ->modalDescription(__('filament-form-builder::general.canvas.delete_description'))
+            ->modalDescription(function (array $arguments, FormCanvas $component): string {
+                $usages = $component->getKeyUsages((string) ($arguments['item'] ?? ''));
+
+                return trim(__('filament-form-builder::general.canvas.delete_description') . ' ' . ($usages === [] ? '' : __('filament-form-builder::general.canvas.used_in', [
+                    'places' => Arr::join($usages, ', ', __('filament-form-builder::general.notifications.list_and')),
+                ])));
+            })
             ->modalSubmitActionLabel(__('filament-forms::components.builder.actions.delete.label'))
             ->action(function (array $arguments, FormCanvas $component): void {
                 $uuid = (string) ($arguments['item'] ?? '');

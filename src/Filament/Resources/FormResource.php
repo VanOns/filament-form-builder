@@ -27,11 +27,13 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
+use Livewire\Component as LivewireComponent;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\MergeTagEditor;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\NotificationList;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\SubmitNotifications;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
@@ -190,8 +192,55 @@ class FormResource extends Resource
                 FormCanvas::make('custom.fields')
                     ->hiddenLabel()
                     ->fixedFields(fn (Get $get, ?FormModel $record): array => static::getFormType($get, $record)?->fields() ?? [])
-                    ->afterKeyRenamed(static::renameKeyInNotifications(...)),
+                    ->afterKeyRenamed(static::renameKeyInNotifications(...))
+                    ->keyUsagesUsing(static::findKeyUsages(...)),
             ])->columnSpanFull();
+    }
+
+    /**
+     * The notifications and outcomes that still name one of a field's keys.
+     *
+     * @param  list<string>  $keys
+     * @return list<string>
+     */
+    public static function findKeyUsages(array $keys, Get $get, LivewireComponent $livewire): array
+    {
+        $labels = MergeTagEditor::form($livewire)->getMergeTags();
+        $names = fn (mixed $content): bool => array_intersect(MergeTags::ids($content), $keys) !== [];
+        $conditions = fn (array $item): bool => array_intersect(array_column($item['conditions'] ?? [], 'key'), $keys) !== [];
+        $recipients = array_map(fn (string $key): string => EmailNotification::FIELD_PREFIX . $key, $keys);
+        $usages = [];
+
+        foreach ($get('notifications') ?? [] as $notification) {
+            $isNamed = $conditions($notification)
+                || array_intersect([...$notification['to'] ?? [], ...$notification['cc'] ?? [], ...$notification['bcc'] ?? [], $notification['reply_to'] ?? null], $recipients) !== []
+                || array_filter(['subject', 'content', 'senderName'], fn (string $text): bool => $names($notification[$text] ?? null)) !== [];
+
+            if ($isNamed) {
+                $usages[] = __('filament-form-builder::general.canvas.usage_notification', ['subject' => MergeTags::render($notification['subject'] ?? null, $labels, asText: true)]);
+            }
+        }
+
+        $outcomeNames = function (array $outcome) use ($names): bool {
+            $query = $outcome['query'] ?? null;
+
+            return $names($outcome['content'] ?? null)
+                || (is_array($query) ? array_filter($query, fn (array $row): bool => $names($row['value'] ?? null)) !== [] : $names($query));
+        };
+
+        if ($outcomeNames($get('submit_notifications.default') ?? [])) {
+            $usages[] = __('filament-form-builder::general.canvas.usage_after_submit');
+        }
+
+        foreach ($get('submit_notifications.rules') ?? [] as $rule) {
+            if ($conditions($rule) || $outcomeNames($rule)) {
+                $usages[] = __('filament-form-builder::general.canvas.usage_outcome');
+
+                break;
+            }
+        }
+
+        return $usages;
     }
 
     public static function renameKeyInNotifications(string $from, string $to, Get $get, Set $set): void

@@ -116,6 +116,22 @@ it('takes conditions, notifications and outcomes along when a key is renamed', f
         ->and(MergeTags::ids($form->getSubmitNotifications()[1]['content']))->toBe(['roepnaam']);
 });
 
+it('says where a field is still used before it is deleted', function () {
+    $form = canvasForm([
+        ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam'],
+        ['type' => 'textarea', 'label' => 'Bericht', 'key' => 'bericht', 'conditions' => [['key' => 'voornaam', 'operator' => 'not_empty']]],
+    ], [
+        'notifications' => [['subject' => '<p>Van <span data-type="mergeTag" data-id="voornaam"></span></p>', 'content' => '<p>Hoi</p>', 'to' => ['hr@example.test']]],
+        'submit_notifications' => [['type' => 'content', 'content' => '<p>Bedankt <span data-type="mergeTag" data-id="voornaam"></span></p>']],
+    ]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    [$voornaam, $bericht] = array_keys($page->get('data.custom.fields'));
+    $canvas = collect($page->instance()->getSchema('form')->getFlatComponents(withHidden: true))->first(fn ($component): bool => $component instanceof FormCanvas);
+
+    expect($canvas->getKeyUsages($voornaam))->toBe(['the conditions of Bericht', 'the e-mail “Van Voornaam”', 'After submitting'])
+        ->and($canvas->getKeyUsages($bericht))->toBe([]);
+});
+
 it('sets a field to the width picked for it', function () {
     $form = canvasForm([['type' => 'text', 'label' => 'Naam', 'key' => 'naam']]);
     $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
