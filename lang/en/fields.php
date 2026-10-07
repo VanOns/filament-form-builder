@@ -44,6 +44,8 @@ return [
     'not_equals' => 'not equals',
     'empty' => 'empty',
     'not_empty' => 'not empty',
+    'checked' => 'ticked',
+    'unchecked' => 'not ticked',
     'multiple_uploads' => 'Multiple uploads',
     'form_force_deletion_warning' => 'Deleting this field will also delete all associated form submissions.',
     'form_deletion_warning' => 'After this action, the form will still be stored in the database.',

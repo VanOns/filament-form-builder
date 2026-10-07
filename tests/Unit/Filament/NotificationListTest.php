@@ -70,7 +70,7 @@ it('starts a confirmation to the person who sent the form', function () {
         ->and(MergeTags::ids($notification['content']))->toBe(['all_fields']);
 });
 
-it('edits, switches off and deletes a notification', function () {
+it('saves an edit, a switch and a delete straight away, without saving the page', function () {
     $form = notifiedForm([['id' => 'team', 'subject' => 'Nieuw', 'content' => '<p>Hoi</p>', 'to' => ['hr@example.test']]]);
     $page = editNotifications($form);
 
@@ -81,16 +81,17 @@ it('edits, switches off and deletes a notification', function () {
         'conditions' => [['key' => 'naam', 'operator' => 'not_empty']],
     ])->assertHasNoActionErrors();
 
-    $page->callAction(onNotifications('toggle', ['item' => 'team']))->call('save');
+    $page->callAction(onNotifications('toggle', ['item' => 'team']));
 
     $notification = $form->refresh()->notifications[0];
 
     expect($notification['to'])->toBe(['field:email', 'hr@example.test'])
         ->and($notification['reply_to'])->toBe('field:email')
         ->and($notification['conditions'][0]['key'])->toBe('naam')
-        ->and($notification['enabled'])->toBeFalse();
+        ->and($notification['enabled'])->toBeFalse()
+        ->and($notification)->not->toHaveKeys(['when', 'show_sender']);
 
-    $page->callAction(onNotifications('delete', ['item' => 'team']))->call('save');
+    $page->callAction(onNotifications('delete', ['item' => 'team']));
 
     expect($form->refresh()->notifications)->toBe([]);
 });
@@ -115,6 +116,30 @@ it('marks a recipient field that mails nobody', function () {
         ->assertSee('Naam (not an e-mail field)')
         ->assertSee('weg (no longer exists)')
         ->assertSeeHtml('ffb-recipient-broken');
+});
+
+it('goes back to the default sender once the sender fields are put away', function () {
+    $form = notifiedForm([['id' => 'team', 'subject' => 'Nieuw', 'content' => '<p>Hoi</p>', 'to' => ['hr@example.test'],
+        'sender' => 'jobs@example.test', 'senderName' => '<p><span data-type="mergeTag" data-id="naam"></span></p>']]);
+
+    editNotifications($form)
+        ->mountAction(onNotifications('edit', ['item' => 'team']))
+        ->assertSchemaStateSet(['show_sender' => true])
+        ->fillForm(['show_sender' => false])
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
+
+    expect($form->refresh()->notifications[0])
+        ->sender->toBeNull()
+        ->senderName->toBeNull();
+});
+
+it('asks whether a box is ticked instead of for a value', function () {
+    $form = notifiedForm([['id' => 'team', 'subject' => 'Nieuw', 'content' => '<p>Hoi</p>', 'to' => ['hr@example.test'],
+        'conditions' => [['key' => 'akkoord', 'operator' => 'not_empty']]]]);
+    $form->update(['custom' => ['fields' => [...$form->custom['fields'], ['type' => 'checkbox', 'label' => 'Akkoord', 'key' => 'akkoord']]]]);
+
+    editNotifications($form)->assertSee('If Akkoord is ticked');
 });
 
 it('sends a test mail to the person editing, filled with the latest submission', function () {

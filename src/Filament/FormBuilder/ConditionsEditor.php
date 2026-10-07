@@ -3,13 +3,17 @@
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\CheckboxField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 
 /**
@@ -21,10 +25,12 @@ final class ConditionsEditor
     /**
      * @param  array<string, FormField>  $fields  the fields the rules can look at, by key
      * @param  string  $summary  the sentence the rules go into, with `:rules`
+     * @param  string  $matchLabel  the label above all or one of the rules
      */
     public function __construct(
         private readonly array $fields,
         private readonly string $summary = 'filament-form-builder::general.canvas.conditions.summary',
+        private readonly string $matchLabel = 'filament-form-builder::fields.condition_match',
     ) {
     }
 
@@ -35,10 +41,11 @@ final class ConditionsEditor
     {
         $needsValue = fn (Get $get): bool => ConditionOperator::tryFrom((string) $get('operator'))?->needsValue() ?? false;
         $choices = fn (Get $get): array => ($this->fields[$get('key')] ?? null)?->getFilterOptions() ?? [];
+        $operators = fn (Get $get): array => $this->operators($this->fields[$get('key')] ?? null);
 
         return [
             ToggleButtons::make('conditionMatch')
-                ->label(__('filament-form-builder::fields.condition_match'))
+                ->label(__($this->matchLabel))
                 ->options([
                     'all' => __('filament-form-builder::fields.condition_match_all'),
                     'any' => __('filament-form-builder::fields.condition_match_any'),
@@ -50,7 +57,11 @@ final class ConditionsEditor
             Repeater::make('conditions')
                 ->hiddenLabel()
                 ->default([])
-                ->columns(2)
+                ->table([
+                    TableColumn::make(__('filament-form-builder::fields.condition_field'))->width('40%'),
+                    TableColumn::make(__('filament-form-builder::fields.condition_operator'))->width('25%'),
+                    TableColumn::make(__('filament-form-builder::fields.value')),
+                ])
                 ->reorderable(false)
                 ->live()
                 ->addActionLabel(__('filament-form-builder::fields.add_condition'))
@@ -59,31 +70,54 @@ final class ConditionsEditor
                         ->label(__('filament-form-builder::fields.condition_field'))
                         ->options(array_map(fn (FormField $field): string => $field->getLabel(), $this->fields))
                         ->required()
-                        ->live(),
+                        ->live()
+                        ->afterStateUpdated(function (Get $get, Set $set) use ($operators): void {
+                            if (!array_key_exists((string) $get('operator'), $operators($get))) {
+                                $set('operator', array_key_first($operators($get)));
+                            }
+
+                            $set('value', null);
+                        }),
                     Select::make('operator')
                         ->label(__('filament-form-builder::fields.condition_operator'))
-                        ->options(ConditionOperator::options())
+                        ->options($operators)
                         ->default(ConditionOperator::EQUALS->value)
                         ->selectablePlaceholder(false)
                         ->required()
                         ->live(),
-                    // A choice field offers its own options to pick from.
-                    ToggleButtons::make('value')
-                        ->label(__('filament-form-builder::fields.value'))
-                        ->options($choices)
-                        ->inline()
-                        ->columnSpanFull()
-                        ->required($needsValue)
-                        ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) !== []),
-                    TextInput::make('value')
-                        ->label(__('filament-form-builder::fields.value'))
-                        ->columnSpanFull()
-                        ->required($needsValue)
-                        ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) === []),
+                    // One cell for the value: a choice field's own options, or text.
+                    Group::make([
+                        Select::make('value')
+                            ->label(__('filament-form-builder::fields.value'))
+                            ->options($choices)
+                            ->required($needsValue)
+                            ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) !== []),
+                        TextInput::make('value')
+                            ->label(__('filament-form-builder::fields.value'))
+                            ->required($needsValue)
+                            ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) === []),
+                    ]),
                 ]),
             Text::make(fn (Get $get): ?string => $this->describe($get('conditions') ?? [], $get('conditionMatch')))
                 ->visible(fn (Get $get): bool => filled($get('conditions'))),
         ];
+    }
+
+    /**
+     * A ticked box is only ticked or not, so it has no value to compare.
+     *
+     * @return array<string, string>
+     */
+    private function operators(?FormField $field): array
+    {
+        if ($field instanceof CheckboxField) {
+            return [
+                ConditionOperator::NOT_EMPTY->value => __('filament-form-builder::fields.checked'),
+                ConditionOperator::EMPTY->value => __('filament-form-builder::fields.unchecked'),
+            ];
+        }
+
+        return ConditionOperator::options();
     }
 
     /**
@@ -118,7 +152,9 @@ final class ConditionsEditor
         $described = [];
 
         foreach ($rules as $rule) {
-            if (is_array($rule) && filled($rule['key'] ?? null) && filled($rule['operator'] ?? null)) {
+            $operator = is_array($rule) ? ConditionOperator::tryFrom((string) ($rule['operator'] ?? '')) : null;
+
+            if ($operator !== null && filled($rule['key'] ?? null) && (!$operator->needsValue() || filled($rule['value'] ?? null))) {
                 $described[] = $this->describeRule($rule, 'long');
             }
         }
@@ -140,8 +176,11 @@ final class ConditionsEditor
         $field = $this->fields[$rule['key'] ?? ''] ?? null;
         $value = $rule['value'] ?? null;
         $operator = ConditionOperator::tryFrom((string) ($rule['operator'] ?? '')) ?? ConditionOperator::EQUALS;
+        $phrase = $field instanceof CheckboxField && !$operator->needsValue()
+            ? ($operator === ConditionOperator::NOT_EMPTY ? 'checked' : 'unchecked')
+            : $operator->value;
 
-        return __("filament-form-builder::general.canvas.conditions.{$form}.{$operator->value}", [
+        return __("filament-form-builder::general.canvas.conditions.{$form}.{$phrase}", [
             'field' => $field?->getLabel() ?? (string) ($rule['key'] ?? ''),
             'value' => is_scalar($value) ? ($field?->getFilterOptions()[(string) $value] ?? (string) $value) : '',
         ]);

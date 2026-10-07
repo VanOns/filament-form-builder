@@ -208,6 +208,10 @@ how often they went out. A notification is edited in a slide-over:
   **Test mail to me** sends it, filled in with the latest submission, to the
   person editing it.
 
+On a form that already exists, saving, switching, duplicating or deleting a
+notification stores it straight away; a form being created keeps them until it
+is saved.
+
 A new notification starts empty, as a confirmation to the person who sent the
 form, or as a message for staff with every answer and a link to the
 submission. A field type of your own offers its e-mail columns as recipients

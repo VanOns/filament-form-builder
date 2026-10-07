@@ -5,17 +5,24 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Field;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Icon;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\HtmlString;
@@ -96,17 +103,21 @@ class NotificationList extends Field
         return Action::make($name)
             ->modalHeading(__("filament-form-builder::general.notifications.{$name}_heading"))
             ->modalIcon(Heroicon::OutlinedEnvelope)
+            ->modalDescription(fn (array $arguments, NotificationList $component, Livewire $livewire): ?string => $component->describe($arguments, $livewire))
             ->slideOver()
             ->modalSubmitActionLabel(__('filament-form-builder::general.save'))
             ->fillForm(fn (array $arguments, NotificationList $component, Livewire $livewire): array => $component->getFormData($arguments, $livewire))
             ->schema(fn (NotificationList $component, Livewire $livewire): array => $component->getNotificationSchema($livewire))
-            ->extraModalFooterActions(fn (Action $action, NotificationList $component): array => [
+            ->modalFooterActions(fn (Action $action, NotificationList $component): array => [
+                $action->getModalSubmitAction(),
+                $action->getModalCancelAction(),
                 $action->makeModalSubmitAction('sendTest', arguments: ['test' => true])
                     ->label(__('filament-form-builder::general.notifications.send_test'))
                     ->icon(Heroicon::OutlinedPaperAirplane)
                     ->color('gray')
                     ->disabled($component->getLatestSubmission() === null)
-                    ->tooltip($component->getLatestSubmission() === null ? __('filament-form-builder::general.notifications.send_test_unavailable') : null),
+                    ->tooltip($component->getLatestSubmission() === null ? __('filament-form-builder::general.notifications.send_test_unavailable') : null)
+                    ->extraAttributes(['class' => 'ffb-modal-action-end']),
             ])
             ->action(function (array $arguments, array $data, NotificationList $component, Action $action): void {
                 if ($arguments['test'] ?? false) {
@@ -132,7 +143,7 @@ class NotificationList extends Field
 
                 if ($item !== null) {
                     $id = (string) Str::uuid();
-                    $component->rawState([...$items, $id => [...$item, 'id' => $id]]);
+                    $component->store([...$items, $id => [...$item, 'id' => $id]]);
                 }
             });
     }
@@ -149,7 +160,7 @@ class NotificationList extends Field
                 $items = $component->getRawState() ?? [];
                 unset($items[$arguments['item'] ?? '']);
 
-                $component->rawState($items);
+                $component->store($items);
             });
     }
 
@@ -162,7 +173,7 @@ class NotificationList extends Field
 
                 if (isset($items[$id])) {
                     $items[$id]['enabled'] = !($items[$id]['enabled'] ?? true);
-                    $component->rawState($items);
+                    $component->store($items);
                 }
             });
     }
@@ -175,7 +186,41 @@ class NotificationList extends Field
     {
         $item = ($this->getRawState() ?? [])[$arguments['item'] ?? ''] ?? $this->getPreset((string) ($arguments['preset'] ?? ''), $livewire);
 
-        return [...$item, 'when' => filled($item['conditions'] ?? []) ? 'conditions' : 'always'];
+        return [
+            ...$item,
+            'when' => filled($item['conditions'] ?? []) ? 'conditions' : 'always',
+            'show_sender' => filled($item['sender'] ?? null) || filled(strip_tags((string) ($item['senderName'] ?? ''))) || MergeTags::ids($item['senderName'] ?? null) !== [],
+        ];
+    }
+
+    /**
+     * Under the slide-over's heading: who an existing notification goes to
+     * and when, or what a preset starts with.
+     *
+     * @param  array<string, mixed>  $arguments
+     */
+    public function describe(array $arguments, Livewire $livewire): ?string
+    {
+        $item = ($this->getRawState() ?? [])[$arguments['item'] ?? ''] ?? null;
+
+        if ($item === null) {
+            $preset = (string) ($arguments['preset'] ?? '');
+
+            return in_array($preset, ['confirmation', 'staff'], true)
+                ? __("filament-form-builder::general.notifications.presets.{$preset}_description")
+                : null;
+        }
+
+        $form = MergeTagEditor::form($livewire);
+        $recipients = array_map(fn (string $recipient): string => $form->getRecipientLabel($recipient), $item['to'] ?? []);
+
+        if ($recipients === []) {
+            return __('filament-form-builder::general.notifications.no_recipients');
+        }
+
+        return __(filled($item['conditions'] ?? []) ? 'filament-form-builder::general.notifications.description_conditions' : 'filament-form-builder::general.notifications.description_always', [
+            'recipients' => Arr::join($recipients, ', ', __('filament-form-builder::general.notifications.list_and')),
+        ]);
     }
 
     /**
@@ -210,17 +255,60 @@ class NotificationList extends Field
      */
     public function saveItem(?string $id, array $data): void
     {
-        if (($data['when'] ?? 'always') !== 'conditions') {
-            $data['conditions'] = [];
-        }
-
-        unset($data['when']);
+        $data = $this->fromSlideOver($data);
 
         $items = $this->getRawState() ?? [];
         $id ??= (string) Str::uuid();
         $items[$id] = $this->prepare([...$items[$id] ?? [], ...$data, 'id' => $id]);
 
+        if ($this->store($items)) {
+            Notification::make()
+                ->success()
+                ->title(__('filament-form-builder::general.notifications.saved'))
+                ->send();
+        }
+    }
+
+    /**
+     * The slide-over's choices as the notification stores them: "always"
+     * drops the conditions, and put-away sender fields mean the default.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function fromSlideOver(array $data): array
+    {
+        if (($data['when'] ?? 'always') !== 'conditions') {
+            $data['conditions'] = [];
+        }
+
+        if (!($data['show_sender'] ?? false)) {
+            $data['sender'] = null;
+            $data['senderName'] = null;
+        }
+
+        unset($data['when'], $data['show_sender']);
+
+        return $data;
+    }
+
+    /**
+     * Saves the notifications with their form right away when it exists, so a
+     * change does not wait for the page; a form being created waits for that.
+     *
+     * @param  array<string, array<string, mixed>>  $items
+     */
+    public function store(array $items): bool
+    {
         $this->rawState($items);
+
+        $record = $this->getRecord();
+
+        if (!$record instanceof Form || !$record->exists) {
+            return false;
+        }
+
+        return $record->update(['notifications' => array_values($items)]);
     }
 
     /**
@@ -229,25 +317,26 @@ class NotificationList extends Field
     public function getNotificationSchema(Livewire $livewire): array
     {
         $form = MergeTagEditor::form($livewire);
+        $group = fn (string $heading): Section => Section::make(__("filament-form-builder::general.notifications.{$heading}"))
+            ->contained(false)
+            ->extraAttributes(['class' => 'ffb-mail-form-group']);
 
         return [
-            Section::make(__('filament-form-builder::general.notifications.recipients'))
-                ->compact()
-                ->schema([
-                    RecipientsInput::make('to')
-                        ->label(__('filament-form-builder::general.notifications.to'))
-                        ->helperText(__('filament-form-builder::general.notifications.to_helper'))
-                        ->form($form)
-                        ->required()
-                        ->validationMessages(['required' => __('filament-form-builder::general.notifications.to_required')]),
-                    RecipientsInput::make('reply_to')
-                        ->label(__('filament-form-builder::general.notifications.reply_to'))
-                        ->helperText(__('filament-form-builder::general.notifications.reply_to_helper'))
-                        ->form($form)
-                        ->multiple(false),
-                ]),
-            Section::make(__('filament-form-builder::general.notifications.message'))
-                ->compact()
+            $group('recipients')->schema([
+                RecipientsInput::make('to')
+                    ->label(__('filament-form-builder::general.notifications.to'))
+                    ->helperText(__('filament-form-builder::general.notifications.to_helper'))
+                    ->form($form)
+                    ->required()
+                    ->validationMessages(['required' => __('filament-form-builder::general.notifications.to_required')]),
+                RecipientsInput::make('reply_to')
+                    ->label(__('filament-form-builder::general.notifications.reply_to'))
+                    ->helperText(__('filament-form-builder::general.notifications.reply_to_helper'))
+                    ->form($form)
+                    ->multiple(false),
+            ]),
+            $group('message')
+                ->extraAttributes(['class' => 'ffb-mail-form-divided'], merge: true)
                 ->schema([
                     MergeTagEditor::line('subject')
                         ->label(__('filament-form-builder::general.notifications.subject'))
@@ -256,10 +345,11 @@ class NotificationList extends Field
                         ->label(__('filament-form-builder::general.notifications.content'))
                         ->required(),
                 ]),
-            Section::make(__('filament-form-builder::general.notifications.when'))
-                ->compact()
+            $group('when')
+                ->extraAttributes(['class' => 'ffb-mail-form-divided'], merge: true)
                 ->schema([
                     ToggleButtons::make('when')
+                        ->label(__('filament-form-builder::general.notifications.when'))
                         ->hiddenLabel()
                         ->options([
                             'always' => __('filament-form-builder::general.notifications.when_always'),
@@ -268,11 +358,15 @@ class NotificationList extends Field
                         ->default('always')
                         ->grouped()
                         ->live(),
-                    Group::make((new ConditionsEditor($this->getConditionFields($form), 'filament-form-builder::general.notifications.conditions_summary'))->schema())
+                    Group::make((new ConditionsEditor(
+                        $this->getConditionFields($form),
+                        'filament-form-builder::general.notifications.conditions_summary',
+                        'filament-form-builder::general.notifications.condition_match',
+                    ))->schema())
                         ->visible(fn (Get $get): bool => $get('when') === 'conditions'),
                 ]),
-            Section::make(__('filament-form-builder::general.notifications.attachments'))
-                ->compact()
+            $group('attachments')
+                ->extraAttributes(['class' => 'ffb-mail-form-divided'], merge: true)
                 ->visible($this->hasUploads($form))
                 ->schema([
                     Toggle::make('attach_files')
@@ -281,25 +375,61 @@ class NotificationList extends Field
                             'size' => Number::fileSize((int) config('filament-form-builder.form-uploads-attach-max-size', 10240) * 1024),
                         ])),
                 ]),
-            Section::make(__('filament-form-builder::general.notifications.sender'))
-                ->compact()
-                ->collapsible()
-                ->collapsed(fn (Get $get): bool => blank($get('sender')))
-                ->schema([
-                    Callout::make(__('filament-form-builder::general.notifications.sender_callout'))
-                        ->warning()
-                        ->visible(fn (Get $get): bool => filled($get('sender'))),
-                    TextInput::make('sender')
-                        ->label(__('filament-form-builder::general.notifications.email'))
-                        ->helperText(__('filament-form-builder::general.notifications.sender_hint'))
-                        ->placeholder(config('mail.from.address'))
-                        ->email()
-                        ->live(onBlur: true),
-                    MergeTagEditor::line('senderName')
-                        ->label(__('filament-form-builder::general.notifications.name'))
-                        ->helperText(__('filament-form-builder::general.notifications.name_hint'))
-                        ->placeholder(config('mail.from.name')),
-                ]),
+            ...$this->getSenderSchema(),
+        ];
+    }
+
+    /**
+     * The default sender as one line, with the fields to change it behind a
+     * link.
+     *
+     * @return array<Component>
+     */
+    protected function getSenderSchema(): array
+    {
+        $default = trim(config('mail.from.name') . ' <' . config('mail.from.address') . '>');
+
+        return [
+            Hidden::make('show_sender'),
+            Flex::make([
+                Icon::make(Heroicon::OutlinedAtSymbol)->color('gray')->grow(false),
+                Text::make(fn (Get $get): string => $get('show_sender')
+                    ? __('filament-form-builder::general.notifications.sender')
+                    : __('filament-form-builder::general.notifications.sender_default', ['sender' => $default]))
+                    ->grow(false),
+                Actions::make([
+                    Action::make('changeSender')
+                        ->label(fn (Get $get): string => $get('show_sender')
+                            ? __('filament-form-builder::general.notifications.sender_reset')
+                            : __('filament-form-builder::general.notifications.sender_change'))
+                        ->link()
+                        ->action(function (Get $get, Set $set): void {
+                            if ($get('show_sender')) {
+                                $set('sender', null);
+                                $set('senderName', null);
+                            }
+
+                            $set('show_sender', !$get('show_sender'));
+                        }),
+                ])->grow(false),
+            ])
+                ->verticallyAlignCenter()
+                ->extraAttributes(['class' => 'ffb-mail-sender-line ffb-mail-form-divided']),
+            Group::make([
+                Callout::make(__('filament-form-builder::general.notifications.sender_callout'))
+                    ->warning()
+                    ->visible(fn (Get $get): bool => filled($get('sender'))),
+                TextInput::make('sender')
+                    ->label(__('filament-form-builder::general.notifications.email'))
+                    ->helperText(__('filament-form-builder::general.notifications.sender_hint'))
+                    ->placeholder(config('mail.from.address'))
+                    ->email()
+                    ->live(onBlur: true),
+                MergeTagEditor::line('senderName')
+                    ->label(__('filament-form-builder::general.notifications.name'))
+                    ->helperText(__('filament-form-builder::general.notifications.name_hint'))
+                    ->placeholder(config('mail.from.name')),
+            ])->visible(fn (Get $get): bool => (bool) $get('show_sender')),
         ];
     }
 
@@ -320,8 +450,7 @@ class NotificationList extends Field
             return;
         }
 
-        unset($data['when']);
-        $notification = new EmailNotification($submission, $data);
+        $notification = new EmailNotification($submission, $this->fromSlideOver($data));
 
         try {
             Mail::to($address)->send(new FormSubmissionCreatedMail(
