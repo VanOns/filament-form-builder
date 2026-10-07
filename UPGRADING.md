@@ -13,6 +13,7 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 
 ### Installing
 
+* v3 needs Filament 4.13 or 5.8 at least. Laravel 11 to 13 and PHP 8.2 and up stay supported.
 * Upgrade to v2.9 and run its migrations first. Then publish the one upgrade migration with
   `php artisan vendor:publish --tag=filament-form-builder-upgrade-migrations` and run
   `php artisan migrate`. It adds `form_submissions.files`, `form_submissions.field_snapshot`,
