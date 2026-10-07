@@ -783,6 +783,15 @@
     color: var(--gray-600);
 }
 
+.ffb-preview-consent a {
+    color: var(--primary-600);
+    text-decoration: underline;
+}
+
+.dark .ffb-preview-consent a {
+    color: var(--primary-400);
+}
+
 .ffb-preview-date {
     display: flex;
     align-items: center;

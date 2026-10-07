@@ -21,6 +21,7 @@ return [
         'checkbox_list' => Fields\CheckboxListField::class,
         'dropdown' => Fields\DropdownField::class,
         'checkbox' => Fields\CheckboxField::class,
+        'consent' => Fields\ConsentField::class,
         'file_upload' => Fields\FileUploadField::class,
         'recaptcha' => Fields\RecaptchaField::class,
         'submit' => Fields\SubmitField::class,

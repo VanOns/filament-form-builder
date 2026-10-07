@@ -124,7 +124,11 @@ to offer a field type of your own in the builder's palette.
 
 Besides text, e-mail, phone, number, choices and uploads there is a date,
 stored as the date input sends it (`2026-10-07`) and shown in the format the
-editor picks (`7 October 2026`, `07-10-2026`, `7 Oct 2026` or `2026-10-07`).
+editor picks (`7 October 2026`, `07-10-2026`, `7 Oct 2026` or `2026-10-07`),
+and a consent: a box that is always required and never ticked in advance,
+beside a text whose links open the terms in a new tab. Only links, bold and
+italic survive in that text. Its optional name ("Privacy") heads its column,
+and without one the text itself does.
 
 A field type that returns false from `isAvailable()` stays out of the palette,
 while a field of that type already on a form stays there. reCAPTCHA does so
