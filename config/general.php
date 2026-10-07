@@ -16,6 +16,7 @@ return [
         'email' => Fields\EmailField::class,
         'phone' => Fields\PhoneField::class,
         'number' => Fields\NumberField::class,
+        'date' => Fields\DateField::class,
         'radio' => Fields\RadioField::class,
         'checkbox_list' => Fields\CheckboxListField::class,
         'dropdown' => Fields\DropdownField::class,

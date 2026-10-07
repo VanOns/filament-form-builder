@@ -27,6 +27,7 @@ function filteredForm(): Form
         'custom' => ['fields' => [
             ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
             ['type' => 'number', 'label' => 'Uren', 'key' => 'uren'],
+            ['type' => 'date', 'label' => 'Start', 'key' => 'start'],
             ['type' => 'radio', 'label' => 'Aanhef', 'key' => 'aanhef', 'options' => [
                 ['value' => 'dhr', 'label' => 'De heer'],
                 ['value' => 'mw', 'label' => 'Mevrouw'],
@@ -42,12 +43,12 @@ function filteredForm(): Form
 
     FormSubmission::create([
         'form_id' => $form->id,
-        'data' => ['naam' => 'Jan de Vries', 'uren' => '32', 'aanhef' => 'dhr', 'interesses' => ['web', 'app'], 'privacy' => '1'],
+        'data' => ['naam' => 'Jan de Vries', 'uren' => '32', 'start' => '2026-11-01', 'aanhef' => 'dhr', 'interesses' => ['web', 'app'], 'privacy' => '1'],
         'files' => ['cv' => [['path' => 'form_uploads/cv.pdf', 'name' => 'cv.pdf']]],
     ]);
     FormSubmission::create([
         'form_id' => $form->id,
-        'data' => ['naam' => 'Anna', 'uren' => '8', 'aanhef' => 'mw', 'interesses' => ['app']],
+        'data' => ['naam' => 'Anna', 'uren' => '8', 'start' => '2027-02-01', 'aanhef' => 'mw', 'interesses' => ['app']],
     ]);
     FormSubmission::create([
         'form_id' => $form->id,
@@ -97,6 +98,15 @@ it('compares a number as a number', function () {
         ->and(matching($form, 'uren', 'isMin', ['number' => 10], inverse: true))->toBe(['Anna'])
         ->and(matching($form, 'uren', 'equals', ['number' => 8]))->toBe(['Anna'])
         ->and(matching($form, 'uren', 'isFilled', inverse: true))->toBe(['-']);
+});
+
+it('compares a date as a date', function () {
+    $form = filteredForm();
+
+    expect(matching($form, 'start', 'isAfter', ['date' => '2027-01-01']))->toBe(['Anna'])
+        ->and(matching($form, 'start', 'isBefore', ['date' => '2027-01-01']))->toBe(['Jan de Vries'])
+        ->and(matching($form, 'start', 'isDate', ['date' => '2026-11-01']))->toBe(['Jan de Vries'])
+        ->and(matching($form, 'start', 'isFilled', inverse: true))->toBe(['-']);
 });
 
 it('picks a choice by its option', function () {

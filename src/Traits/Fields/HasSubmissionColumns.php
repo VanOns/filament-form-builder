@@ -29,6 +29,15 @@ trait HasSubmissionColumns
     }
 
     /**
+     * The words a rule on this field reads as, a key under
+     * canvas.conditions.short and .long.
+     */
+    public function getConditionPhrase(ConditionOperator $operator): string
+    {
+        return $operator->value;
+    }
+
+    /**
      * The rules the submissions table can filter this field's answers by, one
      * per column it fills. The table gives them the field type's icon.
      *

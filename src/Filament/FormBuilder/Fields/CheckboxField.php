@@ -49,6 +49,15 @@ class CheckboxField extends FormField
         ];
     }
 
+    public function getConditionPhrase(ConditionOperator $operator): string
+    {
+        return match ($operator) {
+            ConditionOperator::NOT_EMPTY => 'checked',
+            ConditionOperator::EMPTY => 'unchecked',
+            default => $operator->value,
+        };
+    }
+
     public function getFilterConstraints(): array
     {
         return [AnswerConstraints::checkbox($this->getKey(), $this->getLabel())];

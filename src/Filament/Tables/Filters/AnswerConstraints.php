@@ -3,6 +3,10 @@
 namespace VanOns\FilamentFormBuilder\Filament\Tables\Filters;
 
 use Filament\Tables\Filters\QueryBuilder\Constraints\Constraint;
+use Filament\Tables\Filters\QueryBuilder\Constraints\DateConstraint;
+use Filament\Tables\Filters\QueryBuilder\Constraints\DateConstraint\Operators\IsAfterOperator;
+use Filament\Tables\Filters\QueryBuilder\Constraints\DateConstraint\Operators\IsBeforeOperator;
+use Filament\Tables\Filters\QueryBuilder\Constraints\DateConstraint\Operators\IsDateOperator;
 use Filament\Tables\Filters\QueryBuilder\Constraints\NumberConstraint;
 use Filament\Tables\Filters\QueryBuilder\Constraints\SelectConstraint;
 use Filament\Tables\Filters\QueryBuilder\Constraints\TextConstraint;
@@ -47,6 +51,19 @@ final class AnswerConstraints
                 NumberEqualsOperator::class,
                 IsMinOperator::class,
                 IsMaxOperator::class,
+                IsFilledOperator::class,
+            ]);
+    }
+
+    public static function date(string $key, string $label): DateConstraint
+    {
+        return DateConstraint::make($key)
+            ->label($label)
+            ->attribute("data->{$key}")
+            ->operators([
+                IsAfterOperator::class,
+                IsBeforeOperator::class,
+                IsDateOperator::class,
                 IsFilledOperator::class,
             ]);
     }

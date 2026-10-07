@@ -87,8 +87,9 @@ enum ConditionOperator: string
     }
 
     /**
-     * How the answer relates to the value as numbers; without two numbers
-     * nothing holds, not even "at most".
+     * How the answer relates to the value as numbers, or as dates the way a
+     * date input sends them, which sort as text. Without two of either nothing
+     * holds, not even "at most".
      *
      * @param  list<string>  $answers
      */
@@ -96,10 +97,12 @@ enum ConditionOperator: string
     {
         $answer = $answers[0] ?? null;
 
-        if (!is_numeric($answer) || !is_numeric($expected)) {
-            return null;
+        if (is_numeric($answer) && is_numeric($expected)) {
+            return (float) $answer <=> (float) $expected;
         }
 
-        return (float) $answer <=> (float) $expected;
+        $isDate = fn (?string $value): bool => $value !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1;
+
+        return $isDate($answer) && $isDate($expected) ? $answer <=> $expected : null;
     }
 }

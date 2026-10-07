@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Validator;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\DateField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\EmailField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\InputField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\NumberField;
@@ -24,6 +25,7 @@ it('renders each type as its own HTML input type', function (string $type, strin
     [EmailField::class, 'email'],
     [PhoneField::class, 'tel'],
     [NumberField::class, 'number'],
+    [DateField::class, 'date'],
 ]);
 
 it('validates the value against its type', function (string $type, mixed $valid, mixed $invalid) {
@@ -33,6 +35,7 @@ it('validates the value against its type', function (string $type, mixed $valid,
     [EmailField::class, 'jan@example.com', 'jan'],
     [PhoneField::class, '+31 (0)6 12-34 56 78', 'bel me'],
     [NumberField::class, '42', 'veel'],
+    [DateField::class, '2026-10-07', '7-10-2026'],
 ]);
 
 it('accepts any text in a text field', function () {
@@ -47,4 +50,5 @@ it('lets an optional field stay empty', function (string $type) {
     EmailField::class,
     PhoneField::class,
     NumberField::class,
+    DateField::class,
 ]);

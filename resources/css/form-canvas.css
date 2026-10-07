@@ -782,3 +782,15 @@
     font-weight: 600;
     color: var(--gray-600);
 }
+
+.ffb-preview-date {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--gray-400);
+}
+
+.ffb-preview-date-icon {
+    width: 1rem;
+    height: 1rem;
+}

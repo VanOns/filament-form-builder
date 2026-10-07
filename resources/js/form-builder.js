@@ -81,11 +81,21 @@ class FormBuilderForm {
         }
     }
 
-    // Without two numbers nothing holds; NaN fails every comparison, like null does on the server.
+    // Numbers, or dates as a date input sends them, which sort as text. Without two of either nothing holds;
+    // NaN fails every comparison, like null does on the server.
     compare(answers, expected) {
         const isNumber = (text) => text !== undefined && text !== null && String(text).trim() !== '' && Number.isFinite(Number(text));
+        const isDate = (text) => typeof text === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(text);
 
-        return isNumber(answers[0]) && isNumber(expected) ? Number(answers[0]) - Number(expected) : NaN;
+        if (isNumber(answers[0]) && isNumber(expected)) {
+            return Number(answers[0]) - Number(expected);
+        }
+
+        if (isDate(answers[0]) && isDate(expected)) {
+            return answers[0] < expected ? -1 : (answers[0] > expected ? 1 : 0);
+        }
+
+        return NaN;
     }
 
     getValue(key) {

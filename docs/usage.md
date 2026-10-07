@@ -122,6 +122,10 @@ Stored forms only know the name, so a field class can be renamed, moved or
 swapped for a project's own subclass by changing its entry here. Add an entry
 to offer a field type of your own in the builder's palette.
 
+Besides text, e-mail, phone, number, choices and uploads there is a date,
+stored as the date input sends it (`2026-10-07`) and shown in the format the
+editor picks (`7 October 2026`, `07-10-2026`, `7 Oct 2026` or `2026-10-07`).
+
 A field type that returns false from `isAvailable()` stays out of the palette,
 while a field of that type already on a form stays there. reCAPTCHA does so
 until it is enabled with a key and a secret (`RECAPTCHA_ENABLED`,
@@ -258,9 +262,11 @@ show it.
 
 What a rule can test depends on the field it looks at, through the field type's
 `getConditionOperators()`: any answer can equal a value or be empty, a number
-can also be greater than, at least, less than or at most a value, and a
-checkbox is ticked or not. The same rules decide when an e-mail notification
-goes out and which outcome follows a submission.
+can also be greater than, at least, less than or at most a value, a date can
+be before, on or before, after or on or after a date, and a checkbox is ticked
+or not. `getConditionPhrase()` gives the words a rule reads as. The same rules
+decide when an e-mail notification goes out and which outcome follows a
+submission.
 
 ## Submit notification
 

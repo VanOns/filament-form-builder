@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
@@ -13,7 +14,7 @@ use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\CheckboxField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\DateField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\NumberField;
 use VanOns\FilamentFormBuilder\Models\Form;
@@ -61,6 +62,7 @@ final class ConditionsEditor
         $needsValue = fn (Get $get): bool => ConditionOperator::tryFrom((string) $get('operator'))?->needsValue() ?? false;
         $choices = fn (Get $get): array => ($this->fields[$get('key')] ?? null)?->getFilterOptions() ?? [];
         $operators = fn (Get $get): array => $this->operators($this->fields[$get('key')] ?? null);
+        $isDate = fn (Get $get): bool => ($this->fields[$get('key')] ?? null) instanceof DateField;
 
         return [
             ToggleButtons::make('conditionMatch')
@@ -107,18 +109,22 @@ final class ConditionsEditor
                         ->selectablePlaceholder(false)
                         ->required()
                         ->live(),
-                    // One cell for the value: a choice field's own options, or text.
+                    // One cell for the value: a choice field's own options, a date, or text.
                     Group::make([
                         Select::make('value')
                             ->label(__('filament-form-builder::fields.value'))
                             ->options($choices)
                             ->required($needsValue)
                             ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) !== []),
+                        DatePicker::make('value')
+                            ->label(__('filament-form-builder::fields.value'))
+                            ->required($needsValue)
+                            ->visible(fn (Get $get): bool => $needsValue($get) && $isDate($get)),
                         TextInput::make('value')
                             ->label(__('filament-form-builder::fields.value'))
                             ->numeric(fn (Get $get): bool => ($this->fields[$get('key')] ?? null) instanceof NumberField)
                             ->required($needsValue)
-                            ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) === []),
+                            ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) === [] && !$isDate($get)),
                     ]),
                 ]),
             Text::make(fn (Get $get): ?string => $this->describe($get('conditions') ?? [], $get('conditionMatch')))
@@ -190,13 +196,11 @@ final class ConditionsEditor
         $field = $this->fields[$rule['key'] ?? ''] ?? null;
         $value = $rule['value'] ?? null;
         $operator = ConditionOperator::tryFrom((string) ($rule['operator'] ?? '')) ?? ConditionOperator::EQUALS;
-        $phrase = $field instanceof CheckboxField && !$operator->needsValue()
-            ? ($operator === ConditionOperator::NOT_EMPTY ? 'checked' : 'unchecked')
-            : $operator->value;
+        $phrase = $field?->getConditionPhrase($operator) ?? $operator->value;
 
         return __("filament-form-builder::general.canvas.conditions.{$form}.{$phrase}", [
             'field' => $field?->getLabel() ?? (string) ($rule['key'] ?? ''),
-            'value' => is_scalar($value) ? ($field?->getFilterOptions()[(string) $value] ?? (string) $value) : '',
+            'value' => is_scalar($value) ? (string) ($field?->formatSubmissionValue($value) ?? $value) : '',
         ]);
     }
 }
