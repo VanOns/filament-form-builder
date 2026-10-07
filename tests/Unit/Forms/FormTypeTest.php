@@ -23,10 +23,24 @@ class ThankingForm extends FormType
     }
 }
 
+class PostcodeForm extends FormType
+{
+    public function fields(): array
+    {
+        return [TextInputField::make('postcode')->required()];
+    }
+
+    public function beforeValidation(array $data): array
+    {
+        return [...$data, 'postcode' => strtoupper(str_replace(' ', '', (string) ($data['postcode'] ?? '')))];
+    }
+}
+
 beforeEach(function () {
     config([
         'filament-form-builder.types.application' => ApplicationForm::class,
         'filament-form-builder.types.thanking' => ThankingForm::class,
+        'filament-form-builder.types.postcode' => PostcodeForm::class,
     ]);
 });
 
@@ -126,4 +140,14 @@ it('starts the fields an editor built and the ones after them on a new row', fun
         ->toContain('data-form-builder-new-row="true"')
         ->toContain('--form-builder-column-start:1')
         ->and($form->getFields()[0]->getWrapperAttributes()->toHtml())->not->toContain('new-row');
+});
+
+it('stores the answers as the type prepared them for validation', function () {
+    $form = Form::create(['title' => 'Postcode', 'template' => 'postcode']);
+
+    $this->post(route('filament-form-builder.form.store', ['formId' => $form->id]), ['postcode' => '   '])
+        ->assertSessionHasErrors('postcode');
+    $this->post(route('filament-form-builder.form.store', ['formId' => $form->id]), ['postcode' => '1234 ab']);
+
+    expect(FormSubmission::sole()->data)->toBe(['postcode' => '1234AB']);
 });

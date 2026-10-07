@@ -20,7 +20,8 @@ class FormSubmissionController
         $type = $form->getType();
         $keys = $form->getSubmittableKeys();
 
-        $data = $type->beforeStore(Arr::only($request->input(), $keys));
+        $input = Arr::except($request->validationData(), array_keys($request->allFiles()));
+        $data = $type->beforeStore(Arr::only($input, $keys));
         $files = $this->storeFiles(Arr::only($request->allFiles(), $keys));
 
         $submission = FormSubmission::query()

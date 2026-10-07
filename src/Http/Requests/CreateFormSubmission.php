@@ -9,6 +9,11 @@ class CreateFormSubmission extends FormRequest
 {
     public Form $form;
 
+    /**
+     * @var array<string, mixed>|null
+     */
+    protected ?array $prepared = null;
+
     public function getForm(): Form
     {
         return $this->form ??= Form::query()->findOrFail($this->route('formId'));
@@ -39,10 +44,13 @@ class CreateFormSubmission extends FormRequest
     }
 
     /**
+     * The input as the form type prepared it: what is validated is also what
+     * is stored.
+     *
      * @return array<string, mixed>
      */
     public function validationData(): array
     {
-        return $this->getForm()->getType()->beforeValidation($this->all());
+        return $this->prepared ??= $this->getForm()->getType()->beforeValidation($this->all());
     }
 }

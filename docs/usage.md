@@ -68,7 +68,7 @@ Every method below runs on an instance, with the form in `$this->form`.
 
 | Method                                                    | When it runs                          | Affects                                                                  |
 |-----------------------------------------------------------|---------------------------------------|--------------------------------------------------------------------------|
-| `beforeValidation(array $data)`                           | Before validation                     | What is validated, not what is stored                                    |
+| `beforeValidation(array $data)`                           | Before validation                     | What is validated, and so what is stored                                 |
 | `beforeStore(array $data)`                                | Before the submission is stored       | Stored `data`                                                            |
 | `formatValues(array $values, FormSubmission $submission)` | Whenever answers are shown            | The table, the detail page, the export, the mails and their placeholders |
 | `afterSubmission(FormSubmission $submission)`             | Once a visitor's submission is stored | Sends the notifications, queues the integrations                         |
