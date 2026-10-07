@@ -7,13 +7,52 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
- * What happens after a submission becomes a list, like the notifications: the
- * outcome a form had is its last item, the one without conditions.
+ * Brings the tables of a v2.9 install to the v3 schema; a new install gets that
+ * schema from the create migrations and never publishes this one.
  */
 return new class () extends Migration {
-    private const COLUMNS = ['submit_notification_type', 'submit_notification_content', 'submit_notification_url', 'submit_notification_query'];
+    private const SUBMIT_NOTIFICATION_COLUMNS = ['submit_notification_type', 'submit_notification_content', 'submit_notification_url', 'submit_notification_query'];
 
     public function up(): void
+    {
+        Schema::table('form_submissions', function (Blueprint $table) {
+            $table->dropColumn('submitter_email');
+            $table->json('files')->nullable()->after('data');
+            $table->json('field_snapshot')->nullable()->after('files');
+            $table->timestamp('read_at')->nullable()->after('integrations')->index();
+        });
+
+        // What came in before is not news to anyone, so it does not start out unread.
+        DB::table('form_submissions')->update(['read_at' => DB::raw('created_at')]);
+
+        Schema::table('form_submission_notification_logs', function (Blueprint $table) {
+            $table->string('notification_id')->nullable()->after('form_submission_id')->index();
+        });
+
+        $this->moveSubmitNotificationsIntoList();
+    }
+
+    public function down(): void
+    {
+        $this->moveSubmitNotificationsOutOfList();
+
+        Schema::table('form_submission_notification_logs', function (Blueprint $table) {
+            $table->dropIndex(['notification_id']);
+            $table->dropColumn('notification_id');
+        });
+
+        Schema::table('form_submissions', function (Blueprint $table) {
+            $table->dropIndex(['read_at']);
+            $table->dropColumn(['files', 'field_snapshot', 'read_at']);
+            $table->string('submitter_email')->nullable()->after('form_id');
+        });
+    }
+
+    /**
+     * What happens after a submission becomes a list, like the notifications: the
+     * outcome a form had is its last item, the one without conditions.
+     */
+    private function moveSubmitNotificationsIntoList(): void
     {
         Schema::table('forms', function (Blueprint $table) {
             $table->json('submit_notifications')->nullable()->after('notifications');
@@ -39,11 +78,11 @@ return new class () extends Migration {
         });
 
         Schema::table('forms', function (Blueprint $table) {
-            $table->dropColumn(self::COLUMNS);
+            $table->dropColumn(self::SUBMIT_NOTIFICATION_COLUMNS);
         });
     }
 
-    public function down(): void
+    private function moveSubmitNotificationsOutOfList(): void
     {
         Schema::table('forms', function (Blueprint $table) {
             $table->string('submit_notification_type')->nullable();

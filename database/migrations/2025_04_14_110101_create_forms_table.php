@@ -11,13 +11,11 @@ return new class () extends Migration {
             $table->id();
             $table->string('title')->unique();
             $table->string('template')->nullable();
-            $table->boolean('notification_enabled')->default(false);
-            $table->string('notification_sender')->nullable();
-            $table->json('notification_receivers')->nullable();
-            $table->string('notification_subject')->nullable();
-            $table->text('notification_content')->nullable();
-            $table->string('submit_notification_type')->nullable();
-            $table->text('submit_notification_content')->nullable();
+            $table->json('custom')->nullable();
+            $table->json('notifications')->nullable();
+            $table->json('submit_notifications')->nullable();
+            $table->json('integrations')->nullable();
+            $table->json('settings')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

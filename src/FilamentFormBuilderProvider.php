@@ -29,6 +29,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
     public function packageBooted(): void
     {
         $this->hasTranslations();
+        $this->hasUpgradeMigration();
         $this->hasConfig();
         $this->hasViewComponents();
         $this->hasViews();
@@ -44,6 +45,15 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
         $this->publishes([
             __DIR__.'/../lang' => $this->app->langPath('vendor/filament-form-builder'),
         ], 'filament-form-builder-translations');
+    }
+
+    // Kept out of database/migrations so a new install, which gets the v3 schema
+    // from the create migrations, never runs it.
+    public function hasUpgradeMigration(): void
+    {
+        $this->publishesMigrations([
+            __DIR__.'/../database/upgrades' => database_path('migrations'),
+        ], 'filament-form-builder-upgrade-migrations');
     }
 
     public function hasConfig(): void

@@ -13,11 +13,14 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 
 ### Installing
 
-* Publish and run the migrations: `php artisan vendor:publish --tag=filament-form-builder-migrations`,
-  then `php artisan migrate`. They add `form_submissions.files`, `form_submissions.field_snapshot`,
+* Upgrade to v2.9 and run its migrations first. Then publish the one upgrade migration with
+  `php artisan vendor:publish --tag=filament-form-builder-upgrade-migrations` and run
+  `php artisan migrate`. It adds `form_submissions.files`, `form_submissions.field_snapshot`,
   `form_submissions.read_at` (existing submissions start out read) and
-  `form_submission_notification_logs.notification_id`, and drop `form_submissions.submitter_email`.
-  One also moves what a form does after a submission into a list, see below.
+  `form_submission_notification_logs.notification_id`, drops `form_submissions.submitter_email`, and
+  moves what a form does after a submission into a list, see below. The regular migrations are now
+  three create migrations with the whole v3 schema, for new installs: your published copies of them
+  are already run.
 * `forms.template` now holds the name a form type is registered under instead of a template class: set
   it to `custom`, `contact` or the name of your own type.
 * Republish the config, or compare yours with [`config/general.php`](config/general.php).
@@ -109,7 +112,7 @@ code. See [Form types](docs/usage.md#form-types).
   A new form shows a thank-you message by default instead of redirecting.
 
 * What a form does after a submission is one list, `forms.submit_notifications`, like the notifications,
-  so a form can have a different outcome per answer. The migration turns `submit_notification_type`,
+  so a form can have a different outcome per answer. The upgrade migration turns `submit_notification_type`,
   `submit_notification_content`, `submit_notification_url` and `submit_notification_query` into its one
   item (`type`, `content`, `url`, `query`) and drops those columns; rolling it back puts them back.
   Read the outcomes with `$form->getSubmitNotifications()`. A custom redirect field

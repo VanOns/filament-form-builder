@@ -12,8 +12,11 @@ return new class () extends Migration {
             $table->foreignId('form_id')
                 ->constrained('forms')
                 ->cascadeOnDelete();
-            $table->string('submitter_email')->nullable();
             $table->json('data')->nullable();
+            $table->json('files')->nullable();
+            $table->json('field_snapshot')->nullable();
+            $table->json('integrations')->nullable();
+            $table->timestamp('read_at')->nullable()->index();
             $table->timestamps();
             $table->softDeletes();
         });
