@@ -20,7 +20,7 @@ it('builds a new form on the canvas unless a fixed type is switched on', functio
         ->assertFormFieldVisible('template')
         ->set('data.fixed_type', false)
         ->assertSchemaStateSet(['template' => 'custom'])
-        ->fillForm(['title' => 'Contact', 'submit_notification_content' => '<p>Bedankt!</p>'])
+        ->fillForm(['title' => 'Contact', 'submit_notifications.default.content' => '<p>Bedankt!</p>'])
         ->call('create')
         ->assertHasNoFormErrors();
 
@@ -28,7 +28,7 @@ it('builds a new form on the canvas unless a fixed type is switched on', functio
 });
 
 it('shows the type of a form that has a fixed one', function () {
-    $form = Form::create(['title' => 'Contact', 'template' => 'contact', 'submit_notification_type' => 'content', 'submit_notification_content' => '<p>Bedankt!</p>']);
+    $form = Form::create(['title' => 'Contact', 'template' => 'contact', 'submit_notifications' => [['type' => 'content', 'content' => '<p>Bedankt!</p>']]]);
 
     Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
         ->assertSchemaStateSet(['fixed_type' => true, 'template' => 'contact'])

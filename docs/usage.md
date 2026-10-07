@@ -251,26 +251,35 @@ show it.
 
 ## Submit notification
 
-Each form has an "After submitting" section with two branches:
+Each form has an "After submitting" section. Its outcomes are stored as one
+list in `submit_notifications`, like the e-mail notifications: each has an
+`id`, `conditions` and `conditionMatch`, a `type` (`content` or `url`), and its
+`content`, `url` and `query`.
 
-- **Content**: a thank-you message shown after submit, stored in
-  `submit_notification_content`. It takes the same merge tags as an e-mail
-  notification, except the link to the submission in the panel, and they are
-  filled in from the submission on submit.
-- **URL**: a redirect target, stored in the dedicated `submit_notification_url`
-  column. The column is cast with `VanOns\FilamentFormBuilder\Casts\RedirectUrl`,
-  so it may hold either a plain URL string or a structured (JSON) value.
+- **Content**: a thank-you message shown after submit. It takes the same merge
+  tags as an e-mail notification, except the link to the submission in the
+  panel, and they are filled in from the submission on submit.
+- **URL**: a redirect target, a plain URL or a structured value a custom
+  redirect field stores (see below), with an optional query string.
 
-On submit, the controller resolves both branches through the form type
-(`$form->getType()->resolveSubmitNotification($submission)`): the URL via
-`FilamentFormBuilderPlugin::resolveRedirectUrl($form->submit_notification_url, $form)`
-and the message from `submit_notification_content` with its tags filled in.
-When a URL is present it redirects, otherwise the message is flashed back.
+The last outcome has no conditions and is edited in place: what a form does by
+default. "A different outcome per answer" adds outcomes before it as cards,
+each under conditions on the answers, edited in a slide-over and ordered with
+"Move up" and "Move down". They are saved with the form.
+
+On submit, the controller resolves the outcome through the form type
+(`$form->getType()->resolveSubmitNotification($submission)`): the first one
+whose conditions the answers meet, skipping a kind the type does not allow
+(`hasRedirect()`, `hasNotificationMessage()`). A URL goes through
+`FilamentFormBuilderPlugin::resolveRedirectUrl($outcome['url'], $form)`, a
+message gets its tags filled in. When a URL is present it redirects, otherwise
+the message is flashed back. `getSubmitNotification($submission)` returns the
+outcome that applies, for a type that handles the response itself.
 
 ### Passing field data via the query string
 
-The URL branch has an optional query string, stored in
-`submit_notification_query`. Set the `submit_notification_query_enabled` config
+The URL branch has an optional query string, stored in the outcome's `query`.
+Set the `submit_notification_query_enabled` config
 flag to `false` to hide the field, or override `hasSubmitNotificationQuery()` on
 a form type to drop it for that type alone. Either way a stored query string
 is no longer appended on submit.
@@ -303,10 +312,10 @@ it, e.g. to let editors pick an internal page instead of typing a URL.
 ```php
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 
-// Replace the URL-branch field schema. Bind your field(s) to
-// `submit_notification_url`. Returns an array of components.
+// Replace the URL-branch field schema. Bind your field(s) to `url`, the
+// outcome's key. Returns an array of components.
 FilamentFormBuilderPlugin::redirectSchemaUsing(fn () => [
-    MyPagePicker::make('submit_notification_url')->required()->columnSpanFull(),
+    MyPagePicker::make('url')->required()->columnSpanFull(),
 ]);
 
 // Turn the stored value (string or array) into the final redirect URL.

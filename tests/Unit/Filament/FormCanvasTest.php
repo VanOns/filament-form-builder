@@ -31,8 +31,7 @@ function canvasForm(array $fields = [], array $attributes = []): Form
         'title' => 'Contact',
         'template' => 'custom',
         'custom' => ['fields' => $fields],
-        'submit_notification_type' => 'content',
-        'submit_notification_content' => 'Bedankt!',
+        'submit_notifications' => [['type' => 'content', 'content' => '<p>Bedankt!</p>']],
         ...$attributes,
     ]);
 }
@@ -88,12 +87,16 @@ it('refuses a key another field already has', function () {
         ->assertHasActionErrors(['key']);
 });
 
-it('takes conditions and notifications along when a key is renamed', function () {
+it('takes conditions, notifications and outcomes along when a key is renamed', function () {
     $form = canvasForm([
         ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam'],
         ['type' => 'textarea', 'label' => 'Bericht', 'key' => 'bericht', 'conditions' => [['key' => 'voornaam', 'operator' => 'not_empty', 'value' => null]]],
     ], [
         'notifications' => [['subject' => 'Van {{ $voornaam }}', 'content' => '<p>{{ $voornaam }}</p>', 'receivers' => ['voornaam']]],
+        'submit_notifications' => [
+            ['type' => 'url', 'url' => 'https://example.test', 'query' => 'naam={{ $voornaam }}', 'conditions' => [['key' => 'voornaam', 'operator' => 'not_empty']]],
+            ['type' => 'content', 'content' => '<p>Bedankt <span data-type="mergeTag" data-id="voornaam"></span></p>'],
+        ],
     ]);
     $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
     $uuid = array_key_first($page->get('data.custom.fields'));
@@ -107,7 +110,10 @@ it('takes conditions and notifications along when a key is renamed', function ()
         ->and(MergeTags::ids($form->notifications[0]['subject']))->toBe(['roepnaam'])
         ->and(MergeTags::ids($form->notifications[0]['content']))->toBe(['roepnaam'])
         // Saved in the current shape, the receivers of before became `to`.
-        ->and($form->notifications[0]['to'])->toBe(['field:roepnaam']);
+        ->and($form->notifications[0]['to'])->toBe(['field:roepnaam'])
+        ->and($form->getSubmitNotifications()[0]['conditions'][0]['key'])->toBe('roepnaam')
+        ->and($form->getSubmitNotifications()[0]['query'])->toBe('naam={{ $roepnaam }}')
+        ->and(MergeTags::ids($form->getSubmitNotifications()[1]['content']))->toBe(['roepnaam']);
 });
 
 it('sets a field to the width picked for it', function () {

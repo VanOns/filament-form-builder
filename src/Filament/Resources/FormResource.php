@@ -3,27 +3,20 @@
 namespace VanOns\FilamentFormBuilder\Filament\Resources;
 
 use BackedEnum;
-use Closure;
 use Filament\Actions;
-use Filament\Actions\Action;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Actions as SchemaActions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
-use Filament\Schemas\Components\Html;
 use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
@@ -33,21 +26,16 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
-use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\ChoiceCards;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\MergeTagEditor;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\NotificationList;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\QueryParameters;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\SubmitNotifications;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers\FormSubmissionsRelationManager;
-use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
@@ -208,11 +196,24 @@ class FormResource extends Resource
 
     public static function renameKeyInNotifications(string $from, string $to, Get $get, Set $set): void
     {
-        $query = $get('submit_notification_query');
+        $outcome = function (array $outcome) use ($from, $to): array {
+            $query = $outcome['query'] ?? null;
 
-        $set('submit_notification_query', is_array($query)
-            ? array_map(fn (array $row): array => [...$row, 'value' => MergeTags::rename($row['value'] ?? null, $from, $to)], $query)
-            : SubmissionPlaceholders::rename($query, $from, $to));
+            return [
+                ...$outcome,
+                'content' => MergeTags::rename($outcome['content'] ?? null, $from, $to),
+                'query' => is_array($query)
+                    ? array_map(fn (array $row): array => [...$row, 'value' => MergeTags::rename($row['value'] ?? null, $from, $to)], $query)
+                    : SubmissionPlaceholders::rename($query, $from, $to),
+                'conditions' => array_map(
+                    fn (array $rule): array => ($rule['key'] ?? null) === $from ? [...$rule, 'key' => $to] : $rule,
+                    $outcome['conditions'] ?? [],
+                ),
+            ];
+        };
+
+        $set('submit_notifications.default', $outcome($get('submit_notifications.default') ?? []));
+        $set('submit_notifications.rules', array_map($outcome, $get('submit_notifications.rules') ?? []));
 
         $field = fn (?string $recipient): ?string => $recipient === EmailNotification::FIELD_PREFIX . $from ? EmailNotification::FIELD_PREFIX . $to : $recipient;
         $notifications = [];
@@ -240,123 +241,12 @@ class FormResource extends Resource
 
     public static function getSubmitNotificationSection(): Section
     {
-        $isType = fn (SubmitNotificationType $type): Closure => fn (Get $get): bool => static::getSubmitNotificationType($get) === $type->value;
-
         return Section::make(__('filament-form-builder::general.submit_notification'))
             ->description(__('filament-form-builder::general.submit_notification_explanation'))
             ->icon('heroicon-o-paper-airplane')
             ->schema([
-                ChoiceCards::make('submit_notification_type')
-                    ->required()
-                    ->label(__('filament-form-builder::general.what_happens_after_submission'))
-                    ->hiddenLabel()
-                    ->options(static::getSubmitNotificationTypes(...))
-                    ->descriptions(fn (Get $get): array => array_map(
-                        fn (string $type): string => SubmitNotificationType::from($type)->getDescription(),
-                        array_combine($types = array_keys(static::getSubmitNotificationTypes($get)), $types),
-                    ))
-                    ->enum(SubmitNotificationType::class)
-                    ->icons([
-                        SubmitNotificationType::Content->value => Heroicon::OutlinedChatBubbleLeftEllipsis,
-                        SubmitNotificationType::URL->value => Heroicon::OutlinedArrowTopRightOnSquare,
-                    ])
-                    ->default(SubmitNotificationType::Content)
-                    ->live()
-                    ->visible(fn (Get $get) => count(static::getSubmitNotificationTypes($get)) > 1),
-                Hidden::make('submit_notification_type')
-                    ->visible(fn (Get $get) => count(static::getSubmitNotificationTypes($get)) === 1)
-                    ->dehydrateStateUsing(fn (Get $get) => static::getSubmitNotificationType($get)),
-                MergeTagEditor::make('submit_notification_content', withSubmissionLink: false)
-                    ->label(__('filament-form-builder::general.submit_notification_message'))
-                    ->required()
-                    ->placeholder(__('filament-form-builder::general.form_submitted_successfully'))
-                    ->visible($isType(SubmitNotificationType::Content)),
-                Group::make(FilamentFormBuilderPlugin::getRedirectSchema())
-                    ->visible($isType(SubmitNotificationType::URL)),
-                Group::make(fn (?FormModel $record): array => static::getSubmitNotificationQuerySchema($record))
-                    ->visible(static::hasSubmitNotificationQueryEnabled(...)),
+                SubmitNotifications::make(),
             ]);
-    }
-
-    /**
-     * One row per parameter, each filled with an answer; a query string stored
-     * with more than that, such as a fixed value, stays text.
-     *
-     * @return array<Component>
-     */
-    public static function getSubmitNotificationQuerySchema(?FormModel $record): array
-    {
-        if (QueryParameters::parse($record?->submit_notification_query) === null) {
-            return [
-                TextInput::make('submit_notification_query')
-                    ->label(__('filament-form-builder::general.submit_notification_query'))
-                    ->helperText(__('filament-form-builder::general.submit_notification_query_explanation'))
-                    ->placeholder('name={{ $name }}&form={{ $form_title }}')
-                    ->live(onBlur: true),
-                static::getPlaceholderListEntry(),
-                static::getRedirectExample(),
-            ];
-        }
-
-        // Seldom needed, so a link brings the rows up until a form has some.
-        $isShown = fn (Get $get): bool => (bool) $get('show_query');
-
-        return [
-            Hidden::make('show_query')
-                ->formatStateUsing(fn (?FormModel $record): bool => filled($record?->submit_notification_query))
-                ->dehydrated(false),
-            SchemaActions::make([
-                Action::make('addQueryParameters')
-                    ->label(__('filament-form-builder::general.submit_notification_query'))
-                    ->icon(Heroicon::Plus)
-                    ->link()
-                    ->action(function (Set $set): void {
-                        $set('submit_notification_query', [(string) Str::uuid() => ['name' => null, 'value' => null]]);
-                        $set('show_query', true);
-                    }),
-            ])
-                ->key('submit_notification_query_link')
-                ->visible(fn (Get $get): bool => !$isShown($get)),
-            QueryParameters::make('submit_notification_query')
-                ->label(__('filament-form-builder::general.submit_notification_query'))
-                ->helperText(__('filament-form-builder::general.submit_notification_query_helper'))
-                ->visible($isShown),
-            static::getRedirectExample(),
-        ];
-    }
-
-    /**
-     * Where the latest submission would have sent its visitor, so the rows
-     * read as the URL they make.
-     */
-    public static function getRedirectExample(): Html
-    {
-        $example = function (Get $get, ?FormModel $record): ?HtmlString {
-            $submission = $record?->submissions()->latest('id')->first();
-            $url = $record === null ? null : FilamentFormBuilderPlugin::resolveRedirectUrl($get('submit_notification_url'), $record);
-            $query = $get('submit_notification_query');
-
-            if ($submission === null || blank($url)) {
-                return null;
-            }
-
-            $filled = (string) SubmissionPlaceholders::make($submission)->appendQuery($url, is_array($query) ? QueryParameters::build($query) : $query);
-
-            if ($filled === $url) {
-                return null;
-            }
-
-            $address = str_starts_with($filled, $url)
-                ? e($url) . '<span class="ffb-redirect-example-query">' . e(substr($filled, strlen($url))) . '</span>'
-                : e($filled);
-
-            return new HtmlString('<div class="ffb-redirect-example"><span class="ffb-redirect-example-title">'
-                . e(__('filament-form-builder::general.redirect_example', ['number' => $submission->getKey()]))
-                . '</span><code class="ffb-redirect-example-url">' . $address . '</code></div>');
-        };
-
-        return Html::make($example)
-            ->visible(fn (Get $get, ?FormModel $record): bool => $example($get, $record) !== null);
     }
 
     public static function getEmailNotificationSection(): Section
@@ -369,17 +259,6 @@ class FormResource extends Resource
                 NotificationList::make('notifications')
                     ->hiddenLabel(),
             ]);
-    }
-
-    public static function getPlaceholderListEntry(): TextEntry
-    {
-        return TextEntry::make('placeholders')
-            ->hiddenLabel()
-            ->badge()
-            ->copyable()
-            ->fontFamily(FontFamily::Mono)
-            ->placeholder(__('filament-form-builder::general.unknown'))
-            ->state(fn (?FormModel $record): array => $record?->getPlaceholderList() ?? []);
     }
 
     public static function getIntegrationsSection(): Section
@@ -553,54 +432,13 @@ class FormResource extends Resource
     }
 
     /**
-     * The submit notification types the selected form type allows.
+     * The kinds of outcome after a submission the selected form type allows.
      *
      * @return array<string, string>
      */
     public static function getSubmitNotificationTypes(Get $get): array
     {
-        $formType = static::getFormType($get);
-
-        $types = [];
-
-        foreach ([SubmitNotificationType::Content, SubmitNotificationType::URL] as $type) {
-            $allowed = !$formType || match ($type) {
-                SubmitNotificationType::URL => $formType->hasRedirect(),
-                SubmitNotificationType::Content => $formType->hasNotificationMessage(),
-            };
-
-            if ($allowed) {
-                $types[$type->value] = $type->getLabel();
-            }
-        }
-
-        return $types;
-    }
-
-    /**
-     * The selected type, or the only type the form type allows.
-     */
-    public static function getSubmitNotificationType(Get $get): ?string
-    {
-        $types = array_keys(static::getSubmitNotificationTypes($get));
-
-        if (count($types) === 1) {
-            return $types[0];
-        }
-
-        $state = $get('submit_notification_type');
-
-        return $state instanceof SubmitNotificationType ? $state->value : $state;
-    }
-
-    public static function hasSubmitNotificationQueryEnabled(Get $get): bool
-    {
-        if (static::getSubmitNotificationType($get) !== SubmitNotificationType::URL->value) {
-            return false;
-        }
-
-        return static::getFormType($get)?->hasSubmitNotificationQuery()
-            ?? config('filament-form-builder.submit_notification_query_enabled', true) === true;
+        return SubmitNotifications::getTypes(static::getFormType($get));
     }
 
     public static function hasNotificationsEnabled(Get $get): bool

@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
-use VanOns\FilamentFormBuilder\Casts\RedirectUrl;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
+use VanOns\FilamentFormBuilder\Classes\SubmitNotification;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
 use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
@@ -31,10 +31,7 @@ use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
  * @property array<int, mixed> $notifications
  * @property array<int, array<string, mixed>>|null $integrations
  * @property array<string, mixed> $settings
- * @property string $submit_notification_type
- * @property string $submit_notification_content
- * @property string|array<string, mixed>|null $submit_notification_url
- * @property string|null $submit_notification_query
+ * @property array<int, array<string, mixed>>|null $submit_notifications
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -75,7 +72,7 @@ class Form extends Model
             'notifications' => 'array',
             'integrations' => 'array',
             'settings' => 'array',
-            'submit_notification_url' => RedirectUrl::class,
+            'submit_notifications' => 'array',
         ];
     }
 
@@ -86,6 +83,19 @@ class Form extends Model
         static::forceDeleting(function (Form $form): void {
             FormSubmission::withTrashed()->where('form_id', $form->getKey())->each(fn (FormSubmission $submission) => $submission->deleteFiles());
         });
+    }
+
+    /**
+     * What happens after a submission, in the order the outcomes are tried.
+     *
+     * @return list<array{id: string, conditions: list<mixed>, conditionMatch: string, type: string, content: ?string, url: mixed, query: ?string}>
+     */
+    public function getSubmitNotifications(): array
+    {
+        return array_values(array_map(
+            SubmitNotification::normalize(...),
+            array_filter($this->submit_notifications ?? [], is_array(...)),
+        ));
     }
 
     /**

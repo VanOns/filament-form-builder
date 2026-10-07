@@ -26,8 +26,7 @@ function notifiedForm(array $notifications = []): Form
             ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
             ['type' => 'email', 'label' => 'E-mailadres', 'key' => 'email'],
         ]],
-        'submit_notification_type' => 'content',
-        'submit_notification_content' => 'Bedankt!',
+        'submit_notifications' => [['type' => 'content', 'content' => '<p>Bedankt!</p>']],
         'notifications' => $notifications,
     ]);
 }

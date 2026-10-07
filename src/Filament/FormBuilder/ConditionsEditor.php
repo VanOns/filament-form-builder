@@ -15,6 +15,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\CheckboxField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Models\Form;
 
 /**
  * Rules on the answers of a form, stored as `conditions` and `conditionMatch`:
@@ -31,7 +32,24 @@ final class ConditionsEditor
         private readonly array $fields,
         private readonly string $summary = 'filament-form-builder::general.canvas.conditions.summary',
         private readonly string $matchLabel = 'filament-form-builder::fields.condition_match',
+        private readonly bool $isRequired = false,
     ) {
+    }
+
+    /**
+     * The fields of a form a rule can look at, by key.
+     *
+     * @return array<string, FormField>
+     */
+    public static function fieldsOf(Form $form): array
+    {
+        $fields = [];
+
+        foreach ($form->getFields(inputsOnly: true) as $field) {
+            $fields[$field->getKey()] = $field;
+        }
+
+        return $fields;
     }
 
     /**
@@ -55,6 +73,7 @@ final class ConditionsEditor
                 ->grouped()
                 ->visible(fn (Get $get): bool => count($get('conditions') ?? []) > 1),
             Repeater::make('conditions')
+                ->label(__('filament-form-builder::fields.conditions'))
                 ->hiddenLabel()
                 ->default([])
                 ->table([
@@ -64,6 +83,8 @@ final class ConditionsEditor
                 ])
                 ->reorderable(false)
                 ->live()
+                ->required($this->isRequired)
+                ->minItems($this->isRequired ? 1 : null)
                 ->addActionLabel(__('filament-form-builder::fields.add_condition'))
                 ->schema([
                     Select::make('key')

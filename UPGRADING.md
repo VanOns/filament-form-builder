@@ -16,6 +16,7 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 * Publish and run the migrations: `php artisan vendor:publish --tag=filament-form-builder-migrations`,
   then `php artisan migrate`. They add `form_submissions.files`, `form_submissions.field_snapshot` and
   `form_submission_notification_logs.notification_id`, and drop `form_submissions.submitter_email`.
+  One also moves what a form does after a submission into a list, see below.
 * `forms.template` now holds the name a form type is registered under instead of a template class: set
   it to `custom`, `contact` or the name of your own type.
 * Republish the config, or compare yours with [`config/general.php`](config/general.php).
@@ -98,6 +99,14 @@ code. See [Form types](docs/usage.md#form-types).
 
 * The thank-you message takes merge tags, and `getNotificationMessage()` returns it with them filled in.
   A new form shows a thank-you message by default instead of redirecting.
+
+* What a form does after a submission is one list, `forms.submit_notifications`, like the notifications,
+  so a form can have a different outcome per answer. The migration turns `submit_notification_type`,
+  `submit_notification_content`, `submit_notification_url` and `submit_notification_query` into its one
+  item (`type`, `content`, `url`, `query`) and drops those columns; rolling it back puts them back.
+  Read the outcomes with `$form->getSubmitNotifications()`. A custom redirect field
+  (`redirectSchemaUsing()`) now binds to `url` instead of `submit_notification_url`, and the
+  `RedirectUrl` cast is gone: a structured URL is stored in the list as it is.
 
 ### Stored forms and submissions
 

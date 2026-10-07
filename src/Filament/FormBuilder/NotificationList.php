@@ -38,7 +38,6 @@ use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionFile;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FileUploadField;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Mail\FormSubmission\FormSubmissionCreatedMail;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -387,7 +386,7 @@ class NotificationList extends Field
                         ->grouped()
                         ->live(),
                     Group::make((new ConditionsEditor(
-                        $this->getConditionFields($form),
+                        ConditionsEditor::fieldsOf($form),
                         'filament-form-builder::general.notifications.conditions_summary',
                         'filament-form-builder::general.notifications.condition_match',
                     ))->schema())
@@ -562,7 +561,7 @@ class NotificationList extends Field
             }
         }
 
-        $conditions = new ConditionsEditor($this->getConditionFields($form));
+        $conditions = new ConditionsEditor(ConditionsEditor::fieldsOf($form));
         $fields = $form->getEmailRecipients();
         $recipient = fn (string $value): array => [
             'label' => $form->getRecipientLabel($value),
@@ -609,20 +608,6 @@ class NotificationList extends Field
         }
 
         return array_values(array_unique($missing));
-    }
-
-    /**
-     * @return array<string, FormField>
-     */
-    protected function getConditionFields(Form $form): array
-    {
-        $fields = [];
-
-        foreach ($form->getFields(inputsOnly: true) as $field) {
-            $fields[$field->getKey()] = $field;
-        }
-
-        return $fields;
     }
 
     protected function hasUploads(Form $form): bool

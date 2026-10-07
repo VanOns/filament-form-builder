@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Traits\Forms;
 use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
+use VanOns\FilamentFormBuilder\Classes\SubmitNotification;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -51,15 +52,16 @@ trait HasSubmitNotification
     }
 
     /**
-     * Fill the properties with the configured values, then run the form type hook.
+     * Fill the properties from the first outcome whose conditions the answers
+     * meet, then run the form type hook.
      */
     public function resolveSubmitNotification(FormSubmission $submission): static
     {
-        $this->redirectUrl = $this->resolveRedirectUrl($submission);
+        $outcome = $this->getSubmitNotification($submission);
+        $isRedirect = ($outcome['type'] ?? null) === SubmitNotificationType::URL->value;
 
-        $this->notificationMessage = $this->hasNotificationMessage()
-            ? $this->renderNotificationMessage($submission)
-            : null;
+        $this->redirectUrl = $outcome !== null && $isRedirect ? $this->resolveRedirectUrl($outcome, $submission) : null;
+        $this->notificationMessage = $outcome !== null && !$isRedirect ? $this->renderNotificationMessage($outcome, $submission) : null;
 
         $this->modifySubmitNotification($submission);
 
@@ -67,14 +69,35 @@ trait HasSubmitNotification
     }
 
     /**
+     * The outcome for a submission, skipping the kinds this type does not
+     * allow.
+     *
+     * @return array{id: string, conditions: list<mixed>, conditionMatch: string, type: string, content: ?string, url: mixed, query: ?string}|null
+     */
+    public function getSubmitNotification(FormSubmission $submission): ?array
+    {
+        foreach ($this->form->getSubmitNotifications() as $outcome) {
+            $isAllowed = $outcome['type'] === SubmitNotificationType::URL->value ? $this->hasRedirect() : $this->hasNotificationMessage();
+
+            if ($isAllowed && SubmitNotification::holds($outcome, $submission->data ?? [])) {
+                return $outcome;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * The message with its tags filled in. The link to the submission is for
      * the panel only, so a visitor never gets it.
+     *
+     * @param  array<string, mixed>  $outcome
      */
-    private function renderNotificationMessage(FormSubmission $submission): ?string
+    private function renderNotificationMessage(array $outcome, FormSubmission $submission): ?string
     {
         $placeholders = SubmissionPlaceholders::make($submission);
 
-        $message = MergeTags::render($this->form->submit_notification_content, [
+        $message = MergeTags::render($outcome['content'] ?? null, [
             ...$placeholders->values(),
             'all_fields' => new HtmlString($placeholders->allFieldsHtml()),
             'submission_url' => '',
@@ -83,17 +106,13 @@ trait HasSubmitNotification
         return filled(strip_tags($message)) ? $message : null;
     }
 
-    private function resolveRedirectUrl(FormSubmission $submission): ?string
+    /**
+     * @param  array<string, mixed>  $outcome
+     */
+    private function resolveRedirectUrl(array $outcome, FormSubmission $submission): ?string
     {
-        if (!$this->hasRedirect() || $this->form->submit_notification_type !== SubmitNotificationType::URL->value) {
-            return null;
-        }
-
-        $url = FilamentFormBuilderPlugin::resolveRedirectUrl($this->form->submit_notification_url, $this->form);
-
-        $query = $this->hasSubmitNotificationQuery()
-            ? $this->form->submit_notification_query
-            : null;
+        $url = FilamentFormBuilderPlugin::resolveRedirectUrl($outcome['url'] ?? null, $this->form);
+        $query = $this->hasSubmitNotificationQuery() ? ($outcome['query'] ?? null) : null;
 
         return SubmissionPlaceholders::make($submission)->appendQuery($url, $query);
     }
