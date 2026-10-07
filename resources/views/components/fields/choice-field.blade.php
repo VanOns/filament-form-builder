@@ -3,7 +3,7 @@
      * @var \VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\ChoiceField $field
      */
     $multiple = $field::allowsMultiple();
-    $selected = (array) old($field->getKey(), $field->getDefaultValue() ?? []);
+    $selected = (array) old($field->getKey(), $field->getInitialValue() ?? []);
 @endphp
 
 <fieldset {{ $field->getWrapperAttributes() }}>

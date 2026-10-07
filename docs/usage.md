@@ -59,6 +59,11 @@ class VacancyApplication extends FormType
   the canvas flags it until it is deleted or gets another key.
 - A hidden field renders as `<input type="hidden">` holding its default value,
   which suits context such as the vacancy a visitor applies for.
+- Any field with a default can start with a parameter of the page's URL
+  instead: "Fill from the URL" under Advanced on the canvas, or
+  `->defaultFromQuery('vacature')` in code, so `?vacature=Adviseur` fills it.
+  Without the parameter the default applies. A visitor can change the URL, so
+  it suits context, not something to trust.
 - A type without fields of its own and without `CustomFields::make()` shows no
   fields section at all; one with fields but no marker shows them read-only.
 

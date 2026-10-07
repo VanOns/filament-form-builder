@@ -88,6 +88,23 @@ it('refuses a key another field already has', function () {
         ->assertHasActionErrors(['key']);
 });
 
+it('fills a field from a parameter of the page URL, set on the canvas', function () {
+    $form = canvasForm([['type' => 'text', 'label' => 'Vacature', 'key' => 'vacature']]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    $uuid = array_keys($page->get('data.custom.fields'))[0];
+
+    $page->callAction(onCanvas('edit', ['item' => $uuid]), data: ['queryParameter' => 'vacature?'])
+        ->assertHasActionErrors(['queryParameter']);
+
+    $page->callAction(onCanvas('edit', ['item' => $uuid]), data: ['queryParameter' => 'vacature'])
+        ->call('save');
+
+    expect(savedFields($form)[0]['queryParameter'])->toBe('vacature');
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSeeHtml('<span class="ffb-canvas-badge-text">?vacature</span>');
+});
+
 it('takes conditions, notifications and outcomes along when a key is renamed', function () {
     $form = canvasForm([
         ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam'],

@@ -11,7 +11,7 @@
             id="{{ $field->getKey() }}"
             name="{{ $field->getKey() }}"
             value="1"
-            @checked(old($field->getKey(), $field->getDefaultValue()))
+            @checked(old($field->getKey(), $field->getInitialValue()))
             @required($field->isRequired())
             @error($field->getKey()) aria-invalid="true" @enderror
             {{ $field->getAttributes() }}

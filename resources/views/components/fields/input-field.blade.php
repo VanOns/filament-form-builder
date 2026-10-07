@@ -14,7 +14,7 @@
         type="{{ $field->getInputType() }}"
         id="{{ $field->getKey() }}"
         name="{{ $field->getKey() }}"
-        value="{{ old($field->getKey(), $field->getDefaultValue()) }}"
+        value="{{ old($field->getKey(), $field->getInitialValue()) }}"
         @if($field->placeholder) placeholder="{{ $field->placeholder }}" @endif
         @required($field->isRequired())
         @error($field->getKey()) aria-invalid="true" @enderror

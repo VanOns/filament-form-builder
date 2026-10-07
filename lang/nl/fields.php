@@ -14,6 +14,8 @@ return [
     'key_helper' => 'Laat leeg om de key uit het label te maken. Daarna blijft de key vast, ook als het label verandert.',
     'key_taken' => 'Een ander veld in dit formulier gebruikt deze key al.',
     'default_value' => 'Standaardwaarde',
+    'query_parameter' => 'Vullen vanuit de URL',
+    'query_parameter_helper' => 'De naam van een parameter in de URL van de pagina, zoals vacature voor ?vacature=Adviseur. Staat die er niet in, dan geldt de standaardwaarde.',
     'checked_by_default' => 'Standaard aangevinkt',
     'hidden' => 'Verbergen in formulier',
     'hidden_helper' => 'Bezoekers zien dit veld niet, maar de standaardwaarde wordt wel meegestuurd.',

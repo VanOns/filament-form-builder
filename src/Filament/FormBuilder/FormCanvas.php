@@ -877,9 +877,16 @@ class FormCanvas extends Field
                 ->helperText(__('filament-form-builder::fields.hidden_helper'));
         }
 
+        $default = $type::getDefaultValueComponent();
+
         return array_values(array_filter([
             ...$schema,
-            $type::getDefaultValueComponent(),
+            $default,
+            $default === null ? null : TextInput::make('queryParameter')
+                ->label(__('filament-form-builder::fields.query_parameter'))
+                ->prefix('?')
+                ->alphaDash()
+                ->helperText(__('filament-form-builder::fields.query_parameter_helper')),
         ]));
     }
 

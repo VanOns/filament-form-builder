@@ -4,4 +4,4 @@
      */
 @endphp
 
-<input type="hidden" name="{{ $field->getKey() }}" value="{{ old($field->getKey(), $field->getDefaultValue()) }}" />
+<input type="hidden" name="{{ $field->getKey() }}" value="{{ old($field->getKey(), $field->getInitialValue()) }}" />

@@ -233,6 +233,9 @@ return [
         'palette_hint' => 'Drag a field to where it should go. Against a field it shares that row; between two rows it gets one of its own.',
         'hidden_value' => 'Default value: :value',
         'hidden_empty' => 'No default value',
+        'hidden_from_query' => 'From ?:parameter in the URL',
+        'hidden_from_query_or' => 'From ?:parameter in the URL, else: :value',
+        'query_badge' => 'Filled from the URL',
         'preview' => 'Preview',
         'conditions' => [
             'badge' => 'If :rule',

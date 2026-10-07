@@ -233,6 +233,9 @@ return [
         'palette_hint' => 'Sleep een veld naar de plek waar het moet komen. Tegen een veld aan deelt het die rij, tussen twee rijen krijgt het een eigen rij.',
         'hidden_value' => 'Standaardwaarde: :value',
         'hidden_empty' => 'Geen standaardwaarde',
+        'hidden_from_query' => 'Uit ?:parameter in de URL',
+        'hidden_from_query_or' => 'Uit ?:parameter in de URL, anders: :value',
+        'query_badge' => 'Gevuld vanuit de URL',
         'preview' => 'Voorbeeld',
         'conditions' => [
             'badge' => 'Als :rule',

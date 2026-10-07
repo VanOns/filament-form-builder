@@ -14,6 +14,8 @@ return [
     'key_helper' => 'Leave empty to derive the key from the label. After that the key stays the same, even when the label changes.',
     'key_taken' => 'Another field in this form already uses this key.',
     'default_value' => 'Default value',
+    'query_parameter' => 'Fill from the URL',
+    'query_parameter_helper' => 'The name of a parameter in the page\'s URL, such as vacature for ?vacature=Adviseur. Without it, the default value applies.',
     'checked_by_default' => 'Checked by default',
     'hidden' => 'Hide in form',
     'hidden_helper' => 'Visitors do not see this field, but its default value is still submitted.',
