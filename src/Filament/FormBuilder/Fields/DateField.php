@@ -47,7 +47,10 @@ class DateField extends InputField
         }
 
         try {
-            return Carbon::createFromFormat('!Y-m-d', $value)?->translatedFormat($this->getFormat()) ?? $value;
+            $date = Carbon::createFromFormat('!Y-m-d', $value);
+
+            // Carbon 2 returns false where Carbon 3 returns null.
+            return $date instanceof Carbon ? $date->translatedFormat($this->getFormat()) : $value;
         } catch (InvalidFormatException) {
             return $value;
         }

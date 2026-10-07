@@ -10,6 +10,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages;
@@ -29,7 +30,7 @@ class FormSubmissionResource extends Resource
         return parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
-            ])->with(['form' => fn ($q) => $q->withTrashed()]);
+            ])->with(['form' => fn (Relation $query) => $query->withoutGlobalScope(SoftDeletingScope::class)]);
     }
 
     public static function getModelLabel(): string

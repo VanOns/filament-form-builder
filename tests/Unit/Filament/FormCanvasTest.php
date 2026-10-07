@@ -590,7 +590,8 @@ it('shows the fields of a type without room for more, without letting anyone add
     Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
         ->assertSee('The fields of this form are defined in code.')
         ->assertSee('Company name')
-        ->assertDontSee('Uit een eerder type')
+        // Not assertDontSee: Livewire 4.3 leaves the relation manager's snapshot, which holds the form, in the HTML.
+        ->assertDontSeeHtml('data-item=')
         ->assertDontSeeHtml('data-type="text"')
         ->call('save')
         ->assertHasNoErrors();
