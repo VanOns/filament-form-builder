@@ -53,6 +53,8 @@ return [
     ],
     // Defaults for every panel; a panel sets its own on the plugin.
     'navigation_group' => true,
+    // Field types left out of the builder's palette, by their name in 'fields'.
+    'without_fields' => [],
     // A queued Filament export: it needs the exports, job_batches and notifications
     // tables, see the installation docs.
     'export_action' => true,

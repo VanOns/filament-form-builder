@@ -29,6 +29,11 @@ class FilamentFormBuilderPlugin implements Plugin
 
     protected bool | Closure | null $hasExportAction = null;
 
+    /**
+     * @var array<string>|Closure|null
+     */
+    protected array | Closure | null $withoutFields = null;
+
     public static function make(): static
     {
         return app(static::class);
@@ -71,6 +76,27 @@ class FilamentFormBuilderPlugin implements Plugin
             (bool) $group => __('filament-form-builder::general.navigation-group'),
             default => null,
         };
+    }
+
+    /**
+     * Field types out of this panel's palette, by their name in the `fields`
+     * config; a form that already has one keeps it.
+     *
+     * @param  array<string>|Closure  $fields
+     */
+    public function withoutFields(array | Closure $fields): static
+    {
+        $this->withoutFields = $fields;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getWithoutFields(): array
+    {
+        return (array) value($this->withoutFields ?? config('filament-form-builder.without_fields', []));
     }
 
     /**

@@ -20,6 +20,7 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Forms\CustomFields;
 use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
 
@@ -390,8 +391,10 @@ class FormCanvas extends Field
     {
         $groups = ['input' => [], 'choice' => [], 'layout' => []];
 
+        $without = FilamentFormBuilderPlugin::get()->getWithoutFields();
+
         foreach ($this->getFieldTypes() as $name => $class) {
-            if ($class::isAvailable()) {
+            if ($class::isAvailable() && !in_array($name, $without, true)) {
                 $groups[$class::paletteGroup()][$name] = $class;
             }
         }

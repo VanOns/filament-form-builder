@@ -45,6 +45,7 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 |                                              | `uploads.link_days`: how long a link stays valid                                      |
 |                                              | `uploads.attach_max_size`: how many kilobytes of uploads a notification attaches      |
 | `add_nav_group`                              | `navigation_group`, or `->navigationGroup()` on the plugin per panel                  |
+|                                              | `without_fields`, or `->withoutFields()` on the plugin per panel: types out of the palette |
 |                                              | `fields` gains `date` and `consent`                                                   |
 | `enable_export_action`: `false`              | `export_action`: `true`, or `->exportAction()` on the plugin per panel, see [Exporting submissions](docs/installation.md#exporting-submissions) |
 

@@ -10,6 +10,7 @@ use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextAreaField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
 
@@ -541,4 +542,16 @@ it('keeps the fields an editor built while the form has a type without fields', 
         ->assertHasNoErrors();
 
     expect(array_column(savedFields($form), 'key'))->toBe(['naam']);
+});
+
+it('leaves the field types a panel does not want out of the palette', function () {
+    $offered = fn (): array => array_merge(...array_values(array_map('array_keys', FormCanvas::make('custom')->getPaletteGroups())));
+
+    expect($offered())->toContain('phone', 'date', 'consent');
+
+    config(['filament-form-builder.without_fields' => ['phone']]);
+    expect($offered())->not->toContain('phone');
+
+    FilamentFormBuilderPlugin::get()->withoutFields(['date', 'consent']);
+    expect($offered())->toContain('phone')->not->toContain('date')->not->toContain('consent');
 });

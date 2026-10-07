@@ -29,14 +29,19 @@ class AdminPanelProvider extends PanelProvider
 }
 ```
 
-A panel can set its own navigation group and export on the plugin; without
-them it takes `navigation_group` and `export_action` from the config:
+A panel can set its own navigation group, export and field types on the
+plugin; without them it takes `navigation_group`, `export_action` and
+`without_fields` from the config:
 
 ```php
 FilamentFormBuilderPlugin::make()
     ->navigationGroup('Website') // false for none, true for the package's own
-    ->exportAction(false);
+    ->exportAction(false)
+    ->withoutFields(['phone', 'file_upload']); // out of the palette, by their name in `fields`
 ```
+
+A field type left out stays registered: a form that already has such a field
+keeps it, on the canvas and on the site.
 
 Everything else, such as the form types, the uploads and reCAPTCHA, is also
 used outside the panel, where a visitor sends a form or a job sends its mails,
