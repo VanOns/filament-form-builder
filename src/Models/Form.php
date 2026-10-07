@@ -18,6 +18,7 @@ use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
 use VanOns\FilamentFormBuilder\Forms\CustomFields;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
@@ -281,22 +282,38 @@ class Form extends Model
 
     /**
      * What a submission keeps of the form, so its answers still read well after
-     * a field is renamed or removed: per field its label, type and columns, and
-     * a choice's options. The values a form type adds itself are kept too.
+     * a field is renamed, moved or removed: per field its label, type, columns,
+     * a choice's options and its place on the form. The values a form type adds
+     * itself are kept too.
      *
-     * @return array<string, array{label: string, type: ?string, columns: array<string, string>, options: array<string, string>}>
+     * @return array<string, array{label: string, type: ?string, columns: array<string, string>, options: array<string, string>, title?: ?string, span?: int, new_row?: bool}>
      */
     public function getFieldSnapshot(): array
     {
         $snapshot = [];
         $names = array_flip(FieldTypeHelper::all());
 
-        foreach ($this->getFields(inputsOnly: true) as $field) {
+        $title = null;
+
+        foreach ($this->getFields() as $field) {
+            if ($field instanceof TitleField) {
+                $title = $field->title;
+
+                continue;
+            }
+
+            if (! $field::isInput()) {
+                continue;
+            }
+
             $snapshot[$field->getKey()] = [
                 'label' => $field->getLabel(),
                 'type' => $names[$field::class] ?? $field::class,
                 'columns' => $field->getSubmissionColumns(),
                 'options' => $field->getFilterOptions(),
+                'title' => $title,
+                'span' => $field->getColumnSpan(),
+                'new_row' => $field->startsNewRow(),
             ];
         }
 

@@ -8,10 +8,10 @@
             @endif
 
             <dl class="ffb-answer-grid">
-                @foreach ($group['fields'] as ['field' => $field, 'answer' => $answer])
+                @foreach ($group['fields'] as ['field' => $field, 'answer' => $answer, 'span' => $span, 'newRow' => $newRow])
                     <div
                         class="ffb-answer-cell"
-                        style="--ffb-span: {{ $field->getColumnSpan() }}{{ $field->startsNewRow() ? '; --ffb-start: 1' : '' }}"
+                        style="--ffb-span: {{ $span }}{{ $newRow ? '; --ffb-start: 1' : '' }}"
                     >
                         <dt class="ffb-answer-cell-label">
                             {{ $field->getLabel() }}

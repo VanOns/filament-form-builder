@@ -69,6 +69,9 @@ it('keeps the fields of its form as they were when it was submitted', function (
         'type' => 'text',
         'columns' => ['naam' => 'Naam'],
         'options' => [],
+        'title' => null,
+        'span' => 12,
+        'new_row' => false,
     ])
         ->and($submission->field_snapshot['vestiging']['type'])->toBe(EstablishmentField::class)
         ->and($submission->field_snapshot['pagina']['label'])->toBe('Verstuurd vanaf');
@@ -182,4 +185,57 @@ it('shows a file with the field it was uploaded to, also once that field is gone
         ->and($removed)->toHaveCount(1)
         ->and($removed[0]->label)->toBe('Portfolio')
         ->and(array_map(fn ($file) => $file->name, $removed[0]->files))->toBe(['werk.zip']);
+});
+
+/**
+ * @return list<array{title: ?string, fields: list<string>}>
+ */
+function layoutOf(FormSubmission $submission): array
+{
+    return array_map(fn (array $group): array => [
+        'title' => $group['title'],
+        'fields' => array_map(fn (array $cell): string => $cell['field']->getKey() . ':' . $cell['span'], $group['fields']),
+    ], $submission->getAnswerGroups());
+}
+
+it('keeps the layout its form had when it came in, however often the form changes', function () {
+    $form = Form::create(['title' => 'Offerte', 'template' => 'custom', 'custom' => ['fields' => [
+        ['type' => 'title', 'title' => 'Over jou'],
+        ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam', 'column_span' => 6],
+        ['type' => 'text', 'label' => 'Achternaam', 'key' => 'achternaam', 'column_span' => 6],
+        ['type' => 'textarea', 'label' => 'Bericht', 'key' => 'bericht'],
+    ]]]);
+    $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['voornaam' => 'Jan', 'bericht' => 'Hallo']]);
+
+    $form->update(['custom' => ['fields' => [
+        ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam'],
+        ['type' => 'text', 'label' => 'Achternaam', 'key' => 'achternaam'],
+        ['type' => 'textarea', 'label' => 'Bericht', 'key' => 'bericht'],
+    ]]]);
+    $form->update(['custom' => ['fields' => [
+        ['type' => 'title', 'title' => 'Contact'],
+        ['type' => 'phone', 'label' => 'Telefoon', 'key' => 'telefoon'],
+        ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam'],
+        ['type' => 'textarea', 'label' => 'Bericht', 'key' => 'bericht'],
+    ]]]);
+
+    expect(layoutOf($submission->fresh()))->toBe([
+        ['title' => 'Over jou', 'fields' => ['voornaam:6', 'bericht:12']],
+    ])->and(layoutOf(FormSubmission::create(['form_id' => $form->id, 'data' => []])))->toBe([
+        ['title' => 'Contact', 'fields' => ['telefoon:12', 'voornaam:12', 'bericht:12']],
+    ]);
+});
+
+it('follows the form now for a submission that came in before forms kept their layout', function () {
+    $form = Form::create(['title' => 'Offerte', 'template' => 'custom', 'custom' => ['fields' => [
+        ['type' => 'title', 'title' => 'Over jou'],
+        ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam', 'column_span' => 6],
+    ]]]);
+    $submission = FormSubmission::create([
+        'form_id' => $form->id,
+        'data' => ['voornaam' => 'Jan'],
+        'field_snapshot' => ['voornaam' => ['label' => 'Voornaam', 'type' => 'text', 'columns' => ['voornaam' => 'Voornaam'], 'options' => []]],
+    ]);
+
+    expect(layoutOf($submission))->toBe([['title' => 'Over jou', 'fields' => ['voornaam:6']]]);
 });

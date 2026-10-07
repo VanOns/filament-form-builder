@@ -31,7 +31,7 @@ use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
  * @property int $form_id
  * @property array<string, mixed> $data
  * @property array<string, list<array{path: string, name: string}>>|null $files
- * @property array<string, array{label: string, type: ?string, columns: array<string, string>, options: array<string, string>}>|null $field_snapshot
+ * @property array<string, array{label: string, type: ?string, columns: array<string, string>, options: array<string, string>, title?: ?string, span?: int, new_row?: bool}>|null $field_snapshot
  * @property string|null $source_url
  * @property Carbon|null $read_at
  * @property Carbon|null $created_at
@@ -234,24 +234,55 @@ class FormSubmission extends Model
     }
 
     /**
-     * The answers in the shape of the form: a group under each title it has,
-     * each field with the width it takes. A field nobody answered stays, empty.
+     * The answers in the shape the form had when this came in: a group under
+     * each title, each field at its width. A field nobody answered stays,
+     * empty; one added since is left out and one removed since shows apart.
+     * A submission from before forms kept their shape follows the form now.
      *
-     * @return list<array{title: ?string, fields: list<array{field: FormField, answer: ?SubmissionAnswer}>}>
+     * @return list<array{title: ?string, fields: list<array{field: FormField, answer: ?SubmissionAnswer, span: int, newRow: bool}>}>
      */
     public function getAnswerGroups(): array
     {
-        $groups = [['title' => null, 'fields' => []]];
+        $fields = [];
 
-        foreach ($this->form?->getFields() ?? [] as $field) {
-            if ($field instanceof TitleField) {
-                $groups[] = ['title' => $field->title, 'fields' => []];
-            } elseif ($field::isInput()) {
-                $groups[array_key_last($groups)]['fields'][] = ['field' => $field, 'answer' => $this->answerFor($field)];
+        foreach ($this->form?->getFields(inputsOnly: true) ?? [] as $field) {
+            $fields[$field->getKey()] = $field;
+        }
+
+        $kept = array_filter($this->field_snapshot ?? [], fn (array $snapshot): bool => isset($snapshot['span']));
+        $layout = [];
+
+        if ($kept === []) {
+            $title = null;
+
+            foreach ($this->form?->getFields() ?? [] as $field) {
+                if ($field instanceof TitleField) {
+                    $title = $field->title;
+                } elseif ($field::isInput()) {
+                    $layout[] = ['key' => $field->getKey(), 'title' => $title, 'span' => $field->getColumnSpan(), 'newRow' => $field->startsNewRow()];
+                }
+            }
+        } else {
+            foreach ($kept as $key => $snapshot) {
+                $layout[] = ['key' => (string) $key, 'title' => $snapshot['title'] ?? null, 'span' => $snapshot['span'], 'newRow' => $snapshot['new_row'] ?? false];
             }
         }
 
-        return array_values(array_filter($groups, fn (array $group): bool => $group['fields'] !== []));
+        $groups = [];
+
+        foreach ($layout as $place) {
+            if (! $field = $fields[$place['key']] ?? null) {
+                continue;
+            }
+
+            if ($groups === [] || $groups[array_key_last($groups)]['title'] !== $place['title']) {
+                $groups[] = ['title' => $place['title'], 'fields' => []];
+            }
+
+            $groups[array_key_last($groups)]['fields'][] = ['field' => $field, 'answer' => $this->answerFor($field), 'span' => $place['span'], 'newRow' => $place['newRow']];
+        }
+
+        return $groups;
     }
 
     /**

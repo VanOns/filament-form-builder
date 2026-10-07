@@ -185,7 +185,10 @@ built-in views `filament-form-builder::answers.text`, `.email`, `.phone`,
 `.boolean` and `.columns` use too.
 
 Every submission keeps a snapshot of the form's fields as they were when it
-was submitted. The answers to a field that has since been removed show apart,
+was submitted, down to the title each sat under and its width, so its answers
+keep the layout they came in with: a field added since is left out, and one
+moved since stays where it was. The answers to a field that has since been
+removed show apart,
 under the label they had, and a choice still reads as the option's label. A
 key the snapshot does not know shows under its own name. The export of a form
 puts these answers together in an "Other data" column, one per line.
