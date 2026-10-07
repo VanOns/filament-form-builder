@@ -65,7 +65,7 @@ it('still replaces the placeholders in an e-mail notification', function () {
         'subject' => 'Inzending {{ $form_title }}',
         'content' => '<p>Hoi {{ $naam }}, we hebben je bericht ontvangen.</p>',
         'senderName' => '{{ $form_title }}',
-        'receivers' => ['email', 'info@example.test', 'naam'],
+        'to' => ['field:email', 'info@example.test', 'field:naam'],
     ]);
 
     expect($notification->subject)->toBe('Inzending Contact')

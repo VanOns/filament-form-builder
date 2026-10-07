@@ -106,7 +106,7 @@ it('warns about tags that refer to a field the form no longer has', function () 
     $form = Form::create(['title' => 'Contact', 'template' => 'custom', 'custom' => ['fields' => [
         ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam'],
     ]], 'notifications' => [
-        ['subject' => 'Van {{ $voornaam }}', 'content' => '<p>{{ $aanhef }}</p>', 'receivers' => []],
+        ['subject' => 'Van {{ $voornaam }}', 'content' => '<p>{{ $aanhef }}</p>', 'to' => []],
     ]]);
 
     Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])

@@ -29,7 +29,7 @@ function lifecycleForm(string $type = 'custom'): Form
     return Form::create([
         'title' => 'Contact ' . uniqid(),
         'template' => $type,
-        'notifications' => [['subject' => 'Nieuw', 'content' => 'Hoi', 'receivers' => ['info@example.test']]],
+        'notifications' => [['subject' => 'Nieuw', 'content' => 'Hoi', 'to' => ['info@example.test']]],
         'integrations' => [['class' => RecordingIntegration::class]],
     ]);
 }

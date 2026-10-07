@@ -42,7 +42,7 @@ function editNotifications(Form $form)
 }
 
 it('gives every notification an id and the current shape once the form is saved', function () {
-    $form = notifiedForm([['subject' => 'Van {{ $naam }}', 'content' => '<p>Hoi</p>', 'receivers' => ['email']]]);
+    $form = notifiedForm([['subject' => 'Van {{ $naam }}', 'content' => '<p>Hoi</p>', 'to' => ['field:email']]]);
 
     editNotifications($form)->call('save');
 

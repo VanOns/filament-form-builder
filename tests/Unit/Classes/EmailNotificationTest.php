@@ -35,12 +35,12 @@ function mailSubmission(Form $form, array $data = [], array $files = []): FormSu
     ]);
 }
 
-it('reads a notification stored before as one of now', function () {
-    expect(EmailNotification::normalize(['subject' => 'Hoi', 'receivers' => ['email', 'hr@example.test', ['email' => 'naam']]]))
+it('fills in what a notification leaves out', function () {
+    expect(EmailNotification::normalize(['subject' => 'Hoi', 'to' => ['field:email', ' hr@example.test ', '', ['email' => 'naam']]]))
         ->toMatchArray([
             'id' => null,
             'enabled' => true,
-            'to' => ['field:email', 'hr@example.test', 'field:naam'],
+            'to' => ['field:email', 'hr@example.test'],
             'reply_to' => null,
             'conditions' => [],
             'conditionMatch' => 'all',

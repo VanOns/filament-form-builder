@@ -83,15 +83,14 @@ class EmailNotification
     }
 
     /**
-     * A notification as stored now or before: `receivers` was a list of
-     * addresses and field keys, and a notification had no id or switch.
+     * A notification with every setting filled in; what is missing or of the
+     * wrong type gets its default.
      *
      * @param  array<string, mixed>  $notification
      * @return array{id: ?string, enabled: bool, subject: ?string, content: ?string, sender: ?string, senderName: ?string, to: list<string>, cc: list<string>, bcc: list<string>, reply_to: ?string, conditions: array<mixed>, conditionMatch: string, attach_files: bool}
      */
     public static function normalize(array $notification): array
     {
-        $recipients = $notification['to'] ?? $notification['receivers'] ?? [];
         $list = fn (mixed $recipients): array => array_values(array_filter(array_map(static::toRecipient(...), is_array($recipients) ? $recipients : [])));
 
         return [
@@ -101,7 +100,7 @@ class EmailNotification
             'content' => is_string($notification['content'] ?? null) ? $notification['content'] : null,
             'sender' => is_string($notification['sender'] ?? null) && $notification['sender'] !== '' ? $notification['sender'] : null,
             'senderName' => is_string($notification['senderName'] ?? null) ? $notification['senderName'] : null,
-            'to' => $list($recipients),
+            'to' => $list($notification['to'] ?? []),
             'cc' => $list($notification['cc'] ?? []),
             'bcc' => $list($notification['bcc'] ?? []),
             'reply_to' => static::toRecipient($notification['reply_to'] ?? null),
@@ -112,24 +111,11 @@ class EmailNotification
     }
 
     /**
-     * An address, or `field:key` for the answer of a field. A bare key, as
-     * stored before, means that field.
+     * An address, or `field:key` for the answer of a field.
      */
     public static function toRecipient(mixed $recipient): ?string
     {
-        if (is_array($recipient)) {
-            $recipient = $recipient['email'] ?? null;
-        }
-
-        if (!is_string($recipient) || trim($recipient) === '') {
-            return null;
-        }
-
-        $recipient = trim($recipient);
-
-        return str_contains($recipient, '@') || str_starts_with($recipient, static::FIELD_PREFIX)
-            ? $recipient
-            : static::FIELD_PREFIX . $recipient;
+        return is_string($recipient) && trim($recipient) !== '' ? trim($recipient) : null;
     }
 
     public static function fieldKey(string $recipient): ?string

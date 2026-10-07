@@ -137,7 +137,7 @@ it('takes conditions, notifications and outcomes along when a key is renamed', f
         ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam'],
         ['type' => 'textarea', 'label' => 'Bericht', 'key' => 'bericht', 'conditions' => [['key' => 'voornaam', 'operator' => 'not_empty', 'value' => null]]],
     ], [
-        'notifications' => [['subject' => 'Van {{ $voornaam }}', 'content' => '<p>{{ $voornaam }}</p>', 'receivers' => ['voornaam']]],
+        'notifications' => [['subject' => 'Van {{ $voornaam }}', 'content' => '<p>{{ $voornaam }}</p>', 'to' => ['field:voornaam']]],
         'submit_notifications' => [
             ['type' => 'url', 'url' => 'https://example.test', 'query' => 'naam={{ $voornaam }}', 'conditions' => [['key' => 'voornaam', 'operator' => 'not_empty']]],
             ['type' => 'content', 'content' => '<p>Bedankt <span data-type="mergeTag" data-id="voornaam"></span></p>'],

@@ -132,7 +132,8 @@ code. See [Form types](docs/usage.md#form-types).
 * A notification lists its recipients in `to`, an address or `field:key` for the answer of a field,
   where v2 had `receivers`. It also has an `id`, `enabled`, `cc`, `bcc`, `reply_to`, `conditions` and
   `attach_files`.
-  A notification stored before is read as one of now and saved that way once its form is saved.
+  v3 no longer reads `receivers`; the conversion under
+  [Stored forms and submissions](#stored-forms-and-submissions) rewrites the stored notifications.
 
 * The thank-you message takes merge tags, and `getNotificationMessage()` returns it with them filled in.
   A new form shows a thank-you message by default instead of redirecting, with a text to start from.
