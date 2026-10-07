@@ -139,8 +139,9 @@ italic survive in that text. Its optional name ("Privacy") heads its column,
 and without one the text itself does.
 
 A field type that returns false from `isAvailable()` stays out of the palette,
-while a field of that type already on a form stays there. reCAPTCHA does so
-until it is enabled with a key and a secret, see [Spam](#spam).
+while a field of that type already on a form stays there. reCAPTCHA and
+Turnstile do so until they are enabled with a key and a secret, see
+[Spam](#spam).
 
 A field type that stores more than one value, such as a branch picker that
 also keeps the branch's name and e-mail address, lists them all in
@@ -427,10 +428,11 @@ A form goes out once: its button turns off when it is sent, and the same
 answers and files from the same visitor within `duplicate_seconds` (10) are
 stored once and answered the same way.
 
-For more, add reCAPTCHA to a form from the palette. It shows there once it is
-enabled with a key and a secret: `RECAPTCHA_ENABLED`, `RECAPTCHA_KEY` and
-`RECAPTCHA_SECRET`. On top of that, `rate_limit_per_hour` caps how many forms a
-visitor sends.
+For more, add reCAPTCHA or Cloudflare Turnstile to a form from the palette.
+Each shows there once it is enabled with a key and a secret:
+`RECAPTCHA_ENABLED`, `RECAPTCHA_KEY` and `RECAPTCHA_SECRET`, or
+`TURNSTILE_ENABLED`, `TURNSTILE_KEY` and `TURNSTILE_SECRET`. On top of that,
+`rate_limit_per_hour` caps how many forms a visitor sends.
 
 ## Submit notification
 
@@ -645,7 +647,7 @@ and a copy shares its original's row or gets one of its own below.
 
 Each field type has a minimum width, below which the builder offers nothing: a
 third for titles, text blocks, text areas, uploads and checkboxes, half for
-reCAPTCHA, a quarter for the rest. The submit button always takes the full row,
+reCAPTCHA and Turnstile, a quarter for the rest. The submit button always takes the full row,
 so it sits on a row of its own. A type of your own sets its own:
 
 ```php

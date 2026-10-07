@@ -129,7 +129,7 @@ it('leaves the traps out where the config or the form type turns them off', func
 });
 
 it('keeps a field from taking the name of a trap', function () {
-    expect(TextInputField::reservedKeys())->toContain('ffb_website', 'ffb_token');
+    expect(TextInputField::reservedKeys())->toContain('ffb_website', 'ffb_token', 'cf-turnstile-response');
 });
 
 it('stores a double click once and answers both', function () {

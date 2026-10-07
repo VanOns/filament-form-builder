@@ -75,6 +75,7 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
 |                                              | `submission_meta`: what a submission keeps about where it came from                   |
 |                                              | `retention_months`: how long submissions are kept                                     |
 |                                              | `honeypot`, `duplicate_seconds`: spam traps and double clicks, see [Spam](docs/usage.md#spam) |
+|                                              | `turnstile`: Cloudflare Turnstile, beside `recaptcha`; `fields` gains `turnstile`     |
 | `enable_export_action`: `false`              | `export_action`: `true`, or `->exportAction()` on the plugin per panel, see [Exporting submissions](docs/installation.md#exporting-submissions) |
 
 ### Templates become form types

@@ -24,6 +24,7 @@ return [
         'consent' => Fields\ConsentField::class,
         'file_upload' => Fields\FileUploadField::class,
         'recaptcha' => Fields\RecaptchaField::class,
+        'turnstile' => Fields\TurnstileField::class,
         'submit' => Fields\SubmitField::class,
     ],
     'integrations' => [
@@ -74,6 +75,11 @@ return [
         'enabled' => env('RECAPTCHA_ENABLED', false),
         'secret' => env('RECAPTCHA_SECRET', ''),
         'key' => env('RECAPTCHA_KEY', ''),
+    ],
+    'turnstile' => [
+        'enabled' => env('TURNSTILE_ENABLED', false),
+        'secret' => env('TURNSTILE_SECRET', ''),
+        'key' => env('TURNSTILE_KEY', ''),
     ],
     // Defaults for every panel; a panel sets its own on the plugin.
     'navigation_group' => true,

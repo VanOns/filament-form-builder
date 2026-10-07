@@ -36,6 +36,7 @@ return [
     'add_condition' => 'Add condition',
     'key_invalid_characters' => 'Dots, asterisks, square brackets and spaces are not allowed in keys.',
     'invalid_recaptcha' => 'Recaptcha validation failed.',
+    'invalid_turnstile' => 'The Cloudflare Turnstile check failed.',
     'value' => 'Value',
     'equals' => 'equals',
     'not_equals' => 'not equals',
@@ -78,6 +79,7 @@ return [
         'consent_field' => 'Consent',
         'file_upload_field' => 'File upload',
         'recaptcha_field' => 'reCAPTCHA',
+        'turnstile_field' => 'Turnstile',
         'submit_field' => 'Submit button',
     ],
     'contact' => [
@@ -104,6 +106,7 @@ return [
         'consent_field' => 'A tick the visitor must give, beside a text that links to the terms.',
         'file_upload_field' => 'One or more files, such as a CV.',
         'recaptcha_field' => 'Keeps spam out.',
+        'turnstile_field' => 'Keeps spam out with Cloudflare, without puzzles.',
         'submit_field' => 'The button that sends the form.',
     ],
 ];

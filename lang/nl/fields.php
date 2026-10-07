@@ -36,6 +36,7 @@ return [
     'add_condition' => 'Voorwaarde toevoegen',
     'key_invalid_characters' => 'Punten, sterretjes, blokhaken en spaties zijn niet toegestaan in keys.',
     'invalid_recaptcha' => 'Recaptcha validatie is mislukt.',
+    'invalid_turnstile' => 'De controle van Cloudflare Turnstile is mislukt.',
     'value' => 'Waarde',
     'equals' => 'gelijk aan',
     'not_equals' => 'niet gelijk aan',
@@ -78,6 +79,7 @@ return [
         'consent_field' => 'Toestemming',
         'file_upload_field' => 'Bestand',
         'recaptcha_field' => 'reCAPTCHA',
+        'turnstile_field' => 'Turnstile',
         'submit_field' => 'Verzendknop',
     ],
     'contact' => [
@@ -104,6 +106,7 @@ return [
         'consent_field' => 'Een verplicht vinkje bij een tekst die naar de voorwaarden linkt.',
         'file_upload_field' => 'Een of meer bestanden, zoals een cv.',
         'recaptcha_field' => 'Houdt spam tegen.',
+        'turnstile_field' => 'Houdt spam tegen met Cloudflare, zonder puzzels.',
         'submit_field' => 'De knop die het formulier verstuurt.',
     ],
 ];
