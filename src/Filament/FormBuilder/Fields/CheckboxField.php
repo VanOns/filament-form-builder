@@ -6,6 +6,7 @@ use BackedEnum;
 use Filament\Forms\Components\Checkbox;
 use Filament\Schemas\Components\Component;
 use Filament\Support\Icons\Heroicon;
+use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 
@@ -35,6 +36,17 @@ class CheckboxField extends FormField
         return static::isChecked($value)
             ? __('filament-form-builder::fields.yes')
             : __('filament-form-builder::fields.no');
+    }
+
+    /**
+     * A ticked box is only ticked or not, so it has no value to compare.
+     */
+    public function getConditionOperators(): array
+    {
+        return [
+            ConditionOperator::NOT_EMPTY->value => __('filament-form-builder::fields.checked'),
+            ConditionOperator::EMPTY->value => __('filament-form-builder::fields.unchecked'),
+        ];
     }
 
     public function getFilterConstraints(): array

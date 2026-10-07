@@ -3,6 +3,7 @@
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
 use Filament\QueryBuilder\Constraints\Constraint;
+use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 
 trait HasSubmissionColumns
@@ -15,6 +16,16 @@ trait HasSubmissionColumns
     public function getFilterOptions(): array
     {
         return [];
+    }
+
+    /**
+     * How a condition can test this field's answer, as operator => label.
+     *
+     * @return array<string, string>
+     */
+    public function getConditionOperators(): array
+    {
+        return ConditionOperator::options(ConditionOperator::basic());
     }
 
     /**

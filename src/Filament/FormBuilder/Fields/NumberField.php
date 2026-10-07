@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
+use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 
 class NumberField extends InputField
@@ -11,6 +12,11 @@ class NumberField extends InputField
     public function getInputType(): string
     {
         return 'number';
+    }
+
+    public function getConditionOperators(): array
+    {
+        return ConditionOperator::options(ConditionOperator::numeric());
     }
 
     public function getFilterConstraints(): array

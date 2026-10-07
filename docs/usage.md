@@ -249,6 +249,12 @@ attribute, which `resources/js/form-builder.js` evaluates to show or hide it. On
 the server, a required conditional field is only required while its conditions
 show it.
 
+What a rule can test depends on the field it looks at, through the field type's
+`getConditionOperators()`: any answer can equal a value or be empty, a number
+can also be greater than, at least, less than or at most a value, and a
+checkbox is ticked or not. The same rules decide when an e-mail notification
+goes out and which outcome follows a submission.
+
 ## Submit notification
 
 Each form has an "After submitting" section. Its outcomes are stored as one

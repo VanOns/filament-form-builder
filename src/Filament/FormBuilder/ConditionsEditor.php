@@ -15,6 +15,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\CheckboxField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\NumberField;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 /**
@@ -115,6 +116,7 @@ final class ConditionsEditor
                             ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) !== []),
                         TextInput::make('value')
                             ->label(__('filament-form-builder::fields.value'))
+                            ->numeric(fn (Get $get): bool => ($this->fields[$get('key')] ?? null) instanceof NumberField)
                             ->required($needsValue)
                             ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) === []),
                     ]),
@@ -125,20 +127,11 @@ final class ConditionsEditor
     }
 
     /**
-     * A ticked box is only ticked or not, so it has no value to compare.
-     *
      * @return array<string, string>
      */
     private function operators(?FormField $field): array
     {
-        if ($field instanceof CheckboxField) {
-            return [
-                ConditionOperator::NOT_EMPTY->value => __('filament-form-builder::fields.checked'),
-                ConditionOperator::EMPTY->value => __('filament-form-builder::fields.unchecked'),
-            ];
-        }
-
-        return ConditionOperator::options();
+        return $field?->getConditionOperators() ?? ConditionOperator::options(ConditionOperator::basic());
     }
 
     /**

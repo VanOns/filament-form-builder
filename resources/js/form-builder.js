@@ -68,9 +68,24 @@ class FormBuilderForm {
                 return answers.length === 0;
             case 'not_empty':
                 return answers.length > 0;
+            case 'greater_than':
+                return this.compare(answers, expected) > 0;
+            case 'at_least':
+                return this.compare(answers, expected) >= 0;
+            case 'less_than':
+                return this.compare(answers, expected) < 0;
+            case 'at_most':
+                return this.compare(answers, expected) <= 0;
             default:
                 return true;
         }
+    }
+
+    // Without two numbers nothing holds; NaN fails every comparison, like null does on the server.
+    compare(answers, expected) {
+        const isNumber = (text) => text !== undefined && text !== null && String(text).trim() !== '' && Number.isFinite(Number(text));
+
+        return isNumber(answers[0]) && isNumber(expected) ? Number(answers[0]) - Number(expected) : NaN;
     }
 
     getValue(key) {
