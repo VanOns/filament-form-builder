@@ -3,6 +3,7 @@
 return [
     'add' => 'Add',
     'custom_form' => 'Fields',
+    'notifications_tab' => 'Notifications',
     'general' => 'General',
     'form_title' => 'Form title',
     'created_at' => 'Created at',
@@ -164,7 +165,7 @@ return [
     'no_settings' => 'No settings',
     'heading_level' => 'Heading level',
     'text' => 'Text',
-    'form_submitted_successfully' => 'Form submitted successfully',
+    'form_submitted_successfully' => 'Thank you! We have received your message.',
     'form_redirect_example' => 'E.g. :url',
     'what_happens_after_submission' => 'What should happen after submission?',
     'integration' => 'Integration',

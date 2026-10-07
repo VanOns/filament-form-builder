@@ -65,7 +65,7 @@ class FormType
     }
 
     /**
-     * Fields for the form's settings tab, stored in its `settings` column.
+     * Fields for the form's settings under the canvas, stored in its `settings` column.
      *
      * @return array<Component>
      */

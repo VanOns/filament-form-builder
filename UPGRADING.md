@@ -119,7 +119,9 @@ code. See [Form types](docs/usage.md#form-types).
   A notification stored before is read as one of now and saved that way once its form is saved.
 
 * The thank-you message takes merge tags, and `getNotificationMessage()` returns it with them filled in.
-  A new form shows a thank-you message by default instead of redirecting.
+  A new form shows a thank-you message by default instead of redirecting, with a text to start from.
+* A form type's `settings()` show under the canvas instead of on a tab of their own, and the e-mail
+  notifications share a Notifications tab with what happens after a submission.
 
 * What a form does after a submission is one list, `forms.submit_notifications`, like the notifications,
   so a form can have a different outcome per answer. The upgrade migration turns `submit_notification_type`,

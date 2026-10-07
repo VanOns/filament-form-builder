@@ -27,6 +27,15 @@ it('builds a new form on the canvas unless a fixed type is switched on', functio
     expect(Form::sole()->template)->toBe('custom');
 });
 
+it('starts a new form with a thank-you message', function () {
+    Livewire::test(CreateForm::class)
+        ->fillForm(['title' => 'Contact'])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(Form::sole()->getSubmitNotifications()[0])->toMatchArray(['type' => 'content', 'content' => '<p>Thank you! We have received your message.</p>']);
+});
+
 it('shows the type of a form that has a fixed one', function () {
     $form = Form::create(['title' => 'Contact', 'template' => 'contact', 'submit_notifications' => [['type' => 'content', 'content' => '<p>Bedankt!</p>']]]);
 

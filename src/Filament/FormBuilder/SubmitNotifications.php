@@ -106,6 +106,7 @@ class SubmitNotifications extends Group
             MergeTagEditor::make('content', withSubmissionLink: false)
                 ->label(__('filament-form-builder::general.submit_notification_message'))
                 ->required()
+                ->default(fn (): string => '<p>' . e(__('filament-form-builder::general.form_submitted_successfully')) . '</p>')
                 ->placeholder(__('filament-form-builder::general.form_submitted_successfully'))
                 ->visible($isType(SubmitNotificationType::Content)),
             Group::make(FilamentFormBuilderPlugin::getRedirectSchema())

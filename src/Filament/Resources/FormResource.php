@@ -86,24 +86,17 @@ class FormResource extends Resource
                             ->schema([
                                 static::getGeneralSection(),
                                 static::getCustomSection(),
-                                static::getSubmitNotificationSection()
-                                    ->hidden(fn (Get $get) => empty($get('template')) || empty(static::getSubmitNotificationTypes($get))),
+                                static::getSettingsSection(),
                             ]),
-                        Tabs\Tab::make(__('filament-form-builder::general.settings'))
-                            ->id('settings')
-                            ->key('settings', isInheritable: false)
-                            ->icon('heroicon-o-cog-6-tooth')
-                            ->visible(self::hasSettings(...))
-                            ->schema([
-                                static::getSettingsSection()
-                                    ->columns(),
-                            ]),
-                        Tabs\Tab::make(__('filament-form-builder::general.email_notification'))
-                            ->id('email-notification')
-                            ->key('email-notification', isInheritable: false)
+                        // What happens once someone sends the form: the visitor's outcome and the mails.
+                        Tabs\Tab::make(__('filament-form-builder::general.notifications_tab'))
+                            ->id('notifications')
+                            ->key('notifications-tab', isInheritable: false)
                             ->icon('heroicon-o-bell-alert')
-                            ->visible(self::hasNotificationsEnabled(...))
+                            ->visible(fn (Get $get): bool => static::hasSubmitNotifications($get) || static::hasNotificationsEnabled($get))
                             ->schema([
+                                static::getSubmitNotificationSection()
+                                    ->visible(static::hasSubmitNotifications(...)),
                                 static::getEmailNotificationSection(),
                             ]),
                         Tabs\Tab::make(__('filament-form-builder::general.integrations'))
@@ -136,8 +129,13 @@ class FormResource extends Resource
         return Section::make(__('filament-form-builder::general.settings'))
             ->description(__('filament-form-builder::general.settings_explanation'))
             ->icon('heroicon-o-cog-6-tooth')
-            ->statePath('settings')
-            ->schema(fn (Get $get, ?FormModel $record): array => static::getFormType($get, $record)?->settings() ?? []);
+            ->columns()
+            ->schema([
+                Group::make(fn (Get $get, ?FormModel $record): array => static::getFormType($get, $record)?->settings() ?? [])
+                    ->statePath('settings')
+                    ->columns()
+                    ->columnSpanFull(),
+            ]);
     }
 
     public static function getGeneralSection(): Section
@@ -524,9 +522,9 @@ class FormResource extends Resource
         ];
     }
 
-    public static function hasSettings(Get $get, ?FormModel $record): bool
+    public static function hasSubmitNotifications(Get $get): bool
     {
-        return filled(static::getFormType($get, $record)?->settings());
+        return filled($get('template')) && filled(static::getSubmitNotificationTypes($get));
     }
 
     public static function hasCustomFields(Get $get): bool

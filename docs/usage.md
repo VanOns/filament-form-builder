@@ -109,8 +109,8 @@ public function formatValues(array $values, FormSubmission $submission): array
 }
 ```
 
-A type may also override `settings()` (extra fields for the form's
-settings tab, stored in its `settings` column), `messages()` (validation
+A type may also override `settings()` (extra fields in the form's settings,
+under the canvas, stored in its `settings` column), `messages()` (validation
 messages), and the admin toggles described below.
 
 ## Field types
@@ -249,8 +249,9 @@ triggers neither.
 
 ### E-mail notifications
 
-The e-mail tab shows a form's notifications as cards: who they go to, when, and
-how often they went out. A notification is edited in a slide-over:
+The Notifications tab shows a form's e-mails as cards, under what the visitor
+sees after sending: who they go to, when, and how often they went out. A
+notification is edited in a slide-over:
 
 - **To**: fields of the form that hold an e-mail address, or addresses typed in.
   Every recipient gets a mail of their own.
@@ -383,7 +384,8 @@ A field left out of the form is not posted. With `useForm()` instead, pass its
 
 ## Submit notification
 
-Each form has an "After submitting" section. Its outcomes are stored as one
+Each form has an "After submitting" section, on its Notifications tab, and a
+new form starts with a thank-you message there. Its outcomes are stored as one
 list in `submit_notifications`, like the e-mail notifications: each has an
 `id`, `conditions` and `conditionMatch`, a `type` (`content` or `url`), and its
 `content`, `url` and `query`.
