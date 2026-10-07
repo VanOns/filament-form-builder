@@ -176,6 +176,19 @@ it('offers the export unless the config turns it off', function () {
     $table()->assertActionVisible(TestAction::make('export')->table());
 });
 
+it('knows its form again on every request of the modal, also the one that sends it', function () {
+    $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+    $form = formWithFields('Solliciteren', ['Voornaam']);
+    $table = Livewire::test(FormSubmissionsRelationManager::class, ['ownerRecord' => $form, 'pageClass' => EditForm::class])
+        ->mountAction(TestAction::make('export')->table());
+
+    // A request of its own starts without the static the modal was opened with.
+    FormSubmissionExporter::$form = null;
+    $table->call('$refresh');
+
+    expect(FormSubmissionExporter::$form?->is($form))->toBeTrue();
+});
+
 it('lists the forms in the navigation group a panel sets', function () {
     $plugin = FilamentFormBuilderPlugin::get();
 

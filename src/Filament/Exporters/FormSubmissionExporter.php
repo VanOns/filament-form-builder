@@ -2,6 +2,8 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\Exporters;
 
+use Filament\Actions\ExportAction;
+use Filament\Actions\ExportBulkAction;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
@@ -9,6 +11,7 @@ use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
 use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -22,6 +25,26 @@ class FormSubmissionExporter extends Exporter
     public static ?Form $form = null;
 
     protected static ?string $model = FormSubmission::class;
+
+    /**
+     * Filament reads the columns again on every request of the modal, so the
+     * form is set where the table is built, not once when the modal opens.
+     *
+     * @template TAction of ExportAction|ExportBulkAction
+     *
+     * @param  TAction  $action
+     * @return TAction
+     */
+    public static function configureAction(ExportAction | ExportBulkAction $action, ?Form $form = null): ExportAction | ExportBulkAction
+    {
+        static::$form = $form;
+
+        return $action
+            ->label(__('filament-form-builder::general.export_form_submissions'))
+            ->visible(fn (): bool => FilamentFormBuilderPlugin::get()->hasExportAction())
+            ->options(['form_id' => $form?->getKey()])
+            ->exporter(static::class);
+    }
 
     public static function getColumns(): array
     {

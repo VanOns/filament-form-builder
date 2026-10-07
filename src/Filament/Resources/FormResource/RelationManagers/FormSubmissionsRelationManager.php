@@ -15,7 +15,6 @@ use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Filament\Tables\FormSubmissionColumns;
 use VanOns\FilamentFormBuilder\Filament\Tables\ReadStatus;
-use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 class FormSubmissionsRelationManager extends RelationManager
@@ -79,14 +78,7 @@ class FormSubmissionsRelationManager extends RelationManager
                 Actions\RestoreAction::make(),
             ])
             ->headerActions([
-                Actions\ExportAction::make()
-                    ->label(__('filament-form-builder::general.export_form_submissions'))
-                    ->visible(fn (): bool => FilamentFormBuilderPlugin::get()->hasExportAction())
-                    ->beforeFormFilled(function () use ($form): void {
-                        FormSubmissionExporter::$form = $form;
-                    })
-                    ->options(['form_id' => $form->getKey()])
-                    ->exporter(FormSubmissionExporter::class),
+                FormSubmissionExporter::configureAction(Actions\ExportAction::make(), $form),
             ])
             ->toolbarActions([
                 Actions\BulkActionGroup::make([
@@ -94,14 +86,7 @@ class FormSubmissionsRelationManager extends RelationManager
                     Actions\DeleteBulkAction::make(),
                     Actions\ForceDeleteBulkAction::make(),
                     Actions\RestoreBulkAction::make(),
-                    Actions\ExportBulkAction::make()
-                        ->label(__('filament-form-builder::general.export_form_submissions'))
-                        ->visible(fn (): bool => FilamentFormBuilderPlugin::get()->hasExportAction())
-                        ->beforeFormFilled(function () use ($form): void {
-                            FormSubmissionExporter::$form = $form;
-                        })
-                        ->options(['form_id' => $form->getKey()])
-                        ->exporter(FormSubmissionExporter::class),
+                    FormSubmissionExporter::configureAction(Actions\ExportBulkAction::make(), $form),
                 ]),
             ]);
     }

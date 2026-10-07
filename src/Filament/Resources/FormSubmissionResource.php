@@ -105,11 +105,7 @@ class FormSubmissionResource extends Resource
                 Actions\RestoreAction::make(),
             ])
             ->headerActions([
-                Actions\ExportAction::make()
-                    ->label(__('filament-form-builder::general.export_form_submissions'))
-                    ->visible(fn (): bool => FilamentFormBuilderPlugin::get()->hasExportAction())
-                    ->beforeFormFilled(fn () => FormSubmissionExporter::$form = null)
-                    ->exporter(FormSubmissionExporter::class),
+                FormSubmissionExporter::configureAction(Actions\ExportAction::make()),
             ])
             ->toolbarActions([
                 Actions\BulkActionGroup::make([
@@ -117,11 +113,7 @@ class FormSubmissionResource extends Resource
                     Actions\DeleteBulkAction::make(),
                     Actions\ForceDeleteBulkAction::make(),
                     Actions\RestoreBulkAction::make(),
-                    Actions\ExportBulkAction::make()
-                        ->beforeFormFilled(fn () => FormSubmissionExporter::$form = null)
-                        ->label(__('filament-form-builder::general.export_form_submissions'))
-                        ->visible(fn (): bool => FilamentFormBuilderPlugin::get()->hasExportAction())
-                        ->exporter(FormSubmissionExporter::class),
+                    FormSubmissionExporter::configureAction(Actions\ExportBulkAction::make()),
                 ]),
             ]);
     }
