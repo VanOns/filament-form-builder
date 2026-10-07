@@ -8,8 +8,16 @@ adding it yourself and creating a pull request.
 ## v2 to v3
 
 v3 rebuilds how forms are defined and edited. It has no compatibility layer: templates, the field
-classes and the stored canvas data all changed, and forms stored with v2 need converting by hand (see
+classes and the stored canvas data all changed, and forms stored with v2 need converting (see
 [Stored forms and submissions](#stored-forms-and-submissions)).
+
+**Let an AI agent do it.** v3 ships a [Laravel Boost](https://github.com/laravel/boost) skill,
+`filament-form-builder-v3-upgrade`, that walks an agent through this guide and converts the forms,
+notifications and submissions v2 stored. After `composer require van-ons/filament-form-builder:^3.0`, run
+`php artisan boost:update` (or `boost:install`) and ask the agent to upgrade the form builder. Its conversion
+migration is
+`vendor/van-ons/filament-form-builder/resources/boost/skills/filament-form-builder-v3-upgrade/references/convert-v2-forms.php`.
+Take a database backup first: it rewrites stored data and cannot be rolled back.
 
 ### Installing
 
@@ -133,7 +141,8 @@ code. See [Form types](docs/usage.md#form-types).
 
 ### Stored forms and submissions
 
-Nothing converts the canvas data of v2 forms. For each item in `forms.custom['fields']`:
+The package itself does not convert the canvas data of v2 forms; the Boost skill's migration above does,
+or by hand, for each item in `forms.custom['fields']`:
 
 * Replace `fieldType` (a class) with `type`, a name from the `fields` config. An `InputField` becomes
   `text`, `email`, `phone` or `number` after its `inputType` (`tel` is `phone`); a `SelectField` becomes
@@ -145,7 +154,7 @@ Nothing converts the canvas data of v2 forms. For each item in `forms.custom['fi
 
 Placeholders and receivers in e-mail notifications and the query string lose the prefix too:
 `{{ $key_voornaam }}` becomes `{{ $voornaam }}`, which the editors then show as a merge tag. Submissions
-stored with v2 keep their `key_` keys, so
+stored with v2 keep their `key_` keys unless converted, so
 their answers show under raw keys instead of labels. A v2 upload is a link inside `data` to a route that
 no longer exists; v3 keeps uploads in the `files` column and links to them through signed URLs.
 
