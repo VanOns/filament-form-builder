@@ -23,29 +23,19 @@ class FileUploadField extends FormField
         return $this;
     }
 
-    public function getOriginalKey(): string
-    {
-        return parent::getKey();
-    }
-
     public function getSubmissionColumns(): array
     {
-        return [$this->getOriginalKey() => $this->getColumnLabel()];
+        return [$this->getKey() => $this->getColumnLabel()];
     }
 
     public function getFilterConstraints(): array
     {
-        return [AnswerConstraints::file($this->getOriginalKey(), $this->getColumnLabel())];
+        return [AnswerConstraints::file($this->getKey(), $this->getColumnLabel())];
     }
 
-    public function getKey(): string
+    public function getInputName(): string
     {
-        $key = parent::getKey();
-        if ($this->multiple) {
-            $key .= '[]';
-        }
-
-        return $key;
+        return $this->getKey() . ($this->multiple ? '[]' : '');
     }
 
     protected function getMaxSize(): ?int
@@ -73,7 +63,7 @@ class FileUploadField extends FormField
 
     public function getRules(): array
     {
-        $key = $this->getOriginalKey();
+        $key = $this->getKey();
 
         return array_filter($this->withExtraRules([
             $key => $this->fieldRules(),

@@ -9,14 +9,14 @@ beforeEach(function () {
     Storage::fake('local');
 });
 
-function uploadSubmission(array $payload): FormSubmission
+function uploadSubmission(array $payload, bool $multiple = false): FormSubmission
 {
     $form = Form::create([
         'title' => 'Solliciteren',
         'template' => 'custom',
         'custom' => ['fields' => [
             ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
-            ['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv'],
+            ['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv', 'multiple' => $multiple],
         ]],
     ]);
 
@@ -37,6 +37,15 @@ it('keeps an upload apart from the answers, under its original name', function (
         ->and($submission->files['cv'][0]['name'])->toBe('cv.pdf');
 
     Storage::disk('local')->assertExists($submission->files['cv'][0]['path']);
+});
+
+it('keeps every file of a multiple upload, posted as the browser names them', function () {
+    $submission = uploadSubmission(['cv' => [pdf(), UploadedFile::fake()->create('brief.pdf', 10)]], multiple: true);
+    $field = $submission->form->getFields()[1];
+
+    expect(array_column($submission->files['cv'], 'name'))->toBe(['cv.pdf', 'brief.pdf'])
+        ->and($field->getKey())->toBe('cv')
+        ->and($field->getInputName())->toBe('cv[]');
 });
 
 it('serves an upload to whoever holds its signed link', function () {

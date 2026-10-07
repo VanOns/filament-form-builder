@@ -13,14 +13,14 @@
     <input
         type="file"
         id="{{ $field->getKey() }}"
-        name="{{ $field->getKey() }}"
+        name="{{ $field->getInputName() }}"
         @required($field->isRequired())
         @if ($field->multiple) multiple @endif
-        @error($field->getOriginalKey()) aria-invalid="true" @enderror
+        @error($field->getKey()) aria-invalid="true" @enderror
         {{ $field->getAttributes() }}
     >
     @if ($field->description)
         <p class="ffb-description">{{ $field->description }}</p>
     @endif
-    <x-filament-form-builder::field-error :keys="[$field->getOriginalKey(), $field->getOriginalKey() . '.*']" />
+    <x-filament-form-builder::field-error :keys="[$field->getKey(), $field->getKey() . '.*']" />
 </div>

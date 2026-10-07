@@ -21,7 +21,7 @@
             <label class="ffb-check">
                 <input
                     type="{{ $multiple ? 'checkbox' : 'radio' }}"
-                    name="{{ $field->getKey() . ($multiple ? '[]' : '') }}"
+                    name="{{ $field->getInputName() }}"
                     value="{{ $option['value'] ?? '' }}"
                     @checked(in_array($option['value'] ?? '', $selected, true))
                     {{ $field->getAttributes(withRequired: false) }}

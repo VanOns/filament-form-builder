@@ -72,6 +72,11 @@ abstract class ChoiceField extends FormField
         return is_array($value) ? array_map($label, $value) : $label($value);
     }
 
+    public function getInputName(): string
+    {
+        return $this->getKey() . (static::allowsMultiple() ? '[]' : '');
+    }
+
     /**
      * @return array<string, mixed>
      */

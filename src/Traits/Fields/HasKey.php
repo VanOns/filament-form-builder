@@ -53,4 +53,9 @@ trait HasKey
     {
         return static::cleanKey(filled($this->key) ? $this->key : Str::snake($this->label ?? class_basename(static::class)));
     }
+
+    public function getInputName(): string
+    {
+        return $this->getKey();
+    }
 }
