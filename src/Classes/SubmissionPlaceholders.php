@@ -36,6 +36,7 @@ class SubmissionPlaceholders
             'form_title' => $this->formSubmission->form->title,
             'submission_id' => (string) $this->formSubmission->getKey(),
             'submitted_at' => (string) $this->formSubmission->created_at?->translatedFormat('j F Y, H:i'),
+            'submitted_from' => (string) $this->formSubmission->source_url,
             'submission_url' => $this->submissionUrl(),
             ...static::fallbacks($this->formSubmission),
             ...$this->formSubmission->getFormattedData(),

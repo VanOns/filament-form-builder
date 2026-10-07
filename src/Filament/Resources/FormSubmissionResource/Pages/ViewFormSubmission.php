@@ -217,6 +217,14 @@ class ViewFormSubmission extends ViewRecord
                     ->icon(Heroicon::OutlinedClock)
                     ->dateTime('j M Y, H:i:s')
                     ->inlineLabel(),
+                TextEntry::make('source_url')
+                    ->label(__('filament-form-builder::general.submission.submitted_from'))
+                    ->icon(Heroicon::OutlinedGlobeAlt)
+                    ->url(fn (?string $state): ?string => $state)
+                    ->openUrlInNewTab()
+                    ->limit(60)
+                    ->placeholder('—')
+                    ->inlineLabel(),
                 TextEntry::make('form_type')
                     ->label(__('filament-form-builder::general.submission.form_type'))
                     ->icon(Heroicon::OutlinedSquares2x2)

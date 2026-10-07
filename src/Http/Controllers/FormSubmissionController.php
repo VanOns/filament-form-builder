@@ -30,6 +30,8 @@ class FormSubmissionController
                 'data' => $data,
                 'files' => $files ?: null,
                 'field_snapshot' => $form->getFieldSnapshot(),
+                // The page the form was on, the same one the redirect below goes back to.
+                'source_url' => $request->headers->get('referer'),
             ]);
 
         $type->afterSubmission($submission);

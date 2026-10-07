@@ -1,5 +1,6 @@
 <?php
 
+use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -83,4 +84,17 @@ it('never takes a column a field fills in itself from the visitor', function () 
 
     expect(submit($form, ['vestiging' => '12', 'branch_email' => 'iemand@example.test'])->data)->toBe(['vestiging' => '12'])
         ->and($form->getSubmissionFields())->toHaveKey('branch_email');
+});
+
+it('remembers the page a form was sent from, for its merge tag', function () {
+    $form = Form::create(['title' => 'Terugbellen', 'template' => 'custom', 'custom' => ['fields' => [
+        ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
+    ]]]);
+
+    test()->post(route('filament-form-builder.form.store', ['formId' => $form->id]), ['naam' => 'Jan'], ['referer' => 'https://example.test/contact?bron=nieuwsbrief']);
+    $submission = FormSubmission::sole();
+
+    expect($submission->source_url)->toBe('https://example.test/contact?bron=nieuwsbrief')
+        ->and(SubmissionPlaceholders::make($submission)->values()['submitted_from'])->toBe('https://example.test/contact?bron=nieuwsbrief')
+        ->and(array_keys($form->getMergeTagGroups()[2]['tags']))->toContain('submitted_from');
 });

@@ -190,10 +190,12 @@ class EmailNotification
     protected function getHtmlValues(array $values): array
     {
         $url = $values['submission_url'] ?? '';
+        $from = $values['submitted_from'] ?? '';
 
         return [
             'all_fields' => new HtmlString($this->getAllFieldsHtml()),
             'submission_url' => new HtmlString($url === '' ? '' : '<a href="' . e($url) . '">' . e(__('filament-form-builder::general.merge_tags.view_submission')) . '</a>'),
+            'submitted_from' => new HtmlString($from === '' ? '' : '<a href="' . e($from) . '">' . e($from) . '</a>'),
         ];
     }
 

@@ -66,6 +66,7 @@ it('offers the answers of a form and what is known about a submission', function
         'all_fields' => 'All fields',
         'submission_id' => 'Submission number',
         'submitted_at' => 'Submitted at',
+        'submitted_from' => 'Submitted from',
         'submission_url' => 'Link to the submission',
     ])
         ->and($form->getMergeTags(withAllFields: false, withSubmissionLink: false))->not->toHaveKeys(['all_fields', 'submission_url']);
@@ -81,7 +82,7 @@ it('groups the tags for the picker, each with the icon of what it stands for', f
     expect(array_column($groups, 'label'))->toBe(['Fields', 'Form', 'Submission'])
         ->and($groups[0]['tags']['email'])->toBe(['label' => 'E-mailadres', 'icon' => EmailField::icon()])
         ->and(array_keys($groups[1]['tags']))->toBe(['form_title'])
-        ->and(array_keys($groups[2]['tags']))->toBe(['submission_id', 'submitted_at', 'submission_url']);
+        ->and(array_keys($groups[2]['tags']))->toBe(['submission_id', 'submitted_at', 'submitted_from', 'submission_url']);
 });
 
 it('puts the submission and a link to it in a mail', function () {

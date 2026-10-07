@@ -31,6 +31,7 @@ use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
  * @property array<string, mixed> $data
  * @property array<string, list<array{path: string, name: string}>>|null $files
  * @property array<string, array{label: string, type: ?string, columns: array<string, string>, options: array<string, string>}>|null $field_snapshot
+ * @property string|null $source_url
  * @property Carbon|null $read_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at

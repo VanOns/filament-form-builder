@@ -92,6 +92,15 @@ it('lists the files and the notifications beside the answers', function () {
         ->assertSee('1 of 1 sent');
 });
 
+it('links to the page the form was sent from', function () {
+    $submission = viewedSubmission();
+    $submission->update(['source_url' => 'https://example.test/werken-bij']);
+
+    Livewire::test(ViewFormSubmission::class, ['record' => $submission->getKey()])
+        ->assertSee('Submitted from')
+        ->assertSeeHtml('href="https://example.test/werken-bij"');
+});
+
 it('keeps a typed script out of the page', function () {
     $form = Form::create(['title' => 'Contact', 'template' => 'custom', 'custom' => ['fields' => [
         ['type' => 'text', 'label' => 'Bericht', 'key' => 'bericht'],

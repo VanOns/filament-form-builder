@@ -250,7 +250,8 @@ The subject, the content and the sender name of an e-mail notification take
 merge tags. The editor's tag button opens a picker that groups them and
 searches as you type, and typing `{{` in the text offers them too: every answer
 of the form by its label, the form title, all fields as one block, the
-submission's number and date, and a link to the submission in the panel. They are stored as
+submission's number and date, the page it was sent from, and a link to the
+submission in the panel. They are stored as
 Filament's merge tag nodes and filled in when the mail is sent, each answer
 escaped. A tag for a field the form no longer has stays empty, and the e-mail
 tab warns about it.

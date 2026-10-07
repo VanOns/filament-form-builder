@@ -15,6 +15,7 @@ return new class () extends Migration {
             $table->json('data')->nullable();
             $table->json('files')->nullable();
             $table->json('field_snapshot')->nullable();
+            $table->text('source_url')->nullable();
             $table->json('integrations')->nullable();
             $table->timestamp('read_at')->nullable()->index();
             $table->timestamps();

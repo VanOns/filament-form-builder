@@ -319,6 +319,7 @@ class Form extends Model
             ['label' => __('filament-form-builder::general.merge_tags.groups.submission'), 'tags' => array_filter([
                 'submission_id' => $tag('submission_id', Heroicon::OutlinedHashtag),
                 'submitted_at' => $tag('submitted_at', Heroicon::OutlinedCalendar),
+                'submitted_from' => $tag('submitted_from', Heroicon::OutlinedGlobeAlt),
                 'submission_url' => $withSubmissionLink ? $tag('submission_url', Heroicon::OutlinedArrowTopRightOnSquare) : null,
             ])],
         ];
