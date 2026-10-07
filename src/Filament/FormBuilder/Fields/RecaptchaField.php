@@ -23,6 +23,11 @@ class RecaptchaField extends FormField
             : [];
     }
 
+    public static function isAvailable(): bool
+    {
+        return RecaptchaService::checkEnabled();
+    }
+
     public static function paletteGroup(): string
     {
         return 'layout';

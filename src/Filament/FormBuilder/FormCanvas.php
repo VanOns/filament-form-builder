@@ -343,7 +343,9 @@ class FormCanvas extends Field
         $groups = ['input' => [], 'choice' => [], 'layout' => []];
 
         foreach ($this->getFieldTypes() as $name => $class) {
-            $groups[$class::paletteGroup()][$name] = $class;
+            if ($class::isAvailable()) {
+                $groups[$class::paletteGroup()][$name] = $class;
+            }
         }
 
         return array_filter($groups);

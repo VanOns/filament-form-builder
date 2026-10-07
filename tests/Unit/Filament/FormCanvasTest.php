@@ -8,6 +8,7 @@ use Tests\Fixtures\HalfRowForm;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextAreaField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
@@ -407,6 +408,19 @@ it('groups the palette and shows a hidden field by its default value', function 
     Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
         ->assertSee(['Input', 'Choice', 'Layout and sending'])
         ->assertSee('Default value: website');
+});
+
+it('offers reCAPTCHA in the palette only once it is set up', function () {
+    $offered = fn (): bool => collect(FormCanvas::make('custom')->getPaletteGroups())->contains(fn (array $group): bool => isset($group['recaptcha']));
+
+    config(['filament-form-builder.recaptcha' => ['enabled' => false, 'key' => 'key', 'secret' => 'secret']]);
+    expect($offered())->toBeFalse();
+
+    config(['filament-form-builder.recaptcha' => ['enabled' => true, 'key' => '', 'secret' => 'secret']]);
+    expect($offered())->toBeFalse();
+
+    config(['filament-form-builder.recaptcha' => ['enabled' => true, 'key' => 'key', 'secret' => 'secret']]);
+    expect($offered())->toBeTrue();
 });
 
 it('reorders the fields the way they were dragged', function () {

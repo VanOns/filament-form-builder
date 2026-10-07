@@ -78,6 +78,15 @@ abstract class FormField
     }
 
     /**
+     * Whether the builder's palette offers this field type. A field already on
+     * a form stays there either way.
+     */
+    public static function isAvailable(): bool
+    {
+        return true;
+    }
+
+    /**
      * Where the builder's palette lists this field type: `input`, `choice` or
      * `layout`.
      */

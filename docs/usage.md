@@ -120,6 +120,11 @@ Stored forms only know the name, so a field class can be renamed, moved or
 swapped for a project's own subclass by changing its entry here. Add an entry
 to offer a field type of your own in the builder's palette.
 
+A field type that returns false from `isAvailable()` stays out of the palette,
+while a field of that type already on a form stays there. reCAPTCHA does so
+until it is enabled with a key and a secret (`RECAPTCHA_ENABLED`,
+`RECAPTCHA_KEY`, `RECAPTCHA_SECRET`).
+
 A field type that stores more than one value, such as a branch picker that
 also keeps the branch's name and e-mail address, lists them all in
 `getSubmissionColumns()` so each gets a label and a column. Only the keys in
