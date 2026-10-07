@@ -20,6 +20,7 @@ return new class () extends Migration {
             $table->json('files')->nullable()->after('data');
             $table->json('field_snapshot')->nullable()->after('files');
             $table->text('source_url')->nullable()->after('field_snapshot');
+            $table->json('meta')->nullable()->after('source_url');
             $table->timestamp('read_at')->nullable()->after('integrations')->index();
         });
 
@@ -44,7 +45,7 @@ return new class () extends Migration {
 
         Schema::table('form_submissions', function (Blueprint $table) {
             $table->dropIndex(['read_at']);
-            $table->dropColumn(['files', 'field_snapshot', 'source_url', 'read_at']);
+            $table->dropColumn(['files', 'field_snapshot', 'source_url', 'meta', 'read_at']);
             $table->string('submitter_email')->nullable()->after('form_id');
         });
     }

@@ -33,6 +33,7 @@ use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
  * @property array<string, list<array{path: string, name: string}>>|null $files
  * @property array<string, array{label: string, type: ?string, columns: array<string, string>, options: array<string, string>, title?: ?string, span?: int, new_row?: bool}>|null $field_snapshot
  * @property string|null $source_url
+ * @property array{user_agent?: string, locale?: string, user?: array{id?: mixed, name?: string}, campaign?: array<string, string>, ip?: string}|null $meta
  * @property Carbon|null $read_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -56,6 +57,7 @@ class FormSubmission extends Model
             'data' => 'array',
             'files' => 'array',
             'field_snapshot' => 'array',
+            'meta' => 'array',
             'integrations' => 'array',
             'read_at' => 'datetime',
         ];

@@ -40,6 +40,15 @@ return [
     'styles' => true,
     'form_middleware' => ['web'],
     'rate_limit_per_hour' => 60,
+    // What a submission keeps about where it came from, shown with its details.
+    // An IP address is personal data: false, 'anonymized' or 'full'.
+    'submission_meta' => [
+        'user_agent' => true,
+        'locale' => true,
+        'user' => true,
+        'campaign' => true,
+        'ip' => false,
+    ],
     'uploads' => [
         'disk' => 'local',
         // In kilobytes, per file.

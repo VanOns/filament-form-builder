@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Foundation\Auth\User;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Models\Form;
@@ -36,7 +37,7 @@ it('stores only the fields a custom form asks for', function () {
         'is_admin' => '1',
     ]);
 
-    expect($submission->data)->toBe(['naam' => 'Jan']);
+    expect($submission->data)->toEqual(['naam' => 'Jan']);
 });
 
 it('stores only the fields a form type has in code', function () {
@@ -51,7 +52,7 @@ it('stores only the fields a form type has in code', function () {
         'is_admin' => '1',
     ]);
 
-    expect($submission->data)->toBe([
+    expect($submission->data)->toEqual([
         'name' => 'Jan',
         'company_name' => 'Van Ons',
         'email' => 'jan@example.com',
@@ -70,7 +71,7 @@ it('accepts a form whose optional fields were left empty', function () {
         ]],
     ]);
 
-    expect(submit($form, ['email' => '', 'land' => ''])->data)->toBe(['email' => null, 'land' => null]);
+    expect(submit($form, ['email' => '', 'land' => ''])->data)->toEqual(['email' => null, 'land' => null]);
 });
 
 it('never takes a column a field fills in itself from the visitor', function () {
@@ -98,3 +99,28 @@ it('remembers the page a form was sent from, for its merge tag', function () {
         ->and(SubmissionPlaceholders::make($submission)->values()['submitted_from'])->toBe('https://example.test/contact?bron=nieuwsbrief')
         ->and(array_keys($form->getMergeTagGroups()[2]['tags']))->toContain('submitted_from');
 });
+
+it('keeps where a submission came from as far as the config allows', function (mixed $ip, ?string $stored) {
+    config(['filament-form-builder.submission_meta.ip' => $ip]);
+    test()->actingAs($user = User::forceCreate(['name' => 'Jan', 'email' => 'jan@example.test', 'password' => 'secret']));
+    $form = Form::create(['title' => 'Terugbellen', 'template' => 'custom', 'custom' => ['fields' => [
+        ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
+    ]]]);
+
+    test()->post(route('filament-form-builder.form.store', ['formId' => $form->id]), ['naam' => 'Jan'], [
+        'referer' => 'https://example.test/contact?utm_source=nieuwsbrief&utm_campaign=najaar',
+        'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/141.0.0.0 Safari/537.36',
+    ]);
+
+    expect(FormSubmission::sole()->meta)->toEqual(array_filter([
+        'user_agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/141.0.0.0 Safari/537.36',
+        'locale' => 'en',
+        'user' => ['id' => $user->id, 'name' => 'Jan'],
+        'campaign' => ['source' => 'nieuwsbrief', 'campaign' => 'najaar'],
+        'ip' => $stored,
+    ]));
+})->with([
+    'without the address' => [false, null],
+    'with part of it' => ['anonymized', '127.0.0.0'],
+    'with all of it' => ['full', '127.0.0.1'],
+]);

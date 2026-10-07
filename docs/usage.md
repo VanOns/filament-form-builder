@@ -193,6 +193,13 @@ under the label they had, and a choice still reads as the option's label. A
 key the snapshot does not know shows under its own name. The export of a form
 puts these answers together in an "Other data" column, one per line.
 
+A submission also keeps where it came from: the page its form was on, and in
+`meta` the browser, the language of the site, the signed-in user, the
+`utm_*` parameters of the page and, only when switched on, the IP address.
+The details on its page show them. The `submission_meta` config turns each on
+or off; an IP address is personal data, so `ip` is `false` by default, or
+`'anonymized'` (without its last part) or `'full'`.
+
 A submission counts as read once someone opens its page, stored in `read_at`
 without touching `updated_at` or firing an update. Unread ones show an
 envelope and bold text in the tables, the navigation and a form's Submissions

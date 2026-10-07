@@ -9,6 +9,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -32,6 +33,7 @@ class FormSubmissionController
                 'field_snapshot' => $form->getFieldSnapshot(),
                 // The page the form was on, the same one the redirect below goes back to.
                 'source_url' => $request->headers->get('referer'),
+                'meta' => SubmissionMeta::capture($request),
             ]);
 
         $type->afterSubmission($submission);

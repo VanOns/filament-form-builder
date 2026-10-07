@@ -168,6 +168,20 @@ it('shows when an integration ran', function () {
         ->assertSee('7 Oct 2026, 14:33:05');
 });
 
+it('lists where a submission came from with the details', function () {
+    $submission = viewedSubmission();
+    $submission->update(['meta' => [
+        'user_agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/141.0.0.0 Safari/537.36',
+        'locale' => 'nl',
+        'user' => ['id' => 12, 'name' => 'Jan'],
+        'campaign' => ['source' => 'nieuwsbrief'],
+        'ip' => '203.0.113.0',
+    ]]);
+
+    Livewire::test(ViewFormSubmission::class, ['record' => $submission->getKey()])
+        ->assertSeeInOrder(['Browser', 'Chrome · macOS', 'Language', 'Signed in as', 'Jan (#12)', 'Campaign', 'source: nieuwsbrief', 'IP address', '203.0.113.0']);
+});
+
 it('keeps a typed script out of the page', function () {
     $form = Form::create(['title' => 'Contact', 'template' => 'custom', 'custom' => ['fields' => [
         ['type' => 'text', 'label' => 'Bericht', 'key' => 'bericht'],

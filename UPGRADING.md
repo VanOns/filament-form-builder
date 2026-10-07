@@ -16,7 +16,8 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 * Upgrade to v2.9 and run its migrations first. Then publish the one upgrade migration with
   `php artisan vendor:publish --tag=filament-form-builder-upgrade-migrations` and run
   `php artisan migrate`. It adds `form_submissions.files`, `form_submissions.field_snapshot`,
-  `form_submissions.source_url` (the page a form was sent from), `form_submissions.read_at`
+  `form_submissions.source_url` (the page a form was sent from), `form_submissions.meta` (browser,
+  language, signed-in user, campaign), `form_submissions.read_at`
   (existing submissions start out read) and
   `form_submission_notification_logs.notification_id`, drops `form_submissions.submitter_email`, and
   moves what a form does after a submission into a list, see below. The regular migrations are now
@@ -57,6 +58,7 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 |                                              | `without_fields`, or `->withoutFields()` on the plugin per panel: types out of the palette |
 |                                              | `fields` gains `date` and `consent`                                                   |
 |                                              | `styles`: the minimal stylesheet forms on the site load                               |
+|                                              | `submission_meta`: what a submission keeps about where it came from                   |
 | `enable_export_action`: `false`              | `export_action`: `true`, or `->exportAction()` on the plugin per panel, see [Exporting submissions](docs/installation.md#exporting-submissions) |
 
 ### Templates become form types
