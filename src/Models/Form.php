@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
+use VanOns\FilamentFormBuilder\Classes\Honeypot;
 use VanOns\FilamentFormBuilder\Classes\SubmitNotification;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
 use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
@@ -87,6 +88,16 @@ class Form extends Model
         static::forceDeleting(function (Form $form): void {
             FormSubmission::withTrashed()->where('form_id', $form->getKey())->each(fn (FormSubmission $submission) => $submission->deleteFiles());
         });
+    }
+
+    /**
+     * What a page needs to set the honeypot traps, or null when the form has none.
+     *
+     * @return array{field: string, tokenField: string, token: string}|null
+     */
+    public function getHoneypot(): ?array
+    {
+        return Honeypot::for($this);
     }
 
     /**

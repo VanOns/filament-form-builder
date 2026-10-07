@@ -3,6 +3,7 @@
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
 use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Classes\Honeypot;
 
 trait HasKey
 {
@@ -19,9 +20,17 @@ trait HasKey
      * @var array<string>
      */
     public static array $reservedKeys = [
-        '_token', '_method', 'g-recaptcha-response',
+        '_token', '_method', 'g-recaptcha-response', Honeypot::TOKEN,
         'form_title', 'all_fields', 'submission_id', 'submitted_at', 'submitted_from', 'submission_url',
     ];
+
+    /**
+     * @return array<string>
+     */
+    public static function reservedKeys(): array
+    {
+        return [...static::$reservedKeys, Honeypot::field()];
+    }
 
     public function key(string $key): static
     {

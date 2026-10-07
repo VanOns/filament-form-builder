@@ -27,7 +27,7 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
   `php artisan migrate`. It adds `form_submissions.files`, `form_submissions.field_snapshot`,
   `form_submissions.source_url` (the page a form was sent from), `form_submissions.meta` (browser,
   language, signed-in user, campaign), `form_submissions.read_at`
-  (existing submissions start out read), `form_submission_notification_logs.notification_id` and
+  (existing submissions start out read), `form_submission_notification_logs.notification_id`,
   `forms.retention_months` (how long a form keeps its submissions), drops `form_submissions.submitter_email`, and
   moves what a form does after a submission into a list, see below. The regular migrations are now
   three create migrations with the whole v3 schema, for new installs: your published copies of them
@@ -44,6 +44,11 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
   `label for` inside, errors sit inside that wrapper, and everything has an `ffb-*` class, see
   [Styling forms on the site](docs/usage.md#styling-forms-on-the-site).
 * Integrations run from `RunFormIntegrationsJob`, so they need a queue worker unless the queue is `sync`.
+* Forms on the site set a honeypot, on by default. A view of your own for `<x-render-form>` adds
+  `<x-filament-form-builder::honeypot :form="$form" />`, and a front end of your own (Inertia, React, Vue)
+  has to send its two fields, or the server turns the form away; see
+  [In a front end of your own](docs/usage.md#in-a-front-end-of-your-own). `honeypot.enabled` turns it off,
+  and `hasHoneypot()` for one form type.
 
 ### Config
 
@@ -68,6 +73,8 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
 |                                              | `fields` gains `date` and `consent`                                                   |
 |                                              | `styles`: the minimal stylesheet forms on the site load                               |
 |                                              | `submission_meta`: what a submission keeps about where it came from                   |
+|                                              | `retention_months`: how long submissions are kept                                     |
+|                                              | `honeypot`, `duplicate_seconds`: spam traps and double clicks, see [Spam](docs/usage.md#spam) |
 | `enable_export_action`: `false`              | `export_action`: `true`, or `->exportAction()` on the plugin per panel, see [Exporting submissions](docs/installation.md#exporting-submissions) |
 
 ### Templates become form types

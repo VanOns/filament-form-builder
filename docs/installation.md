@@ -51,7 +51,7 @@ FilamentFormBuilderPlugin::make()
 A field type left out stays registered: a form that already has such a field
 keeps it, on the canvas and on the site.
 
-Everything else, such as the form types, the uploads and reCAPTCHA, is also
+Everything else, such as the form types, the uploads and the spam checks, is also
 used outside the panel, where a visitor sends a form or a job sends its mails,
 so it stays in the config. Publish it with
 `php artisan vendor:publish --tag=filament-form-builder-config`.

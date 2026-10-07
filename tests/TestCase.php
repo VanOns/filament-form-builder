@@ -52,6 +52,9 @@ abstract class TestCase extends BaseTestCase
     protected function defineEnvironment($app): void
     {
         $app['config']->set('app.key', 'base64:' . base64_encode(str_repeat('a', 32)));
+        // Most tests post a form the way no page would; SpamProtectionTest turns these on.
+        $app['config']->set('filament-form-builder.honeypot.enabled', false);
+        $app['config']->set('filament-form-builder.duplicate_seconds', 0);
     }
 
     protected function defineDatabaseMigrations(): void

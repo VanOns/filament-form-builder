@@ -16,6 +16,7 @@
         </div>
     @endif
     @csrf
+    <x-filament-form-builder::honeypot :form="$form" />
     @foreach($form->getFields() as $field)
         {!! $field->render() !!}
     @endforeach

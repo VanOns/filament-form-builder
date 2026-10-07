@@ -331,6 +331,7 @@ return [
         'form_type' => 'Form type',
         'other_data' => 'Other data',
     ],
+    'honeypot_missing' => 'The form could not be checked for spam. Reload the page and try again.',
     'retention' => [
         'label' => 'Keep submissions',
         'default' => 'Default (:retention)',

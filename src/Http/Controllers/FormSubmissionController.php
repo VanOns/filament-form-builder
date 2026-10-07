@@ -6,10 +6,14 @@ use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
+use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -21,30 +25,67 @@ class FormSubmissionController
         $type = $form->getType();
         $keys = $form->getSubmittableKeys();
 
-        $input = Arr::except($request->validationData(), array_keys($request->allFiles()));
-        $data = $type->beforeStore(Arr::only($input, $keys));
-        $files = $this->storeFiles(Arr::only($request->allFiles(), $keys));
+        $input = Arr::only(Arr::except($request->validationData(), array_keys($request->allFiles())), $keys);
+        $uploads = Arr::only($request->allFiles(), $keys);
 
-        $submission = FormSubmission::query()
-            ->create([
-                'form_id' => $form->id,
-                'data' => $data,
-                'files' => $files ?: null,
-                'field_snapshot' => $form->getFieldSnapshot(),
-                // The page the form was on, the same one the redirect below goes back to.
-                'source_url' => $request->headers->get('referer'),
-                'meta' => SubmissionMeta::capture($request),
-            ]);
+        if ($request->isCaught()) {
+            Log::info("The honeypot caught a submission of form {$form->getKey()}.");
+
+            return $this->respond($type, new FormSubmission(['form_id' => $form->id, 'data' => $input]));
+        }
+
+        $repeat = $this->repeatKey($request, $input, $uploads);
+        $seconds = (int) config('filament-form-builder.duplicate_seconds', 10);
+
+        if ($seconds > 0 && ! Cache::add($repeat, 0, $seconds)) {
+            // The first one may still be on its way; until it is stored, only its outcome can be shown.
+            $first = FormSubmission::query()->find(Cache::get($repeat));
+
+            if ($first === null) {
+                return $this->respond($type, new FormSubmission(['form_id' => $form->id, 'data' => $input]));
+            }
+
+            return $type->response($first) ?? $this->respond($type, $first);
+        }
+
+        try {
+            $data = $type->beforeStore($input);
+            $files = $this->storeFiles($uploads);
+
+            $submission = FormSubmission::query()
+                ->create([
+                    'form_id' => $form->id,
+                    'data' => $data,
+                    'files' => $files ?: null,
+                    'field_snapshot' => $form->getFieldSnapshot(),
+                    // The page the form was on, the same one the redirect back goes to.
+                    'source_url' => $request->headers->get('referer'),
+                    'meta' => SubmissionMeta::capture($request),
+                ]);
+        } catch (Throwable $exception) {
+            // Sent again, it has to be stored after all.
+            Cache::forget($repeat);
+
+            throw $exception;
+        }
+
+        if ($seconds > 0) {
+            Cache::put($repeat, $submission->getKey(), $seconds);
+        }
 
         $type->afterSubmission($submission);
 
-        if ($response = $type->response($submission)) {
-            return $response;
-        }
+        return $type->response($submission) ?? $this->respond($type, $submission);
+    }
 
+    /**
+     * The redirect or message the form is set up with, for the answers given.
+     */
+    protected function respond(FormType $type, FormSubmission $submission): mixed
+    {
         $type->resolveSubmitNotification($submission);
 
-        if (!empty($callBackUrl = $type->getRedirectUrl())) {
+        if (! empty($callBackUrl = $type->getRedirectUrl())) {
             return redirect($callBackUrl);
         }
 
@@ -52,6 +93,27 @@ class FormSubmissionController
             'submit_notification_type' => $type->getNotificationType(),
             'submit_notification_content' => $type->getNotificationMessage(),
         ]);
+    }
+
+    /**
+     * The same answers and files from the same visitor, as a double click sends them.
+     *
+     * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>  $uploads
+     */
+    protected function repeatKey(CreateFormSubmission $request, array $input, array $uploads): string
+    {
+        $files = array_map(
+            fn (UploadedFile $file): array => [$file->getClientOriginalName(), $file->getSize()],
+            array_filter(Arr::flatten($uploads), fn (mixed $file): bool => $file instanceof UploadedFile),
+        );
+
+        return 'filament-form-builder:submission:' . sha1(serialize([
+            $request->getForm()->getKey(),
+            $request->user()?->getAuthIdentifier() ?? $request->ip(),
+            $input,
+            $files,
+        ]));
     }
 
     /**

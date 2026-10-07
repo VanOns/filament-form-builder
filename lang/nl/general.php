@@ -331,6 +331,7 @@ return [
         'form_type' => 'Formuliertype',
         'other_data' => 'Overige gegevens',
     ],
+    'honeypot_missing' => 'Het formulier kon niet worden gecontroleerd op spam. Laad de pagina opnieuw en probeer het nog eens.',
     'retention' => [
         'label' => 'Inzendingen bewaren',
         'default' => 'Standaard (:retention)',

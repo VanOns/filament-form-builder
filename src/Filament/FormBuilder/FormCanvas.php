@@ -862,7 +862,7 @@ class FormCanvas extends Field
                     fn (): Closure => function (string $attribute, mixed $value, Closure $fail) use ($type, $takenKeys): void {
                         $key = $this->normalizeKey($type, (string) $value);
 
-                        if (in_array($key, $type::$reservedKeys, true)) {
+                        if (in_array($key, $type::reservedKeys(), true)) {
                             $fail(__('filament-form-builder::fields.key_reserved'));
                         } elseif (in_array($key, $takenKeys, true)) {
                             $fail(__('filament-form-builder::fields.key_taken'));
@@ -941,7 +941,7 @@ class FormCanvas extends Field
 
         $field = new $type([...$item, 'key' => filled($item['key'] ?? null) ? $this->normalizeKey($type, (string) $item['key']) : null]);
         $base = $field->getKey();
-        $takenKeys = [...$this->getTakenKeys($except), ...$type::$reservedKeys];
+        $takenKeys = [...$this->getTakenKeys($except), ...$type::reservedKeys()];
 
         $key = $base;
 

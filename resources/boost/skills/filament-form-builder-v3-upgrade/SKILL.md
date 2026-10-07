@@ -104,6 +104,11 @@ whose files are missing.
 - `php artisan filament:assets`, and remove the project's own script tag for `form-builder.js`.
 - A front end of its own (Inertia, React, Vue) reads conditions with `resources/js/conditions.js` and
   `$form->getFieldConditions()` instead of `data-visible-when-*` attributes.
+- That front end also has to send the honeypot: pass `$form->getHoneypot()` to the page and render its two
+  fields with `resources/js/honeypot.js` (see "In a front end of your own" in the docs). Without them the
+  server answers 422 with an error on `ffb_token`. A project view for `<x-render-form>` adds
+  `<x-filament-form-builder::honeypot :form="$form" />`. If the developer would rather not, `hasHoneypot()`
+  returning false turns it off for a form type, and `honeypot.enabled` for all forms.
 - Integrations run from `RunFormIntegrationsJob`: the app needs a queue worker unless the queue is `sync`.
 
 ## 7. Check

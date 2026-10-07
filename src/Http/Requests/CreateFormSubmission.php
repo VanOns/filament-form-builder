@@ -3,6 +3,7 @@
 namespace VanOns\FilamentFormBuilder\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use VanOns\FilamentFormBuilder\Classes\Honeypot;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 class CreateFormSubmission extends FormRequest
@@ -14,9 +15,26 @@ class CreateFormSubmission extends FormRequest
      */
     protected ?array $prepared = null;
 
+    protected bool $caught = false;
+
     public function getForm(): Form
     {
         return $this->form ??= Form::query()->findOrFail($this->route('formId'));
+    }
+
+    // A bot gets no validation errors to learn from; the controller answers it as if it got through.
+    public function validateResolved(): void
+    {
+        $this->caught = Honeypot::caught($this, $this->getForm());
+
+        if (! $this->caught) {
+            parent::validateResolved();
+        }
+    }
+
+    public function isCaught(): bool
+    {
+        return $this->caught;
     }
 
     /**

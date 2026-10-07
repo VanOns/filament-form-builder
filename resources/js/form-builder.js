@@ -43,4 +43,33 @@ function toggle(form, key, isShown) {
     }
 }
 
-document.querySelectorAll('[data-form-builder-form]').forEach(connect)
+/**
+ * Sends a form once: a second click would post the same answers again. The
+ * server stores a repeat only once as well, this spares the visitor the wait.
+ */
+function sendOnce(form) {
+    form.addEventListener('submit', (event) => {
+        // After every other listener, and after the browser read the buttons along with the form.
+        setTimeout(() => event.defaultPrevented || setBusy(form, true))
+    })
+
+    // Going back in the history brings the page back as it was left, buttons and all.
+    window.addEventListener('pageshow', (event) => event.persisted && setBusy(form, false))
+}
+
+function setBusy(form, isBusy) {
+    if (isBusy) {
+        form.setAttribute('aria-busy', 'true')
+    } else {
+        form.removeAttribute('aria-busy')
+    }
+
+    for (const button of form.querySelectorAll('button:not([type="button"]):not([type="reset"]), input[type="submit"]')) {
+        button.disabled = isBusy
+    }
+}
+
+document.querySelectorAll('[data-form-builder-form]').forEach((form) => {
+    connect(form)
+    sendOnce(form)
+})

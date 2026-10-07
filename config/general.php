@@ -61,6 +61,15 @@ return [
         'attach_max_size' => 10240,
         'middleware' => [],
     ],
+    // A field nobody sees, which bots fill in, and the least time a person
+    // takes to send a form. A front end of its own has to set both.
+    'honeypot' => [
+        'enabled' => true,
+        'field' => 'ffb_website',
+        'min_seconds' => 2,
+    ],
+    // The same answers from the same visitor within these seconds are stored once.
+    'duplicate_seconds' => 10,
     'recaptcha' => [
         'enabled' => env('RECAPTCHA_ENABLED', false),
         'secret' => env('RECAPTCHA_SECRET', ''),

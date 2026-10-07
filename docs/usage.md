@@ -140,8 +140,7 @@ and without one the text itself does.
 
 A field type that returns false from `isAvailable()` stays out of the palette,
 while a field of that type already on a form stays there. reCAPTCHA does so
-until it is enabled with a key and a secret (`RECAPTCHA_ENABLED`,
-`RECAPTCHA_KEY`, `RECAPTCHA_SECRET`).
+until it is enabled with a key and a secret, see [Spam](#spam).
 
 A field type that stores more than one value, such as a branch picker that
 also keeps the branch's name and e-mail address, lists them all in
@@ -348,6 +347,7 @@ return Inertia::render('Contact', [
         'id' => $form->id,
         'fields' => $fields, // however your front end reads them
         'conditions' => $form->getFieldConditions(),
+        'honeypot' => $form->getHoneypot(),
     ],
 ]);
 ```
@@ -388,6 +388,49 @@ export default function ContactForm({ form }) {
 
 A field left out of the form is not posted. With `useForm()` instead, pass its
 `data` as the values and leave the hidden keys out with `transform()`.
+
+The server turns a form away without the [honeypot](#spam) unless it is off.
+`$form->getHoneypot()`, above, is null when the form has none; set its two
+fields with `resources/js/honeypot.js`:
+
+```tsx
+import { honeypotInput } from '@form-builder/honeypot'
+
+{form.honeypot && (
+    <>
+        <input {...honeypotInput(form.honeypot)} />
+        <input type="hidden" name={form.honeypot.tokenField} value={form.honeypot.token} />
+    </>
+)}
+```
+
+With `useForm()`, start its data with `honeypotFields(form.honeypot)` and bind
+the hidden field's value to it, so a bot that fills it in posts what it typed.
+The token holds the moment the page was made, so hand a fresh one with every
+page: a form sent within `honeypot.min_seconds` of it counts as a bot. Turn the
+button off while Inertia's `processing` is true; the server stores a double
+click once either way.
+
+## Spam
+
+A form on the site sets two traps, on by default: a field nobody sees, which
+bots fill in, and the moment the form was shown, as an encrypted token. A form
+sent with that field filled in, or within `honeypot.min_seconds` of being
+shown, gets the answer a person would, and nothing is stored, mailed or sent
+on; the log notes it. A form that comes without the traps at all, from a front
+end that does not set them, is turned away with an error on `ffb_token` and a
+warning in the log. Turn them off with `honeypot.enabled`, or for one form type
+with `hasHoneypot()`. A view of your own sets them with
+`<x-filament-form-builder::honeypot :form="$form" />`.
+
+A form goes out once: its button turns off when it is sent, and the same
+answers and files from the same visitor within `duplicate_seconds` (10) are
+stored once and answered the same way.
+
+For more, add reCAPTCHA to a form from the palette. It shows there once it is
+enabled with a key and a secret: `RECAPTCHA_ENABLED`, `RECAPTCHA_KEY` and
+`RECAPTCHA_SECRET`. On top of that, `rate_limit_per_hour` caps how many forms a
+visitor sends.
 
 ## Submit notification
 

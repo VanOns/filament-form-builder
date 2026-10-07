@@ -126,6 +126,15 @@ class FormType
     }
 
     /**
+     * Whether the form sets the honeypot traps, when the config turns them on.
+     * Turn it off for a form that is only ever sent from code.
+     */
+    public function hasHoneypot(): bool
+    {
+        return true;
+    }
+
+    /**
      * Replaces the response to a submission; null keeps the redirect or message
      * the form is set up with.
      */
