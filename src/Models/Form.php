@@ -408,11 +408,11 @@ class Form extends Model
      */
     public function getRecipientLabel(string $recipient): string
     {
-        if (!str_starts_with($recipient, EmailNotification::FIELD_PREFIX)) {
+        $key = EmailNotification::fieldKey($recipient);
+
+        if ($key === null) {
             return $recipient;
         }
-
-        $key = substr($recipient, strlen(EmailNotification::FIELD_PREFIX));
 
         if ($label = $this->getEmailRecipients()[$recipient] ?? null) {
             return $label;
@@ -442,13 +442,15 @@ class Form extends Model
     }
 
     /**
+     * The placeholders a redirect query can use; `all_fields` only works in a mail.
+     *
      * @return array<int, string>
      */
     public function getPlaceholderList(): array
     {
         return array_map(
             fn (string $key): string => '{{ $' . $key . ' }}',
-            [...array_keys($this->getSubmissionFields()), 'all_fields', 'form_title'],
+            [...array_keys($this->getSubmissionFields()), 'form_title'],
         );
     }
 

@@ -3,18 +3,18 @@
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
 use BackedEnum;
-use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Text;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Validation\ValidationRule;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 
-class SubmitField extends FormField
+abstract class CaptchaField extends FormField
 {
-    public static string $view = 'filament-form-builder::components.fields.submit-field';
-    public static string $previewView = 'filament-form-builder::filament.previews.submit';
+    abstract protected static function rule(): ValidationRule;
 
     protected function fieldRules(): array
     {
-        return [];
+        return static::isAvailable() ? ['required', 'string', static::rule()] : [];
     }
 
     public static function paletteGroup(): string
@@ -24,20 +24,19 @@ class SubmitField extends FormField
 
     public static function minWidth(): FieldWidth
     {
-        return FieldWidth::FULL;
+        return FieldWidth::HALF;
     }
 
     public static function icon(): string | BackedEnum
     {
-        return Heroicon::OutlinedPaperAirplane;
+        return Heroicon::OutlinedShieldCheck;
     }
 
     public static function getFields(): array
     {
         return [
-            TextInput::make('label')
-                ->label(__('filament-form-builder::fields.label'))
-                ->required(),
+            Text::make(__('filament-form-builder::general.no_settings'))
+                ->columnStart(1),
         ];
     }
 

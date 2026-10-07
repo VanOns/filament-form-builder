@@ -222,7 +222,7 @@ class SubmitNotifications extends Group
     public static function getRedirectExample(): Html
     {
         $example = function (Get $get, ?Form $record): ?HtmlString {
-            $submission = $record?->submissions()->latest('id')->first();
+            $submission = $record?->submissions()->latest('id')->first()?->setRelation('form', $record);
             $url = $record === null ? null : FilamentFormBuilderPlugin::resolveRedirectUrl($get('url'), $record);
             $query = $get('query');
 

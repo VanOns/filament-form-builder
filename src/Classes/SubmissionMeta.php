@@ -40,8 +40,24 @@ class SubmissionMeta
     }
 
     /**
-     * What the config collects, under the name the details, the table and the
-     * export give it.
+     * Every kind of meta, under the name the details, the table and the export
+     * give it.
+     *
+     * @return array<string, string>
+     */
+    public static function allLabels(): array
+    {
+        return [
+            'user_agent' => __('filament-form-builder::general.submission.browser'),
+            'locale' => __('filament-form-builder::general.submission.locale'),
+            'user' => __('filament-form-builder::general.submission.submitted_by'),
+            'campaign' => __('filament-form-builder::general.submission.campaign'),
+            'ip' => __('filament-form-builder::general.submission.ip'),
+        ];
+    }
+
+    /**
+     * What the config collects.
      *
      * @return array<string, string>
      */
@@ -49,15 +65,7 @@ class SubmissionMeta
     {
         $config = config('filament-form-builder.submission_meta', []);
 
-        $labels = [
-            'user_agent' => __('filament-form-builder::general.submission.browser'),
-            'locale' => __('filament-form-builder::general.submission.locale'),
-            'user' => __('filament-form-builder::general.submission.submitted_by'),
-            'campaign' => __('filament-form-builder::general.submission.campaign'),
-            'ip' => __('filament-form-builder::general.submission.ip'),
-        ];
-
-        return array_filter($labels, fn (string $key): bool => (bool) ($config[$key] ?? false), ARRAY_FILTER_USE_KEY);
+        return array_filter(static::allLabels(), fn (string $key): bool => (bool) ($config[$key] ?? false), ARRAY_FILTER_USE_KEY);
     }
 
     /**

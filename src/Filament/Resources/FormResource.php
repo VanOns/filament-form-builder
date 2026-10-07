@@ -27,12 +27,13 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Livewire\Component as LivewireComponent;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
+use VanOns\FilamentFormBuilder\Classes\FieldConditions;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
-use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\MergeTagEditor;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\NotificationList;
@@ -220,20 +221,15 @@ class FormResource extends Resource
 
         foreach ($get('notifications') ?? [] as $notification) {
             $isNamed = $conditions($notification)
-                || array_intersect([...$notification['to'] ?? [], ...$notification['cc'] ?? [], ...$notification['bcc'] ?? [], $notification['reply_to'] ?? null], $recipients) !== []
-                || array_filter(['subject', 'content', 'senderName'], fn (string $text): bool => $names($notification[$text] ?? null)) !== [];
+                || array_intersect([...Arr::flatten(Arr::only($notification, EmailNotification::RECIPIENT_LISTS)), $notification['reply_to'] ?? null], $recipients) !== []
+                || $names(Arr::only($notification, EmailNotification::TEXTS));
 
             if ($isNamed) {
                 $usages[] = __('filament-form-builder::general.canvas.usage_notification', ['subject' => MergeTags::render($notification['subject'] ?? null, $labels, asText: true)]);
             }
         }
 
-        $outcomeNames = function (array $outcome) use ($names): bool {
-            $query = $outcome['query'] ?? null;
-
-            return $names($outcome['content'] ?? null)
-                || (is_array($query) ? array_filter($query, fn (array $row): bool => $names($row['value'] ?? null)) !== [] : $names($query));
-        };
+        $outcomeNames = fn (array $outcome): bool => $names([$outcome['content'] ?? null, $outcome['query'] ?? null]);
 
         if ($outcomeNames($get('submit_notifications.default') ?? [])) {
             $usages[] = __('filament-form-builder::general.canvas.usage_after_submit');
@@ -252,21 +248,12 @@ class FormResource extends Resource
 
     public static function renameKeyInNotifications(string $from, string $to, Get $get, Set $set): void
     {
-        $outcome = function (array $outcome) use ($from, $to): array {
-            $query = $outcome['query'] ?? null;
-
-            return [
-                ...$outcome,
-                'content' => MergeTags::rename($outcome['content'] ?? null, $from, $to),
-                'query' => is_array($query)
-                    ? array_map(fn (array $row): array => [...$row, 'value' => MergeTags::rename($row['value'] ?? null, $from, $to)], $query)
-                    : SubmissionPlaceholders::rename($query, $from, $to),
-                'conditions' => array_map(
-                    fn (array $rule): array => ($rule['key'] ?? null) === $from ? [...$rule, 'key' => $to] : $rule,
-                    $outcome['conditions'] ?? [],
-                ),
-            ];
-        };
+        $outcome = fn (array $outcome): array => [
+            ...$outcome,
+            'content' => MergeTags::rename($outcome['content'] ?? null, $from, $to),
+            'query' => MergeTags::rename($outcome['query'] ?? null, $from, $to),
+            'conditions' => FieldConditions::renameKey($outcome['conditions'] ?? [], $from, $to),
+        ];
 
         $set('submit_notifications.default', $outcome($get('submit_notifications.default') ?? []));
         $set('submit_notifications.rules', array_map($outcome, $get('submit_notifications.rules') ?? []));
@@ -275,19 +262,16 @@ class FormResource extends Resource
         $notifications = [];
 
         foreach ($get('notifications') ?? [] as $id => $notification) {
-            foreach (['subject', 'content', 'senderName'] as $text) {
+            foreach (EmailNotification::TEXTS as $text) {
                 $notification[$text] = MergeTags::rename($notification[$text] ?? null, $from, $to);
             }
 
-            foreach (['to', 'cc', 'bcc'] as $list) {
+            foreach (EmailNotification::RECIPIENT_LISTS as $list) {
                 $notification[$list] = array_map($field, $notification[$list] ?? []);
             }
 
             $notification['reply_to'] = $field($notification['reply_to'] ?? null);
-            $notification['conditions'] = array_map(
-                fn (array $rule): array => ($rule['key'] ?? null) === $from ? [...$rule, 'key' => $to] : $rule,
-                $notification['conditions'] ?? [],
-            );
+            $notification['conditions'] = FieldConditions::renameKey($notification['conditions'] ?? [], $from, $to);
 
             $notifications[$id] = $notification;
         }

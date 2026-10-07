@@ -10,6 +10,10 @@ use Filament\Tables\Filters\QueryBuilder\Constraints\DateConstraint\Operators\Is
 use Filament\Tables\Filters\QueryBuilder\Constraints\NumberConstraint;
 use Filament\Tables\Filters\QueryBuilder\Constraints\SelectConstraint;
 use Filament\Tables\Filters\QueryBuilder\Constraints\TextConstraint;
+use Illuminate\Contracts\Database\Query\Expression as ExpressionContract;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Expression;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\Operators\ContainsAnyOperator;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\Operators\ContainsOperator;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\Operators\EndsWithOperator;
@@ -28,6 +32,16 @@ use VanOns\FilamentFormBuilder\Filament\Tables\Filters\Operators\StartsWithOpera
  */
 class AnswerConstraints
 {
+    /**
+     * MySQL compares a value inside JSON case-sensitively.
+     *
+     * @param  Builder<Model>  $query
+     */
+    public static function lowered(Builder $query, string $column): ExpressionContract
+    {
+        return new Expression('lower(' . $query->getQuery()->getGrammar()->wrap($column) . ')');
+    }
+
     public static function text(string $key, string $label): TextConstraint
     {
         return TextConstraint::make($key)

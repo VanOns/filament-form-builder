@@ -15,6 +15,13 @@ class EmailNotification
      */
     public const FIELD_PREFIX = 'field:';
 
+    /**
+     * The texts that can hold merge tags.
+     */
+    public const TEXTS = ['subject', 'content', 'senderName'];
+
+    public const RECIPIENT_LISTS = ['to', 'cc', 'bcc'];
+
     public ?string $id;
 
     public bool $isEnabled;
@@ -125,6 +132,11 @@ class EmailNotification
             : static::FIELD_PREFIX . $recipient;
     }
 
+    public static function fieldKey(string $recipient): ?string
+    {
+        return str_starts_with($recipient, static::FIELD_PREFIX) ? substr($recipient, strlen(static::FIELD_PREFIX)) : null;
+    }
+
     public function shouldSend(): bool
     {
         return $this->isEnabled
@@ -142,9 +154,8 @@ class EmailNotification
         $addresses = [];
 
         foreach ($recipients as $recipient) {
-            $address = str_starts_with($recipient, static::FIELD_PREFIX)
-                ? $data[substr($recipient, strlen(static::FIELD_PREFIX))] ?? null
-                : $recipient;
+            $key = static::fieldKey($recipient);
+            $address = $key === null ? $recipient : $data[$key] ?? null;
 
             if (is_string($address) && filter_var(trim($address), FILTER_VALIDATE_EMAIL)) {
                 $addresses[] = trim($address);

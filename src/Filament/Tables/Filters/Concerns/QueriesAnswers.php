@@ -7,6 +7,7 @@ use Illuminate\Contracts\Database\Query\Expression as ExpressionContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Expression;
+use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 
 /**
  * Filament's operators compare a column as it is. An answer sits inside JSON,
@@ -14,14 +15,6 @@ use Illuminate\Database\Query\Expression;
  */
 trait QueriesAnswers
 {
-    /**
-     * @param  Builder<Model>  $query
-     */
-    protected function answerText(Builder $query, string $column): ExpressionContract
-    {
-        return new Expression('lower(' . $query->getQuery()->getGrammar()->wrap($column) . ')');
-    }
-
     /**
      * @param  Builder<Model>  $query
      */
@@ -70,7 +63,7 @@ trait QueriesAnswers
         return $this->matchAnswer(
             $query,
             $column,
-            fn (Builder $query) => $query->where($this->answerText($query, $column), $operator, $value),
+            fn (Builder $query) => $query->where(AnswerConstraints::lowered($query, $column), $operator, $value),
         );
     }
 

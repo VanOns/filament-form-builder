@@ -19,6 +19,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use VanOns\FilamentFormBuilder\Classes\FieldConditions;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
@@ -984,11 +985,7 @@ class FormCanvas extends Field
         $items = $this->getRawState() ?? [];
 
         foreach ($items as $uuid => $item) {
-            foreach ($item['conditions'] ?? [] as $index => $condition) {
-                if (($condition['key'] ?? null) === $from) {
-                    $items[$uuid]['conditions'][$index]['key'] = $to;
-                }
-            }
+            $items[$uuid]['conditions'] = FieldConditions::renameKey($item['conditions'] ?? [], $from, $to);
         }
 
         $this->rawState($items);

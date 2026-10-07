@@ -28,6 +28,14 @@ class ConsentField extends CheckboxField
      */
     public string | array | null $text = null;
 
+    /**
+     * Every row of a table or export asks for the label, so the cleaned text
+     * is kept for as long as the text stays the same.
+     *
+     * @var array{text: string|array<string, mixed>|null, html: string}|null
+     */
+    private ?array $cleanText = null;
+
     public function isRequired(): bool
     {
         return true;
@@ -62,6 +70,10 @@ class ConsentField extends CheckboxField
 
     protected function getCleanText(): string
     {
+        if ($this->cleanText !== null && $this->cleanText['text'] === $this->text) {
+            return $this->cleanText['html'];
+        }
+
         // A link opens in a new tab, or the visitor loses what they filled in.
         $config = (new HtmlSanitizerConfig())
             ->defaultAction(HtmlSanitizerAction::Block)
@@ -78,7 +90,10 @@ class ConsentField extends CheckboxField
         // The text sits on one line beside the box, so its paragraphs run on.
         $html = is_array($this->text) ? RichContentRenderer::make($this->text)->toUnsafeHtml() : (string) $this->text;
 
-        return trim((new HtmlSanitizer($config))->sanitize((string) preg_replace('#</p>\s*<p\b[^>]*>#i', ' ', $html)));
+        $clean = trim((new HtmlSanitizer($config))->sanitize((string) preg_replace('#</p>\s*<p\b[^>]*>#i', ' ', $html)));
+        $this->cleanText = ['text' => $this->text, 'html' => $clean];
+
+        return $clean;
     }
 
     public static function icon(): string | BackedEnum

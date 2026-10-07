@@ -161,7 +161,7 @@ class ViewFormSubmission extends ViewRecord
             ])
             ->schema([
                 View::make('filament-form-builder::filament.submission.answer-groups')
-                    ->viewData(['groups' => $record->getAnswerGroups(), 'submission' => $record])
+                    ->viewData(fn (): array => ['groups' => $record->getAnswerGroups(), 'submission' => $record])
                     ->hidden($isList),
                 View::make('filament-form-builder::filament.submission.answers')
                     ->viewData(['answers' => $answers, 'submission' => $record, 'showFilesHint' => true])
@@ -232,37 +232,19 @@ class ViewFormSubmission extends ViewRecord
                     ->state($record->form?->getType()->getLabel())
                     ->placeholder('—')
                     ->inlineLabel(),
-                TextEntry::make('browser')
-                    ->label(__('filament-form-builder::general.submission.browser'))
-                    ->icon(Heroicon::OutlinedComputerDesktop)
-                    ->state(SubmissionMeta::describe($record->meta, 'user_agent'))
-                    ->tooltip($record->meta['user_agent'] ?? null)
-                    ->hidden(!isset($record->meta['user_agent']))
-                    ->inlineLabel(),
-                TextEntry::make('locale')
-                    ->label(__('filament-form-builder::general.submission.locale'))
-                    ->icon(Heroicon::OutlinedLanguage)
-                    ->state(SubmissionMeta::describe($record->meta, 'locale'))
-                    ->hidden(!isset($record->meta['locale']))
-                    ->inlineLabel(),
-                TextEntry::make('submitted_by')
-                    ->label(__('filament-form-builder::general.submission.submitted_by'))
-                    ->icon(Heroicon::OutlinedUser)
-                    ->state(SubmissionMeta::describe($record->meta, 'user'))
-                    ->hidden(!isset($record->meta['user']))
-                    ->inlineLabel(),
-                TextEntry::make('campaign')
-                    ->label(__('filament-form-builder::general.submission.campaign'))
-                    ->icon(Heroicon::OutlinedMegaphone)
-                    ->state(SubmissionMeta::describe($record->meta, 'campaign'))
-                    ->hidden(!isset($record->meta['campaign']))
-                    ->inlineLabel(),
-                TextEntry::make('ip')
-                    ->label(__('filament-form-builder::general.submission.ip'))
-                    ->icon(Heroicon::OutlinedSignal)
-                    ->state(SubmissionMeta::describe($record->meta, 'ip'))
-                    ->hidden(!isset($record->meta['ip']))
-                    ->inlineLabel(),
+                ...array_map(fn (string $key, string $label): TextEntry => TextEntry::make("meta_{$key}")
+                    ->label($label)
+                    ->icon(match ($key) {
+                        'user_agent' => Heroicon::OutlinedComputerDesktop,
+                        'locale' => Heroicon::OutlinedLanguage,
+                        'user' => Heroicon::OutlinedUser,
+                        'campaign' => Heroicon::OutlinedMegaphone,
+                        default => Heroicon::OutlinedSignal,
+                    })
+                    ->state(SubmissionMeta::describe($record->meta, $key))
+                    ->tooltip($key === 'user_agent' ? $record->meta[$key] ?? null : null)
+                    ->hidden(!isset($record->meta[$key]))
+                    ->inlineLabel(), array_keys(SubmissionMeta::allLabels()), SubmissionMeta::allLabels()),
                 ...array_map(function (SubmissionAnswer $answer): TextEntry {
                     $text = FormSubmission::toText($answer->value);
                     $url = filter_var($text, FILTER_VALIDATE_URL) !== false ? $text : null;

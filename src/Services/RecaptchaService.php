@@ -2,9 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Services;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\Http;
-use VanOns\FilamentFormBuilder\Rules\RecaptchaRule;
 
 class RecaptchaService
 {
@@ -33,15 +31,5 @@ class RecaptchaService
     public static function checkEnabled(): bool
     {
         return config('filament-form-builder.recaptcha.enabled') && !empty(config('filament-form-builder.recaptcha.key')) && !empty(config('filament-form-builder.recaptcha.secret'));
-    }
-
-    /**
-     * @return array<string, string|ValidationRule>
-     */
-    public static function getRules(): array
-    {
-        return self::checkEnabled()
-            ? ['g-recaptcha-response' => ['required', 'string', new RecaptchaRule()]]
-            : [];
     }
 }

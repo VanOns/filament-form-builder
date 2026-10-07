@@ -12,7 +12,7 @@ use Illuminate\Contracts\Support\Htmlable;
  */
 class MergeTags
 {
-    private const LEGACY = '/{{\s*\$([^\s{}]+)\s*}}/u';
+    public const LEGACY = '/{{\s*\$([^\s{}]+)\s*}}/u';
 
     /**
      * Stored content as rich editor HTML with its `{{ $key }}` text turned into

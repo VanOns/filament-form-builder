@@ -26,7 +26,6 @@ use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionRestored;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\ChoiceField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
 use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
 
 /**
@@ -76,7 +75,7 @@ class FormSubmission extends Model
     {
         $formIds = [];
 
-        foreach (Form::withTrashed()->get() as $form) {
+        foreach (Form::withTrashed()->get(['id', 'retention_months']) as $form) {
             if (($months = $form->getRetentionMonths()) !== null) {
                 $formIds[$months][] = $form->getKey();
             }
@@ -106,9 +105,7 @@ class FormSubmission extends Model
      */
     public function markAsRead(bool $isRead = true): void
     {
-        $this->timestamps = false;
-        $this->forceFill(['read_at' => $isRead ? now() : null])->saveQuietly();
-        $this->timestamps = true;
+        static::withoutTimestamps(fn () => $this->forceFill(['read_at' => $isRead ? now() : null])->saveQuietly());
     }
 
     /**
@@ -283,37 +280,22 @@ class FormSubmission extends Model
             $fields[$field->getKey()] = $field;
         }
 
-        $kept = array_filter($this->field_snapshot ?? [], fn (array $snapshot): bool => isset($snapshot['span']));
-        $layout = [];
-
-        if ($kept === []) {
-            $title = null;
-
-            foreach ($this->form?->getFields() ?? [] as $field) {
-                if ($field instanceof TitleField) {
-                    $title = $field->title;
-                } elseif ($field::isInput()) {
-                    $layout[] = ['key' => $field->getKey(), 'title' => $title, 'span' => $field->getColumnSpan(), 'newRow' => $field->startsNewRow()];
-                }
-            }
-        } else {
-            foreach ($kept as $key => $snapshot) {
-                $layout[] = ['key' => (string) $key, 'title' => $snapshot['title'] ?? null, 'span' => $snapshot['span'], 'newRow' => $snapshot['new_row'] ?? false];
-            }
-        }
-
+        $hasPlace = fn (array $snapshot): bool => isset($snapshot['span']);
+        $places = array_filter($this->field_snapshot ?? [], $hasPlace) ?: array_filter($this->form?->getFieldSnapshot() ?? [], $hasPlace);
         $groups = [];
 
-        foreach ($layout as $place) {
-            if (! $field = $fields[$place['key']] ?? null) {
+        foreach ($places as $key => $place) {
+            if (! $field = $fields[$key] ?? null) {
                 continue;
             }
 
-            if ($groups === [] || $groups[array_key_last($groups)]['title'] !== $place['title']) {
-                $groups[] = ['title' => $place['title'], 'fields' => []];
+            $title = $place['title'] ?? null;
+
+            if ($groups === [] || $groups[array_key_last($groups)]['title'] !== $title) {
+                $groups[] = ['title' => $title, 'fields' => []];
             }
 
-            $groups[array_key_last($groups)]['fields'][] = ['field' => $field, 'answer' => $this->answerFor($field), 'span' => $place['span'], 'newRow' => $place['newRow']];
+            $groups[array_key_last($groups)]['fields'][] = ['field' => $field, 'answer' => $this->answerFor($field), 'span' => $place['span'], 'newRow' => $place['new_row'] ?? false];
         }
 
         return $groups;

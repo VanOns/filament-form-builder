@@ -93,7 +93,7 @@ class NotificationList extends Field
         $item = EmailNotification::normalize($item);
         $item['id'] ??= (string) Str::uuid();
 
-        foreach (['subject', 'content', 'senderName'] as $field) {
+        foreach (EmailNotification::TEXTS as $field) {
             $item[$field] = MergeTags::fromLegacy($item[$field]);
         }
 
@@ -110,17 +110,21 @@ class NotificationList extends Field
             ->modalSubmitActionLabel(__('filament-form-builder::general.save'))
             ->fillForm(fn (array $arguments, NotificationList $component, Livewire $livewire): array => $component->getFormData($arguments, $livewire))
             ->schema(fn (NotificationList $component, Livewire $livewire): array => $component->getNotificationSchema($livewire))
-            ->modalFooterActions(fn (Action $action, NotificationList $component): array => [
-                $action->getModalSubmitAction(),
-                $action->getModalCancelAction(),
-                $action->makeModalSubmitAction('sendTest', arguments: ['test' => true])
-                    ->label(__('filament-form-builder::general.notifications.send_test'))
-                    ->icon(Heroicon::OutlinedPaperAirplane)
-                    ->color('gray')
-                    ->disabled($component->getLatestSubmission() === null)
-                    ->tooltip($component->getLatestSubmission() === null ? __('filament-form-builder::general.notifications.send_test_unavailable') : null)
-                    ->extraAttributes(['class' => 'ffb-modal-action-end']),
-            ])
+            ->modalFooterActions(function (Action $action, NotificationList $component): array {
+                $canTest = $component->getLatestSubmission() !== null;
+
+                return [
+                    $action->getModalSubmitAction(),
+                    $action->getModalCancelAction(),
+                    $action->makeModalSubmitAction('sendTest', arguments: ['test' => true])
+                        ->label(__('filament-form-builder::general.notifications.send_test'))
+                        ->icon(Heroicon::OutlinedPaperAirplane)
+                        ->color('gray')
+                        ->disabled(! $canTest)
+                        ->tooltip($canTest ? null : __('filament-form-builder::general.notifications.send_test_unavailable'))
+                        ->extraAttributes(['class' => 'ffb-modal-action-end']),
+                ];
+            })
             ->action(function (array $arguments, array $data, NotificationList $component, Action $action): void {
                 if ($arguments['test'] ?? false) {
                     $component->sendTest($data);
@@ -509,7 +513,7 @@ class NotificationList extends Field
     {
         $record = $this->getRecord();
 
-        return $record instanceof Form ? $record->submissions()->latest('id')->first() : null;
+        return $record instanceof Form ? $record->submissions()->latest('id')->first()?->setRelation('form', $record) : null;
     }
 
     /**
@@ -602,7 +606,7 @@ class NotificationList extends Field
         $missing = [];
 
         foreach ($this->getRawState() ?? [] as $item) {
-            foreach (['subject', 'content', 'senderName'] as $field) {
+            foreach (EmailNotification::TEXTS as $field) {
                 $missing = [...$missing, ...array_diff(MergeTags::ids($item[$field] ?? null), array_keys($known))];
             }
         }

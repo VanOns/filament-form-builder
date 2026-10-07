@@ -34,6 +34,15 @@ class FieldConditions
         return new self($rules, $match !== 'any');
     }
 
+    /**
+     * @param  array<mixed>  $conditions
+     * @return array<mixed>
+     */
+    public static function renameKey(array $conditions, string $from, string $to): array
+    {
+        return array_map(fn (mixed $rule): mixed => is_array($rule) && ($rule['key'] ?? null) === $from ? [...$rule, 'key' => $to] : $rule, $conditions);
+    }
+
     public function isEmpty(): bool
     {
         return $this->rules === [];

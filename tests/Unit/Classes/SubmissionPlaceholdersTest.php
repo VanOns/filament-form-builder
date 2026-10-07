@@ -1,6 +1,7 @@
 <?php
 
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
+use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -106,7 +107,7 @@ it('does not read a placeholder typed into a field as one in the field overview'
 });
 
 it('points the placeholders of a renamed key at its new name', function () {
-    $renamed = SubmissionPlaceholders::rename([
+    $renamed = MergeTags::rename([
         'subject' => 'Van {{ $naam }} ({{$naam}})',
         'content' => ['<p>{{ $naam }} en {{ $naam_2 }}</p>'],
         'sender' => null,

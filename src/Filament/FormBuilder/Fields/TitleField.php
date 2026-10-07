@@ -73,9 +73,4 @@ class TitleField extends FormField
     {
         return false;
     }
-
-    public static function hasConditionSettings(): bool
-    {
-        return false;
-    }
 }

@@ -20,7 +20,7 @@ trait HasKey
      * @var array<string>
      */
     public static array $reservedKeys = [
-        '_token', '_method', 'g-recaptcha-response', 'cf-turnstile-response', Honeypot::TOKEN,
+        '_token', '_method', 'g-recaptcha-response', 'cf-turnstile-response',
         'form_title', 'all_fields', 'submission_id', 'submitted_at', 'submitted_from', 'submission_url',
     ];
 
@@ -29,7 +29,7 @@ trait HasKey
      */
     public static function reservedKeys(): array
     {
-        return [...static::$reservedKeys, Honeypot::field()];
+        return [...static::$reservedKeys, ...Honeypot::keys()];
     }
 
     public function key(string $key): static

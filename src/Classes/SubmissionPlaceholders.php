@@ -57,15 +57,6 @@ class SubmissionPlaceholders
     }
 
     /**
-     * Points every `{{ $from }}` in the given text, or in the strings of the
-     * given array, at `$to` instead.
-     */
-    public static function rename(mixed $value, string $from, string $to): mixed
-    {
-        return MergeTags::rename($value, $from, $to);
-    }
-
-    /**
      * One pass over the subject, so a filled-in value is never searched for
      * placeholders of its own.
      */
@@ -73,7 +64,7 @@ class SubmissionPlaceholders
     {
         $values = $this->values();
 
-        return preg_replace_callback('/{{\s*\$([^\s{}]+)\s*}}/u', function (array $match) use ($values, $escape, $removeUnknown): string {
+        return preg_replace_callback(MergeTags::LEGACY, function (array $match) use ($values, $escape, $removeUnknown): string {
             if (!array_key_exists($match[1], $values)) {
                 return $removeUnknown ? '' : $match[0];
             }

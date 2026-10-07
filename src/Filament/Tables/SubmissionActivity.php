@@ -3,6 +3,7 @@
 namespace VanOns\FilamentFormBuilder\Filament\Tables;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 /**
@@ -30,10 +31,17 @@ class SubmissionActivity
             $start = Carbon::now()->startOfWeek()->subWeeks(self::WEEKS - 1);
             $weeks = [];
 
-            foreach (FormSubmission::query()->where('created_at', '>=', $start)->get(['form_id', 'created_at']) as $submission) {
-                $week = min(self::WEEKS - 1, (int) floor($start->diffInDays($submission->created_at) / 7));
-                $weeks[$submission->form_id] ??= array_fill(0, self::WEEKS, 0);
-                $weeks[$submission->form_id][$week]++;
+            $days = FormSubmission::query()
+                ->toBase()
+                ->where('created_at', '>=', $start)
+                ->selectRaw('form_id, date(created_at) as day, count(*) as total')
+                ->groupBy('form_id', DB::raw('date(created_at)'))
+                ->get();
+
+            foreach ($days as $day) {
+                $week = min(self::WEEKS - 1, (int) floor($start->diffInDays(Carbon::parse($day->day)) / 7));
+                $weeks[$day->form_id] ??= array_fill(0, self::WEEKS, 0);
+                $weeks[$day->form_id][$week] += (int) $day->total;
             }
 
             return $weeks;

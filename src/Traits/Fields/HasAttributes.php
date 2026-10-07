@@ -28,11 +28,4 @@ trait HasAttributes
     {
         return AttributeHelper::render($attributes ?? $this->getAttributesList($withRequired));
     }
-
-    public function getWrapperAttributes(): HtmlString
-    {
-        return $this->getAttributes([
-            'data-form-builder-input-wrapper' => $this->getKey(),
-        ]);
-    }
 }

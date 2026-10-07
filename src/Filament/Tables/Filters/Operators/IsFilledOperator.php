@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Filament\Tables\Filters\Operators;
 use Filament\QueryBuilder\Constraints\Operators\IsFilledOperator as BaseIsFilledOperator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\Concerns\QueriesAnswers;
 
 class IsFilledOperator extends BaseIsFilledOperator
@@ -20,7 +21,7 @@ class IsFilledOperator extends BaseIsFilledOperator
         // A list nobody ticked anything in is stored as [].
         $filled = fn (Builder $query) => $query
             ->whereNotNull($qualifiedColumn)
-            ->whereNotIn($this->answerText($query, $qualifiedColumn), ['', '[]']);
+            ->whereNotIn(AnswerConstraints::lowered($query, $qualifiedColumn), ['', '[]']);
 
         return $this->isInverse() ? $query->whereNot($filled) : $query->where($filled);
     }

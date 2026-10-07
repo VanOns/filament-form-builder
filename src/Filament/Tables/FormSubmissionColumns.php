@@ -7,10 +7,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\QueryBuilder;
 use Filament\Tables\Filters\QueryBuilder\Constraints\DateConstraint;
-use Illuminate\Contracts\Database\Query\Expression as ExpressionContract;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
@@ -151,25 +148,15 @@ class FormSubmissionColumns
                 ->toggleable(isToggledHiddenByDefault: !array_key_exists($key, $shown))
                 // Filament would look for a `data` column; these live inside it.
                 ->sortable(query: function (Builder $query, string $direction) use ($key): Builder {
-                    $query->orderBy($this->lowered($query, $key), $direction);
+                    $query->orderBy(AnswerConstraints::lowered($query, "data->{$key}"), $direction);
 
                     return $query;
                 })
                 ->searchable(query: function (Builder $query, string $search) use ($key): Builder {
-                    return $query->where($this->lowered($query, $key), 'like', '%' . mb_strtolower($search) . '%');
+                    return $query->where(AnswerConstraints::lowered($query, "data->{$key}"), 'like', '%' . mb_strtolower($search) . '%');
                 });
         }
 
         return $columns;
-    }
-
-    /**
-     * MySQL compares a value inside JSON case-sensitively.
-     *
-     * @param  Builder<Model>  $query
-     */
-    private function lowered(Builder $query, string $key): ExpressionContract
-    {
-        return new Expression('lower(' . $query->getQuery()->getGrammar()->wrap("data->{$key}") . ')');
     }
 }

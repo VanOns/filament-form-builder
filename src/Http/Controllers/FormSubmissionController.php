@@ -27,11 +27,12 @@ class FormSubmissionController
 
         $input = Arr::only(Arr::except($request->validationData(), array_keys($request->allFiles())), $keys);
         $uploads = Arr::only($request->allFiles(), $keys);
+        $unsaved = fn (): FormSubmission => (new FormSubmission(['form_id' => $form->id, 'data' => $input]))->setRelation('form', $form);
 
         if ($request->isCaught()) {
             Log::info("The honeypot caught a submission of form {$form->getKey()}.");
 
-            return $this->respond($type, new FormSubmission(['form_id' => $form->id, 'data' => $input]));
+            return $this->respond($type, $unsaved());
         }
 
         $repeat = $this->repeatKey($request, $input, $uploads);
@@ -42,7 +43,7 @@ class FormSubmissionController
             $first = FormSubmission::query()->find(Cache::get($repeat));
 
             if ($first === null) {
-                return $this->respond($type, new FormSubmission(['form_id' => $form->id, 'data' => $input]));
+                return $this->respond($type, $unsaved());
             }
 
             return $type->response($first) ?? $this->respond($type, $first);
@@ -52,16 +53,15 @@ class FormSubmissionController
             $data = $type->beforeStore($input);
             $files = $this->storeFiles($uploads);
 
-            $submission = FormSubmission::query()
-                ->create([
-                    'form_id' => $form->id,
-                    'data' => $data,
-                    'files' => $files ?: null,
-                    'field_snapshot' => $form->getFieldSnapshot(),
-                    // The page the form was on, the same one the redirect back goes to.
-                    'source_url' => $request->headers->get('referer'),
-                    'meta' => SubmissionMeta::capture($request),
-                ]);
+            $submission = new FormSubmission([
+                'form_id' => $form->id,
+                'data' => $data,
+                'files' => $files ?: null,
+                // The page the form was on, the same one the redirect back goes to.
+                'source_url' => $request->headers->get('referer'),
+                'meta' => SubmissionMeta::capture($request),
+            ]);
+            $submission->setRelation('form', $form)->save();
         } catch (Throwable $exception) {
             // Sent again, it has to be stored after all.
             Cache::forget($repeat);
