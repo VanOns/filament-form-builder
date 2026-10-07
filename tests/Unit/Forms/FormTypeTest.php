@@ -117,7 +117,7 @@ it('labels the values a type adds wherever answers are shown', function () {
 
     expect($form->getSubmissionFields())->toHaveKey('ontvangen_via', 'Ontvangen via')
         ->and($form->getPlaceholderList())->toContain('{{ $ontvangen_via }}')
-        ->and(array_map(fn ($answer) => [$answer->label, $answer->value], $submission->getAnswers()['current']))->toContain(['Ontvangen via', 'website']);
+        ->and(array_map(fn ($answer) => [$answer->label, $answer->value], $submission->getTypeAnswers()))->toBe([['Ontvangen via', 'website']]);
 });
 
 it('lets a type answer a submission itself', function () {

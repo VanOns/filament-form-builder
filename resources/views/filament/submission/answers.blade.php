@@ -1,3 +1,5 @@
+@use('Filament\Support\Icons\Heroicon')
+
 <dl class="ffb-answers">
     @forelse ($answers as $answer)
         <div class="ffb-answer">
@@ -9,7 +11,7 @@
                         {{ $answer->label }}
 
                         @if ($answer->badge !== null)
-                            <x-filament::badge color="gray" size="sm">{{ $answer->badge }}</x-filament::badge>
+                            <x-filament::badge color="gray" size="sm" :icon="$answer->field?->isHidden() ? Heroicon::OutlinedEyeSlash : null">{{ $answer->badge }}</x-filament::badge>
                         @endif
                     </span>
 
@@ -20,16 +22,14 @@
             </dt>
 
             <dd class="ffb-answer-value">
-                @include($answer->view, [
-                    'value' => $answer->value,
-                    'raw' => $answer->raw,
-                    'field' => $answer->field,
-                    'submission' => $submission,
-                    'answer' => $answer,
-                ])
+                @include('filament-form-builder::filament.submission.answer-value')
             </dd>
         </div>
     @empty
         <p class="ffb-submission-empty">{{ __('filament-form-builder::general.submission.no_answers') }}</p>
     @endforelse
 </dl>
+
+@if ($showFilesHint ?? false)
+    @include('filament-form-builder::filament.submission.files-hint')
+@endif

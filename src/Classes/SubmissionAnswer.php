@@ -13,6 +13,7 @@ final class SubmissionAnswer
 {
     /**
      * @param  array<string, string>  $columns  key => label of each value a field with several holds
+     * @param  list<SubmissionFile>  $files
      */
     public function __construct(
         public readonly string $key,
@@ -25,6 +26,7 @@ final class SubmissionAnswer
         public readonly ?string $badge = null,
         public readonly ?string $note = null,
         public readonly array $columns = [],
+        public readonly array $files = [],
     ) {
     }
 }

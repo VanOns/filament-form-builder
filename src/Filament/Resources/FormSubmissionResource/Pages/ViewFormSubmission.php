@@ -15,9 +15,12 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection;
+use Livewire\Attributes\Session;
 use VanOns\FilamentFormBuilder\Classes\Integration;
+use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -27,9 +30,21 @@ class ViewFormSubmission extends ViewRecord
 {
     protected static string $resource = FormSubmissionResource::class;
 
+    // Kept for the session, so the next submission opens the way the last one was read.
+    #[Session]
+    public string $answersLayout = 'form';
+
     public function getTitle(): string
     {
         return __('filament-form-builder::general.submission.title', ['id' => $this->getRecord()->getKey()]);
+    }
+
+    public function getSubheading(): ?string
+    {
+        /** @var FormSubmission $submission */
+        $submission = $this->getRecord();
+
+        return collect([$submission->form?->title, $submission->created_at?->translatedFormat('j F Y, H:i')])->filter()->implode(' · ');
     }
 
     public function mount(int | string $record): void
@@ -99,17 +114,18 @@ class ViewFormSubmission extends ViewRecord
         /** @var FormSubmission $record */
         $record = $this->getRecord();
         $logs = $record->notificationLogs()->orderBy('created_at')->get();
+        ['current' => $current, 'removed' => $removed] = $record->getAnswers();
 
         return $schema
             ->components([
-                $this->getSummarySection($logs),
                 Grid::make(['lg' => 3])
                     ->columnSpanFull()
                     ->schema([
-                        $this->getAnswersSection($record)
-                            ->columnSpan(['lg' => 2]),
                         Group::make([
-                            $this->getFilesSection($record),
+                            $this->getAnswersSection($record, $current),
+                            $this->getRemovedSection($record, $removed),
+                        ])->columnSpan(['lg' => 2]),
+                        Group::make([
                             $this->getNotificationsSection($logs),
                             $this->getDetailsSection($record),
                             $this->getIntegrationsSection($record),
@@ -119,76 +135,55 @@ class ViewFormSubmission extends ViewRecord
     }
 
     /**
-     * @param  Collection<int, FormSubmissionNotificationLog>  $logs
+     * @param  list<SubmissionAnswer>  $answers
      */
-    protected function getSummarySection(Collection $logs): Section
+    protected function getAnswersSection(FormSubmission $record, array $answers): Section
     {
-        return Section::make()
-            ->columnSpanFull()
-            ->columns(['sm' => 2, 'lg' => 4])
-            ->schema([
-                TextEntry::make('id')
-                    ->label(__('filament-form-builder::general.submission.id'))
-                    ->icon(Heroicon::OutlinedHashtag)
-                    ->weight('semibold'),
-                TextEntry::make('form.title')
-                    ->label(__('filament-form-builder::general.submission.form'))
-                    ->icon(Heroicon::OutlinedDocumentText)
-                    ->color('primary')
-                    ->url(fn (FormSubmission $record): ?string => $record->form ? FormResource::recordUrl($record->form) : null),
-                TextEntry::make('created_at')
-                    ->label(__('filament-form-builder::general.submission.submitted'))
-                    ->icon(Heroicon::OutlinedCalendar)
-                    ->dateTime('j F Y, H:i'),
-                TextEntry::make('notifications')
-                    ->label(__('filament-form-builder::general.notifications_label'))
-                    ->icon(Heroicon::OutlinedPaperAirplane)
-                    ->state(__('filament-form-builder::general.submission.notifications_sent', [
-                        'sent' => $logs->where('status', 'sent')->count(),
-                        'total' => $logs->count(),
-                    ]))
-                    ->hidden($logs->isEmpty()),
-            ]);
-    }
-
-    protected function getAnswersSection(FormSubmission $record): Section
-    {
-        ['current' => $current, 'removed' => $removed] = $record->getAnswers();
+        $isList = fn (): bool => $this->answersLayout === 'list';
 
         return Section::make(__('filament-form-builder::general.submission.answers'))
+            ->key('answers')
             ->icon(Heroicon::OutlinedDocumentText)
             ->afterHeader([
-                Text::make(trans_choice('filament-form-builder::general.submission.answer_count', count($current), ['count' => count($current)]))
+                Text::make(trans_choice('filament-form-builder::general.submission.answer_count', count($answers), ['count' => count($answers)]))
                     ->color('gray'),
+                Action::make('answersLayout')
+                    ->label(fn (): string => $isList()
+                        ? __('filament-form-builder::general.submission.as_form')
+                        : __('filament-form-builder::general.submission.as_list'))
+                    ->icon(fn (): Heroicon => $isList() ? Heroicon::OutlinedSquares2x2 : Heroicon::OutlinedListBullet)
+                    ->color('gray')
+                    ->size(Size::Small)
+                    ->action(function (): void {
+                        $this->answersLayout = $this->answersLayout === 'list' ? 'form' : 'list';
+                    }),
             ])
             ->schema([
+                View::make('filament-form-builder::filament.submission.answer-groups')
+                    ->viewData(['groups' => $record->getAnswerGroups(), 'submission' => $record])
+                    ->hidden($isList),
                 View::make('filament-form-builder::filament.submission.answers')
-                    ->viewData(['answers' => $current, 'submission' => $record]),
-                Section::make(__('filament-form-builder::general.submission.removed'))
-                    ->description(__('filament-form-builder::general.submission.removed_description'))
-                    ->icon(Heroicon::OutlinedArchiveBox)
-                    ->afterHeader([$this->getCount(count($removed))])
-                    ->compact()
-                    ->secondary()
-                    ->hidden($removed === [])
-                    ->schema([
-                        View::make('filament-form-builder::filament.submission.answers')
-                            ->viewData(['answers' => $removed, 'submission' => $record]),
-                    ]),
+                    ->viewData(['answers' => $answers, 'submission' => $record, 'showFilesHint' => true])
+                    ->visible($isList),
             ]);
     }
 
-    protected function getFilesSection(FormSubmission $record): Section
+    /**
+     * @param  list<SubmissionAnswer>  $answers
+     */
+    protected function getRemovedSection(FormSubmission $record, array $answers): Section
     {
-        $files = array_merge(...array_values($record->getFiles()));
-
-        return Section::make(__('filament-form-builder::general.files'))
-            ->icon(Heroicon::OutlinedPaperClip)
-            ->afterHeader([$this->getCount(count($files))])
-            ->hidden($files === [])
+        return Section::make(__('filament-form-builder::general.submission.removed'))
+            ->description(trans_choice('filament-form-builder::general.submission.removed_description', count($answers), ['count' => count($answers)]))
+            ->icon(Heroicon::OutlinedArchiveBox)
+            ->collapsible()
+            ->collapsed()
+            ->compact()
+            ->secondary()
+            ->hidden($answers === [])
             ->schema([
-                View::make('filament-form-builder::filament.submission.files')
-                    ->viewData(['files' => $files, 'submission' => $record]),
+                View::make('filament-form-builder::filament.submission.answers')
+                    ->viewData(['answers' => $answers, 'submission' => $record]),
             ]);
     }
 
@@ -199,6 +194,10 @@ class ViewFormSubmission extends ViewRecord
     {
         return Section::make(__('filament-form-builder::general.notifications_label'))
             ->icon(Heroicon::OutlinedEnvelope)
+            ->description($logs->isEmpty() ? null : __('filament-form-builder::general.submission.notifications_sent', [
+                'sent' => $logs->where('status', 'sent')->count(),
+                'total' => $logs->count(),
+            ]))
             ->afterHeader([$this->getCount($logs->count())])
             ->hidden($logs->isEmpty() && !config('filament-form-builder.email_notifications'))
             ->schema([
@@ -222,6 +221,7 @@ class ViewFormSubmission extends ViewRecord
                     ->icon(Heroicon::OutlinedGlobeAlt)
                     ->url(fn (?string $state): ?string => $state)
                     ->openUrlInNewTab()
+                    ->color('primary')
                     ->limit(60)
                     ->placeholder('—')
                     ->inlineLabel(),
@@ -231,6 +231,20 @@ class ViewFormSubmission extends ViewRecord
                     ->state($record->form?->getType()->getLabel())
                     ->placeholder('—')
                     ->inlineLabel(),
+                ...array_map(function (SubmissionAnswer $answer): TextEntry {
+                    $text = FormSubmission::toText($answer->value);
+                    $url = filter_var($text, FILTER_VALIDATE_URL) !== false ? $text : null;
+
+                    return TextEntry::make("type_value_{$answer->key}")
+                        ->label($answer->label)
+                        ->icon($answer->icon)
+                        ->state($text)
+                        ->url($url)
+                        ->openUrlInNewTab()
+                        ->color($url !== null ? 'primary' : null)
+                        ->limit($url !== null ? 60 : null)
+                        ->inlineLabel();
+                }, $record->getTypeAnswers()),
             ]);
     }
 

@@ -23,6 +23,7 @@ use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionRestored;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\ChoiceField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
 use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
 
 /**
@@ -227,28 +228,63 @@ class FormSubmission extends Model
      */
     public function getAnswers(): array
     {
-        $current = [];
-
-        foreach ($this->form?->getFields(inputsOnly: true) ?? [] as $field) {
-            $columns = $field->getSubmissionColumns();
-
-            $current[] = $this->makeAnswer(
-                $field->getKey(),
-                $field->getLabel(),
-                $columns,
-                $field::icon(),
-                view: $field->getAnswerView(),
-                field: $field,
-                badge: $field->isHidden() ? __('filament-form-builder::general.submission.hidden_field') : null,
-                note: count($columns) > 1 ? __('filament-form-builder::general.submission.columns', ['count' => count($columns)]) : null,
-            );
-        }
-
-        foreach ($this->form?->getType()->extraValues() ?? [] as $key => $label) {
-            $current[] = $this->makeAnswer($key, $label, [$key => $label], Heroicon::OutlinedCube);
-        }
+        $current = array_map(fn (FormField $field): ?SubmissionAnswer => $this->answerFor($field), $this->form?->getFields(inputsOnly: true) ?? []);
 
         return ['current' => array_values(array_filter($current)), 'removed' => $this->getRemovedAnswers()];
+    }
+
+    /**
+     * The answers in the shape of the form: a group under each title it has,
+     * each field with the width it takes. A field nobody answered stays, empty.
+     *
+     * @return list<array{title: ?string, fields: list<array{field: FormField, answer: ?SubmissionAnswer}>}>
+     */
+    public function getAnswerGroups(): array
+    {
+        $groups = [['title' => null, 'fields' => []]];
+
+        foreach ($this->form?->getFields() ?? [] as $field) {
+            if ($field instanceof TitleField) {
+                $groups[] = ['title' => $field->title, 'fields' => []];
+            } elseif ($field::isInput()) {
+                $groups[array_key_last($groups)]['fields'][] = ['field' => $field, 'answer' => $this->answerFor($field)];
+            }
+        }
+
+        return array_values(array_filter($groups, fn (array $group): bool => $group['fields'] !== []));
+    }
+
+    /**
+     * The values the form type adds itself: no field asks for them, so they
+     * read as details of the submission rather than as answers.
+     *
+     * @return list<SubmissionAnswer>
+     */
+    public function getTypeAnswers(): array
+    {
+        $answers = [];
+
+        foreach ($this->form?->getType()->extraValues() ?? [] as $key => $label) {
+            $answers[] = $this->makeAnswer($key, $label, [$key => $label], Heroicon::OutlinedCube);
+        }
+
+        return array_values(array_filter($answers));
+    }
+
+    protected function answerFor(FormField $field): ?SubmissionAnswer
+    {
+        $columns = $field->getSubmissionColumns();
+
+        return $this->makeAnswer(
+            $field->getKey(),
+            $field->getLabel(),
+            $columns,
+            $field::icon(),
+            view: $field->getAnswerView(),
+            field: $field,
+            badge: $field->isHidden() ? __('filament-form-builder::general.submission.hidden_field') : null,
+            note: count($columns) > 1 ? __('filament-form-builder::general.submission.columns', ['count' => count($columns)]) : null,
+        );
     }
 
     /**
@@ -259,7 +295,7 @@ class FormSubmission extends Model
      */
     public function getRemovedAnswers(): array
     {
-        $handled = [...$this->form?->getSubmissionFields() ?? [], ...$this->files ?? []];
+        $handled = $this->form?->getSubmissionFields() ?? [];
         $removed = [];
 
         foreach ($this->field_snapshot ?? [] as $key => $snapshot) {
@@ -300,8 +336,8 @@ class FormSubmission extends Model
     }
 
     /**
-     * One answer for a field and every value it holds, or null when it holds
-     * nothing. Files are left to a section of their own.
+     * One answer for a field and every value and file it holds, or null when
+     * it holds nothing.
      *
      * @param  array<string, string>  $columns
      */
@@ -320,7 +356,9 @@ class FormSubmission extends Model
             fn (mixed $value): bool => static::toText($value) !== null,
         );
 
-        if ($answered === []) {
+        $files = array_merge(...array_values(array_intersect_key($this->getFiles(), $columns)));
+
+        if ($answered === [] && $files === []) {
             return null;
         }
 
@@ -330,7 +368,7 @@ class FormSubmission extends Model
         return new SubmissionAnswer(
             key: $key,
             label: $label,
-            value: $isGrouped ? $answered : reset($answered),
+            value: $answered === [] ? null : ($isGrouped ? $answered : reset($answered)),
             raw: $isGrouped ? array_intersect_key($raw, $columns) : ($raw[$key] ?? null),
             icon: $icon,
             view: $view ?? ($isGrouped ? 'filament-form-builder::answers.columns' : 'filament-form-builder::answers.text'),
@@ -338,6 +376,7 @@ class FormSubmission extends Model
             badge: $badge,
             note: $note,
             columns: $isGrouped ? $columns : [],
+            files: $files,
         );
     }
 

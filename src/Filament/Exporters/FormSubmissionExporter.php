@@ -112,17 +112,9 @@ class FormSubmissionExporter extends Exporter
     protected static function getOtherData(FormSubmission $record): ?string
     {
         $lines = array_map(
-            fn (SubmissionAnswer $answer): string => $answer->label . ': ' . FormSubmission::toText($answer->value),
+            fn (SubmissionAnswer $answer): string => $answer->label . ': ' . FormSubmission::toText($answer->value ?? $answer->files),
             $record->getRemovedAnswers(),
         );
-
-        $fields = $record->form?->getSubmissionFields() ?? [];
-
-        foreach (array_keys($record->getFiles()) as $key) {
-            if (!array_key_exists($key, $fields)) {
-                $lines[] = $record->findLabel($key) . ': ' . $record->getDisplayText($key);
-            }
-        }
 
         return $lines === [] ? null : implode("\n", $lines);
     }

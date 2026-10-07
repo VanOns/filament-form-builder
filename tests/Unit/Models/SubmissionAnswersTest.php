@@ -94,11 +94,13 @@ it('leaves out the fields nobody answered', function () {
     expect(array_keys($answers))->toBe(['naam']);
 });
 
-it('shows the values a form type adds with the fields', function () {
-    $answers = byKey(vacancySubmission(['pagina' => 'https://example.test/vacature'])->getAnswers()['current']);
+it('keeps the values a form type adds apart from the answers, for the details', function () {
+    $submission = vacancySubmission(['pagina' => 'https://example.test/vacature']);
+    $answers = byKey($submission->getTypeAnswers());
 
     expect($answers['pagina']->label)->toBe('Verstuurd vanaf')
-        ->and($answers['pagina']->icon)->toBe(Heroicon::OutlinedCube);
+        ->and($answers['pagina']->icon)->toBe(Heroicon::OutlinedCube)
+        ->and(byKey($submission->getAnswers()['current']))->not->toHaveKey('pagina');
 });
 
 it('formats an answer the way its field asks, everywhere it is shown', function () {
@@ -159,17 +161,25 @@ it('shows a key nothing knows about as unknown', function () {
         ->and($removed[0]->note)->toBe('no label kept');
 });
 
-it('leaves the files to a section of their own', function () {
+it('shows a file with the field it was uploaded to, also once that field is gone', function () {
     $form = Form::create([
         'title' => 'Solliciteren',
         'template' => 'custom',
-        'custom' => ['fields' => [['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv']]],
+        'custom' => ['fields' => [['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv'], ['type' => 'file_upload', 'label' => 'Portfolio', 'key' => 'portfolio']]],
     ]);
     $submission = FormSubmission::create([
         'form_id' => $form->id,
         'data' => [],
-        'files' => ['cv' => [['path' => 'form_uploads/cv.pdf', 'name' => 'cv.pdf']]],
+        'files' => ['cv' => [['path' => 'form_uploads/cv.pdf', 'name' => 'cv.pdf']], 'portfolio' => [['path' => 'form_uploads/werk.zip', 'name' => 'werk.zip']]],
     ]);
+    $form->update(['custom' => ['fields' => [['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv']]]]);
 
-    expect($submission->getAnswers())->toBe(['current' => [], 'removed' => []]);
+    ['current' => $current, 'removed' => $removed] = $submission->fresh()->getAnswers();
+
+    expect($current)->toHaveCount(1)
+        ->and($current[0]->value)->toBeNull()
+        ->and(array_map(fn ($file) => $file->name, $current[0]->files))->toBe(['cv.pdf'])
+        ->and($removed)->toHaveCount(1)
+        ->and($removed[0]->label)->toBe('Portfolio')
+        ->and(array_map(fn ($file) => $file->name, $removed[0]->files))->toBe(['werk.zip']);
 });

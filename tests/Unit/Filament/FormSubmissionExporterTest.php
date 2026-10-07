@@ -91,8 +91,8 @@ it('puts the answers the form no longer asks for in one column', function () {
     expect($voornaam)->toBe('Jesse')
         ->and(explode("\n", $other))->toHaveCount(3)
         ->and(explode("\n", $other)[0])->toBe('Telefoonnummer: 0612345678')
-        ->and(explode("\n", $other)[1])->toBe('Bron: LinkedIn')
-        ->and(explode("\n", $other)[2])->toStartWith('CV: http');
+        ->and(explode("\n", $other)[1])->toStartWith('CV: http')
+        ->and(explode("\n", $other)[2])->toBe('Bron: LinkedIn');
 });
 
 it('leaves the other data empty when the form still asks for everything', function () {

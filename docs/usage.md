@@ -147,10 +147,15 @@ what the visitor posts; the other columns are for the field or its form type's
 
 ## Showing answers
 
-The detail page of a submission shows one answer per field, in the order of the
-form: as text by default, a link for an e-mail address or phone number, labels
-for a list of choices, a check for a checkbox. A field that fills several
-columns shows them together. Files have a card of their own.
+The detail page of a submission shows the answers in the shape of the form:
+under the form's titles, each field at the width it has on the canvas, a hidden
+field marked as such and an unanswered one as a dash. An answer reads as text
+by default, a link for an e-mail address or phone number, labels for a list of
+choices, a check for a checkbox; a field that fills several columns shows them
+together, and an upload shows its files. "As a list" turns this into one row
+per answered field with its key, and the page remembers that choice for the
+session. The values a form type adds itself (`extraValues()`) show with the
+submission's details instead, since nobody answered them.
 
 A field can format its answer. The callback receives the value and the
 submission, never an empty answer, and what it returns is what the table, the

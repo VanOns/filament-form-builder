@@ -55,7 +55,7 @@ it('downloads a file that would open in the browser when asked to', function () 
 
     expect($response->headers->get('Content-Disposition'))->toStartWith('attachment')
         ->and($file->opensInBrowser())->toBeTrue()
-        ->and($file->extension())->toBe('PDF')
+        ->and($file->mimeType())->toBe('application/pdf')
         ->and($file->size())->toBeInt();
 });
 

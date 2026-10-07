@@ -1,6 +1,5 @@
 @use('Filament\Support\Icons\Heroicon')
 @use('Illuminate\Support\Number')
-@use('VanOns\FilamentFormBuilder\Classes\SubmissionFile')
 
 <div class="ffb-files">
     @foreach ($files as $file)
@@ -22,22 +21,15 @@
             <div class="ffb-file-body">
                 <span class="ffb-file-name">{{ $file->name }}</span>
 
-                <span class="ffb-file-field">
-                    <x-filament::icon :icon="Heroicon::PaperClip" class="ffb-file-field-icon" />
-                    {{ $submission->findLabel($file->key) }}
-                </span>
-
-                <span class="ffb-file-badges">
-                    @if ($size === null)
+                @if ($size === null)
+                    <span>
                         <x-filament::badge color="danger" size="sm">{{ __('filament-form-builder::general.submission.file_missing') }}</x-filament::badge>
-                    @else
-                        <x-filament::badge color="gray" size="sm">{{ Number::withLocale(app()->getLocale(), fn () => Number::fileSize($size, maxPrecision: 1)) }}</x-filament::badge>
-                    @endif
-
-                    @if ($file->extension() !== '')
-                        <x-filament::badge :color="$file->isPdf() ? 'danger' : 'gray'" size="sm">{{ $file->extension() }}</x-filament::badge>
-                    @endif
-                </span>
+                    </span>
+                @else
+                    <span class="ffb-file-meta">
+                        {{ collect([Number::withLocale(app()->getLocale(), fn () => Number::fileSize($size, maxPrecision: 1)), $file->mimeType()])->filter()->implode(' · ') }}
+                    </span>
+                @endif
             </div>
 
             @if ($size !== null)
@@ -64,8 +56,4 @@
             @endif
         </div>
     @endforeach
-
-    <p class="ffb-files-hint">
-        {{ trans_choice('filament-form-builder::general.submission.files_hint', $days = SubmissionFile::linkDays(), ['days' => $days]) }}
-    </p>
 </div>

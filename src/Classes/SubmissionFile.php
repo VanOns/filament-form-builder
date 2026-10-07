@@ -88,11 +88,6 @@ class SubmissionFile implements Stringable
         return $this->mimeType() === 'application/pdf';
     }
 
-    public function extension(): string
-    {
-        return strtoupper(pathinfo($this->name, PATHINFO_EXTENSION));
-    }
-
     /**
      * Only types that cannot run script on this domain open in the browser.
      */
