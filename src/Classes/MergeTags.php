@@ -10,7 +10,7 @@ use Illuminate\Contracts\Support\Htmlable;
  * data-id="voornaam">`. Content from before them holds `{{ $voornaam }}` as
  * text, which is read as the same tag.
  */
-final class MergeTags
+class MergeTags
 {
     private const LEGACY = '/{{\s*\$([^\s{}]+)\s*}}/u';
 
@@ -93,7 +93,7 @@ final class MergeTags
             return '';
         }
 
-        $renderer = RichContentRenderer::make(is_string($content) ? static::fillAttributes($content, $values) : $content)
+        $renderer = RichContentRenderer::make(is_string($content) ? self::fillAttributes($content, $values) : $content)
             ->mergeTags([...array_fill_keys(static::ids($content), ''), ...$values]);
 
         if ($asText) {

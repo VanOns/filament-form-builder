@@ -18,7 +18,7 @@ use VanOns\FilamentFormBuilder\Models\Form;
  * Rich editors that take the merge tags of the form being edited, with the
  * package's picker behind Filament's tag button.
  */
-final class MergeTagEditor
+class MergeTagEditor
 {
     /**
      * Without the link to the submission where the text reaches a visitor

@@ -9,7 +9,7 @@ use VanOns\FilamentFormBuilder\Models\FormSubmission;
  * How many submissions each form got per week lately, for the small chart in
  * the forms list: one query for the whole table, once per request.
  */
-final class SubmissionActivity
+class SubmissionActivity
 {
     public const WEEKS = 8;
 

@@ -10,7 +10,7 @@ use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
  * the answers. A form's outcomes are tried in order and the first that holds
  * wins; the last has no conditions.
  */
-final class SubmitNotification
+class SubmitNotification
 {
     /**
      * @param  array<string, mixed>  $outcome

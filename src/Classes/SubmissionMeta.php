@@ -10,7 +10,7 @@ use Locale;
  * What a submission keeps about where it came from, as far as the
  * `submission_meta` config allows.
  */
-final class SubmissionMeta
+class SubmissionMeta
 {
     /**
      * @return array<string, mixed>|null

@@ -14,7 +14,7 @@ use VanOns\FilamentFormBuilder\Models\Form;
  * and the moment the form was shown, which has to be longer ago than a
  * person needs to fill it in.
  */
-final class Honeypot
+class Honeypot
 {
     public const TOKEN = 'ffb_token';
 

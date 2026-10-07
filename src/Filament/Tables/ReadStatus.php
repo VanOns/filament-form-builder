@@ -14,7 +14,7 @@ use VanOns\FilamentFormBuilder\Models\FormSubmission;
  * Which submissions someone has opened, the same in every submissions table:
  * an envelope and bold text on the ones nobody has, a filter and bulk actions.
  */
-final class ReadStatus
+class ReadStatus
 {
     public static function apply(Table $table): Table
     {

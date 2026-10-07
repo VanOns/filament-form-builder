@@ -9,7 +9,7 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
  * One answer as the detail page shows it: a field with everything it holds,
  * or a key the form no longer has a field for.
  */
-final class SubmissionAnswer
+class SubmissionAnswer
 {
     /**
      * @param  array<string, string>  $columns  key => label of each value a field with several holds

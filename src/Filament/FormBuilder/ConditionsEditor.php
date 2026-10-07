@@ -23,7 +23,7 @@ use VanOns\FilamentFormBuilder\Models\Form;
  * Rules on the answers of a form, stored as `conditions` and `conditionMatch`:
  * when a field shows on the canvas, or when a notification goes out.
  */
-final class ConditionsEditor
+class ConditionsEditor
 {
     /**
      * @param  array<string, FormField>  $fields  the fields the rules can look at, by key

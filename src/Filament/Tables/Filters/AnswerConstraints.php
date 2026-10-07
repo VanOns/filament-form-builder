@@ -26,7 +26,7 @@ use VanOns\FilamentFormBuilder\Filament\Tables\Filters\Operators\StartsWithOpera
  * The rules the submissions table offers per answer, named after the key the
  * answer is stored under.
  */
-final class AnswerConstraints
+class AnswerConstraints
 {
     public static function text(string $key, string $label): TextConstraint
     {
