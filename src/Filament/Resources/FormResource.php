@@ -21,6 +21,7 @@ use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -351,6 +352,9 @@ class FormResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query
+                ->withCount(['submissions', 'submissions as unread_submissions_count' => fn (Builder $query) => $query->whereNull('read_at')])
+                ->withMax('submissions', 'created_at'))
             ->columns([
                 TextColumn::make('title')
                     ->label(__('filament-form-builder::general.title'))
@@ -358,22 +362,24 @@ class FormResource extends Resource
                     ->searchable(),
                 TextColumn::make('template')
                     ->formatStateUsing(fn (?string $state): ?string => FormTypeHelper::options()[$state] ?? $state)
-                    ->label(__('filament-form-builder::general.type')),
-                TextColumn::make('submissions_count')
+                    ->label(__('filament-form-builder::general.type'))
+                    // Most forms are built on the canvas; the type only tells something where there are others.
+                    ->visible(count(FormTypeHelper::options()) > 1)
+                    ->toggleable(),
+                ViewColumn::make('submissions_count')
                     ->label(__('filament-form-builder::general.submissions'))
-                    ->counts('submissions')
+                    ->view('filament-form-builder::filament.tables.form-submissions')
+                    ->sortable(),
+                TextColumn::make('submissions_max_created_at')
+                    ->label(__('filament-form-builder::general.last_submission'))
+                    ->since()
+                    ->dateTimeTooltip()
+                    ->placeholder(__('filament-form-builder::general.forms.never'))
                     ->sortable()
                     ->toggleable(),
-                TextColumn::make('last_submission')
-                    ->label(__('filament-form-builder::general.last_submission'))
-                    ->state(function (FormModel $form) {
-                        return $form
-                            ->submissions()
-                            ->orderBy('created_at', 'desc')
-                            ->take(1)
-                            ->first()
-                            ?->created_at;
-                    })->since()
+                ViewColumn::make('follow_up')
+                    ->label(__('filament-form-builder::general.forms.follow_up'))
+                    ->view('filament-form-builder::filament.tables.form-follow-up')
                     ->toggleable(),
                 TextColumn::make('created_at')
                     ->label(__('filament-form-builder::general.created_at'))
@@ -415,7 +421,9 @@ class FormResource extends Resource
                                 ->required(),
                         ])
                         ->beforeReplicaSaved(function (FormModel $replica) {
-                            $replica->offsetUnset('submissions_count');
+                            foreach (['submissions_count', 'unread_submissions_count', 'submissions_max_created_at'] as $aggregate) {
+                                $replica->offsetUnset($aggregate);
+                            }
                         }),
                     Actions\DeleteAction::make(),
                 ]),

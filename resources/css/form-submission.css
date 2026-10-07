@@ -1262,3 +1262,62 @@
 .ffb-unread .fi-ta-text-item {
     font-weight: 600;
 }
+
+/* A view column brings no padding of its own, so these line up with Filament's text columns. */
+.ffb-form-activity,
+.ffb-form-follow-up {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.ffb-form-activity-area {
+    fill: color-mix(in oklab, var(--primary-500) 12%, transparent);
+    stroke: none;
+}
+
+.ffb-form-activity-chart {
+    flex-shrink: 0;
+    width: 4rem;
+    height: 1.25rem;
+    overflow: visible;
+}
+
+.ffb-form-activity-chart polyline {
+    fill: none;
+    stroke: var(--primary-500);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.ffb-form-activity-count {
+    min-width: 1.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ffb-form-follow-up {
+    gap: 0.75rem;
+    color: var(--gray-600);
+}
+
+.dark .ffb-form-follow-up {
+    color: var(--gray-400);
+}
+
+.ffb-form-follow-up-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.ffb-form-follow-up-item svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.ffb-form-follow-up-none {
+    color: var(--gray-400);
+}
