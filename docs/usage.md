@@ -15,8 +15,10 @@ it:
 ],
 ```
 
-`custom` leaves every field to the editor, `contact` has all of them in code. A
-type of your own extends `FormType` and returns its fields from `fields()`,
+`custom` leaves every field to the editor, `contact` has all of them in code.
+A new form is `custom`; editors pick another type behind the "Use a fixed form"
+switch, which only shows when `custom` and at least one other type are
+registered. A type of your own extends `FormType` and returns its fields from `fields()`,
 built with the same field classes the canvas stores:
 
 ```php

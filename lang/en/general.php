@@ -10,6 +10,8 @@ return [
     'form_title' => 'Form title',
     'created_at' => 'Created at',
     'updated_at' => 'Updated at',
+    'form_details' => 'Form',
+    'fixed_type' => 'Use a fixed form',
     'submit_notification' => 'After submitting',
     'submit_notification_explanation' => 'What happens when someone sends the form.',
     'submissions' => 'Submissions',

@@ -44,6 +44,11 @@ class FormTypeHelper
     }
 
     /**
+     * The type of a form built on the canvas.
+     */
+    public const CUSTOM = 'custom';
+
+    /**
      * @return array<string, string>
      */
     public static function options(): array

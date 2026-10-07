@@ -10,6 +10,7 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions as SchemaActions;
@@ -151,21 +152,40 @@ class FormResource extends Resource
 
     public static function getGeneralSection(): Section
     {
-        return Section::make()
-            ->schema([
-                Select::make('template')
-                    ->required()
-                    ->label(__('filament-form-builder::general.type'))
-                    ->searchable()
-                    ->options(FormTypeHelper::options())
+        $types = FormTypeHelper::options();
+        $fixedTypes = array_diff_key($types, [FormTypeHelper::CUSTOM => true]);
+        $hasCustom = isset($types[FormTypeHelper::CUSTOM]);
+        // Most forms are built on the canvas, so a type from code sits behind a switch.
+        $isFixed = fn (Get $get): bool => !$hasCustom || (bool) $get('fixed_type');
+
+        return Section::make(__('filament-form-builder::general.form_details'))
+            ->icon('heroicon-o-document-text')
+            ->afterHeader($hasCustom && $fixedTypes !== [] ? [
+                Toggle::make('fixed_type')
+                    ->label(__('filament-form-builder::general.fixed_type'))
+                    ->formatStateUsing(fn (?FormModel $record): bool => filled($record?->template) && $record->template !== FormTypeHelper::CUSTOM)
+                    ->dehydrated(false)
                     ->live()
-                    ->columnSpan(1),
+                    ->afterStateUpdated(fn (bool $state, Set $set) => $set('template', $state ? array_key_first($fixedTypes) : FormTypeHelper::CUSTOM)),
+            ] : [])
+            ->schema([
                 TextInput::make('title')
                     ->label(__('filament-form-builder::general.title'))
                     ->required()
                     ->unique(ignoreRecord: true)
+                    ->columnSpan(fn (Get $get): int | string => $isFixed($get) ? 2 : 'full'),
+                Select::make('template')
+                    ->required()
+                    ->label(__('filament-form-builder::general.type'))
+                    ->searchable()
+                    ->selectablePlaceholder(false)
+                    ->options(fn (Get $get): array => $hasCustom && $isFixed($get) ? $fixedTypes : $types)
+                    ->default($hasCustom ? FormTypeHelper::CUSTOM : null)
+                    ->live()
+                    ->visible($isFixed)
+                    ->dehydratedWhenHidden()
                     ->columnSpan(1),
-            ])->columns();
+            ])->columns(3);
     }
 
     public static function getCustomSection(): Section
