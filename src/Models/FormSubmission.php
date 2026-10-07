@@ -4,7 +4,9 @@ namespace VanOns\FilamentFormBuilder\Models;
 
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -43,6 +45,7 @@ use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
  */
 class FormSubmission extends Model
 {
+    use Prunable;
     use SoftDeletes;
 
     protected $guarded = ['id'];
@@ -62,6 +65,34 @@ class FormSubmission extends Model
             'integrations' => 'array',
             'read_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The submissions older than their form keeps them, trashed ones included.
+     *
+     * @return Builder<static>
+     */
+    public function prunable(): Builder
+    {
+        $formIds = [];
+
+        foreach (Form::withTrashed()->get() as $form) {
+            if (($months = $form->getRetentionMonths()) !== null) {
+                $formIds[$months][] = $form->getKey();
+            }
+        }
+
+        if ($formIds === []) {
+            return static::query()->whereKey([]);
+        }
+
+        return static::query()->where(function (Builder $query) use ($formIds): void {
+            foreach ($formIds as $months => $ids) {
+                $query->orWhere(fn (Builder $query) => $query
+                    ->whereIn('form_id', $ids)
+                    ->where('created_at', '<', now()->subMonthsNoOverflow($months)));
+            }
+        });
     }
 
     public function isRead(): bool

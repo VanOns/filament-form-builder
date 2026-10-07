@@ -49,6 +49,9 @@ return [
         'campaign' => true,
         'ip' => false,
     ],
+    // Months a submission is kept, with its files, unless its form says otherwise;
+    // null keeps them. Deleted each night, so the scheduler has to run.
+    'retention_months' => null,
     'uploads' => [
         'disk' => 'local',
         // In kilobytes, per file.

@@ -202,6 +202,13 @@ config turns each on or off, its column with it; an IP address is personal
 data, so `ip` is `false` by default, or `'anonymized'` (without its last part)
 or `'full'`.
 
+Submissions stay until someone deletes them, unless `retention_months` in the
+config is set: every night the ones older than that go, with their files and
+including trashed ones. A form can keep them shorter, longer or forever under
+"Keep submissions" in its details, and its Submissions tab says for how long.
+The package schedules `model:prune` for this, so the app's scheduler has to
+run.
+
 A submission counts as read once someone opens its page, stored in `read_at`
 without touching `updated_at` or firing an update. Unread ones show an
 envelope and bold text in the tables, the navigation and a form's Submissions

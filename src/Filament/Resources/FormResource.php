@@ -131,6 +131,14 @@ class FormResource extends Resource
             ->icon('heroicon-o-cog-6-tooth')
             ->columns()
             ->schema([
+                Select::make('retention_months')
+                    ->label(__('filament-form-builder::general.retention.label'))
+                    ->placeholder(__('filament-form-builder::general.retention.default', ['retention' => static::describeRetention(config('filament-form-builder.retention_months'))]))
+                    ->options(collect([1, 3, 6, 12, 24])
+                        ->mapWithKeys(fn (int $months): array => [$months => static::describeRetention($months)])
+                        ->put(0, Str::ucfirst(static::describeRetention(null)))
+                        ->all())
+                    ->helperText(__('filament-form-builder::general.retention.helper')),
                 Group::make(fn (Get $get, ?FormModel $record): array => static::getFormType($get, $record)?->settings() ?? [])
                     ->statePath('settings')
                     ->columns()
@@ -520,6 +528,13 @@ class FormResource extends Resource
         return [
             ...$schema ?? [],
         ];
+    }
+
+    public static function describeRetention(mixed $months): string
+    {
+        return filled($months) && (int) $months > 0
+            ? trans_choice('filament-form-builder::general.retention.months', (int) $months, ['count' => (int) $months])
+            : __('filament-form-builder::general.retention.forever');
     }
 
     public static function hasSubmitNotifications(Get $get): bool

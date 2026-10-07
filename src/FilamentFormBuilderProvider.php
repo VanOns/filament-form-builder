@@ -7,11 +7,13 @@ use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\RateLimiter;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Form;
 
 class FilamentFormBuilderProvider extends PackageServiceProvider
@@ -37,6 +39,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
         $this->hasRoutes();
         $this->hasRateLimiter();
         $this->hasAssets();
+        $this->hasPruning();
     }
 
     public function hasTranslations(): void
@@ -98,6 +101,14 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
             Js::make('form-builder', __DIR__.'/../resources/js/form-builder.js')->loadedOnRequest(),
             Js::make('conditions', __DIR__.'/../resources/js/conditions.js')->loadedOnRequest(),
         ], 'van-ons/filament-form-builder');
+    }
+
+    // Every night, so a retention set later on a form needs no change in the app.
+    public function hasPruning(): void
+    {
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            $schedule->command('model:prune', ['--model' => [FormSubmission::class]])->daily();
+        });
     }
 
     public function hasRateLimiter(): void

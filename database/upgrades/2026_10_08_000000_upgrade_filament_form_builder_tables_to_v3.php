@@ -31,12 +31,20 @@ return new class () extends Migration {
             $table->string('notification_id')->nullable()->after('form_submission_id')->index();
         });
 
+        Schema::table('forms', function (Blueprint $table) {
+            $table->unsignedSmallInteger('retention_months')->nullable()->after('settings');
+        });
+
         $this->moveSubmitNotificationsIntoList();
     }
 
     public function down(): void
     {
         $this->moveSubmitNotificationsOutOfList();
+
+        Schema::table('forms', function (Blueprint $table) {
+            $table->dropColumn('retention_months');
+        });
 
         Schema::table('form_submission_notification_logs', function (Blueprint $table) {
             $table->dropIndex(['notification_id']);

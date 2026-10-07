@@ -19,8 +19,8 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
   `php artisan migrate`. It adds `form_submissions.files`, `form_submissions.field_snapshot`,
   `form_submissions.source_url` (the page a form was sent from), `form_submissions.meta` (browser,
   language, signed-in user, campaign), `form_submissions.read_at`
-  (existing submissions start out read) and
-  `form_submission_notification_logs.notification_id`, drops `form_submissions.submitter_email`, and
+  (existing submissions start out read), `form_submission_notification_logs.notification_id` and
+  `forms.retention_months` (how long a form keeps its submissions), drops `form_submissions.submitter_email`, and
   moves what a form does after a submission into a list, see below. The regular migrations are now
   three create migrations with the whole v3 schema, for new installs: your published copies of them
   are already run.

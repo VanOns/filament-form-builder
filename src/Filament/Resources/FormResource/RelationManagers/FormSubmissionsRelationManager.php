@@ -11,6 +11,7 @@ use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Filament\Tables\FormSubmissionColumns;
 use VanOns\FilamentFormBuilder\Filament\Tables\ReadStatus;
@@ -45,6 +46,9 @@ class FormSubmissionsRelationManager extends RelationManager
         return ReadStatus::apply($table)
             // The tab is already labelled; a heading would say it twice.
             ->heading(null)
+            ->description(($months = $form->getRetentionMonths()) !== null
+                ? __('filament-form-builder::general.retention.description', ['retention' => FormResource::describeRetention($months)])
+                : null)
             ->modifyQueryUsing(fn ($query) => $query->withoutGlobalScopes([SoftDeletingScope::class])->with('form'))
             ->defaultSort('created_at', 'desc')
             ->columns([ReadStatus::column(), ...$columns->columns()])

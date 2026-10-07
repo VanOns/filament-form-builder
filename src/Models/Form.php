@@ -33,6 +33,7 @@ use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
  * @property array<int, mixed> $notifications
  * @property array<int, array<string, mixed>>|null $integrations
  * @property array<string, mixed> $settings
+ * @property int|null $retention_months 0 keeps the submissions, null follows the config
  * @property array<int, array<string, mixed>>|null $submit_notifications
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -75,6 +76,7 @@ class Form extends Model
             'integrations' => 'array',
             'settings' => 'array',
             'submit_notifications' => 'array',
+            'retention_months' => 'integer',
         ];
     }
 
@@ -85,6 +87,16 @@ class Form extends Model
         static::forceDeleting(function (Form $form): void {
             FormSubmission::withTrashed()->where('form_id', $form->getKey())->each(fn (FormSubmission $submission) => $submission->deleteFiles());
         });
+    }
+
+    /**
+     * How many months its submissions are kept, or null to keep them.
+     */
+    public function getRetentionMonths(): ?int
+    {
+        $months = $this->retention_months ?? config('filament-form-builder.retention_months');
+
+        return filled($months) && (int) $months > 0 ? (int) $months : null;
     }
 
     /**

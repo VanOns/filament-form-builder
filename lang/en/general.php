@@ -331,6 +331,14 @@ return [
         'form_type' => 'Form type',
         'other_data' => 'Other data',
     ],
+    'retention' => [
+        'label' => 'Keep submissions',
+        'default' => 'Default (:retention)',
+        'months' => '{1} :count month|[0,*] :count months',
+        'forever' => 'forever',
+        'helper' => 'Older submissions are deleted every night, with their files.',
+        'description' => 'Submissions are deleted automatically after :retention.',
+    ],
     'filters' => [
         'trigger' => 'Filter',
         'heading' => 'Filter submissions',

@@ -16,6 +16,7 @@ return new class () extends Migration {
             $table->json('submit_notifications')->nullable();
             $table->json('integrations')->nullable();
             $table->json('settings')->nullable();
+            $table->unsignedSmallInteger('retention_months')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
