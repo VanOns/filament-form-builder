@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages;
+use VanOns\FilamentFormBuilder\Filament\Tables\FormSubmissionColumns;
 use VanOns\FilamentFormBuilder\Filament\Tables\ReadStatus;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -78,6 +79,7 @@ class FormSubmissionResource extends Resource
                     ->sortable()
                     ->dateTime()
                     ->toggleable(),
+                ...FormSubmissionColumns::detailColumns(),
             ])
             ->filters([
                 ReadStatus::filter(),

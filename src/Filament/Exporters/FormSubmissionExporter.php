@@ -8,6 +8,7 @@ use Filament\Actions\Exports\Models\Export;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
+use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -38,7 +39,31 @@ class FormSubmissionExporter extends Exporter
             ExportColumn::make('form.title'),
             ...static::getAvailableDataExportColumns($form, $dataKeys),
             ExportColumn::make('created_at'),
+            ...static::getDetailExportColumns(),
         ];
+    }
+
+    /**
+     * Where a submission came from, off until someone ticks it in the modal.
+     *
+     * @return array<ExportColumn>
+     */
+    protected static function getDetailExportColumns(): array
+    {
+        $columns = [
+            ExportColumn::make('source_url')
+                ->label(__('filament-form-builder::general.submission.submitted_from'))
+                ->enabledByDefault(false),
+        ];
+
+        foreach (SubmissionMeta::labels() as $key => $label) {
+            $columns[] = ExportColumn::make("meta.{$key}")
+                ->label($label)
+                ->state(fn (FormSubmission $record): ?string => SubmissionMeta::describe($record->meta, $key))
+                ->enabledByDefault(false);
+        }
+
+        return $columns;
     }
 
     /**

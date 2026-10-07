@@ -25,3 +25,25 @@ it('takes the campaign from the utm parameters only', function () {
     expect(SubmissionMeta::campaign(['utm_source' => 'nieuwsbrief', 'utm_campaign' => 'najaar', 'vacature' => 'adviseur', 'utm_term' => '']))
         ->toBe(['source' => 'nieuwsbrief', 'campaign' => 'najaar']);
 });
+
+it('reads each kind of detail the way the page shows it', function () {
+    $meta = [
+        'user_agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0',
+        'user' => ['id' => 7, 'name' => 'Jesse'],
+        'campaign' => ['source' => 'nieuwsbrief', 'medium' => 'email'],
+        'ip' => '203.0.113.0',
+    ];
+
+    expect(SubmissionMeta::describe($meta, 'user_agent'))->toBe('Firefox · Linux')
+        ->and(SubmissionMeta::describe($meta, 'user'))->toBe('Jesse (#7)')
+        ->and(SubmissionMeta::describe($meta, 'campaign'))->toBe('source: nieuwsbrief, medium: email')
+        ->and(SubmissionMeta::describe($meta, 'ip'))->toBe('203.0.113.0')
+        ->and(SubmissionMeta::describe($meta, 'locale'))->toBeNull()
+        ->and(SubmissionMeta::describe(null, 'ip'))->toBeNull();
+});
+
+it('names only what the config collects', function () {
+    config(['filament-form-builder.submission_meta' => ['user_agent' => true, 'locale' => false, 'ip' => 'full']]);
+
+    expect(array_keys(SubmissionMeta::labels()))->toBe(['user_agent', 'ip']);
+});

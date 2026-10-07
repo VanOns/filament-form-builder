@@ -9,6 +9,7 @@ use Filament\Tables\Filters\QueryBuilder;
 use Filament\Tables\Filters\QueryBuilder\Constraints\DateConstraint;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -40,7 +41,34 @@ class FormSubmissionColumns
                 ->dateTime()
                 ->sortable(),
             ...$this->fieldColumns(),
+            ...static::detailColumns(),
         ];
+    }
+
+    /**
+     * Where a submission came from, hidden until someone asks for it.
+     *
+     * @return array<int, TextColumn>
+     */
+    public static function detailColumns(): array
+    {
+        $columns = [
+            TextColumn::make('source_url')
+                ->label(__('filament-form-builder::general.submission.submitted_from'))
+                ->formatStateUsing(fn (string $state): string => preg_replace('#^https?://(www\.)?#', '', $state) ?? $state)
+                ->limit(40)
+                ->tooltip(fn (FormSubmission $record): ?string => $record->source_url)
+                ->toggleable(isToggledHiddenByDefault: true),
+        ];
+
+        foreach (SubmissionMeta::labels() as $key => $label) {
+            $columns[] = TextColumn::make("meta.{$key}")
+                ->label($label)
+                ->state(fn (FormSubmission $record): ?string => SubmissionMeta::describe($record->meta, $key))
+                ->toggleable(isToggledHiddenByDefault: true);
+        }
+
+        return $columns;
     }
 
     /**
@@ -58,7 +86,7 @@ class FormSubmissionColumns
     }
 
     /**
-     * Every answer the form asks for, then the moment it was sent.
+     * Every answer the form asks for, then where and when it was sent.
      *
      * @return array<string, Constraint>
      */
@@ -74,6 +102,18 @@ class FormSubmissionColumns
 
         foreach ($this->form->getType()->extraValues() as $key => $label) {
             $constraints[$key] ??= AnswerConstraints::text($key, $label)->icon(Heroicon::OutlinedCube);
+        }
+
+        $constraints['submitted_from'] ??= AnswerConstraints::text('submitted_from', __('filament-form-builder::general.submission.submitted_from'))
+            ->attribute('source_url')
+            ->icon(Heroicon::OutlinedGlobeAlt);
+
+        if (array_key_exists('campaign', SubmissionMeta::labels())) {
+            foreach (['source', 'medium', 'campaign'] as $part) {
+                $constraints["utm_{$part}"] ??= AnswerConstraints::text("utm_{$part}", __("filament-form-builder::general.filters.utm_{$part}"))
+                    ->attribute("meta->campaign->{$part}")
+                    ->icon(Heroicon::OutlinedMegaphone);
+            }
         }
 
         // A field could be called created_at, so the date goes by another name.

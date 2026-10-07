@@ -40,6 +40,52 @@ final class SubmissionMeta
     }
 
     /**
+     * What the config collects, under the name the details, the table and the
+     * export give it.
+     *
+     * @return array<string, string>
+     */
+    public static function labels(): array
+    {
+        $config = config('filament-form-builder.submission_meta', []);
+
+        $labels = [
+            'user_agent' => __('filament-form-builder::general.submission.browser'),
+            'locale' => __('filament-form-builder::general.submission.locale'),
+            'user' => __('filament-form-builder::general.submission.submitted_by'),
+            'campaign' => __('filament-form-builder::general.submission.campaign'),
+            'ip' => __('filament-form-builder::general.submission.ip'),
+        ];
+
+        return array_filter($labels, fn (string $key): bool => (bool) ($config[$key] ?? false), ARRAY_FILTER_USE_KEY);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $meta
+     */
+    public static function describe(?array $meta, string $key): ?string
+    {
+        $value = $meta[$key] ?? null;
+
+        if (blank($value)) {
+            return null;
+        }
+
+        if (is_array($value)) {
+            return match ($key) {
+                'user' => trim(($value['name'] ?? '') . ' (#' . ($value['id'] ?? '?') . ')'),
+                default => collect($value)->map(fn (mixed $part, string $name): string => "{$name}: {$part}")->implode(', '),
+            };
+        }
+
+        return match ($key) {
+            'user_agent' => static::describeUserAgent((string) $value),
+            'locale' => static::describeLocale((string) $value),
+            default => (string) $value,
+        };
+    }
+
+    /**
      * The utm_* parameters of the page the form was on, without their prefix.
      *
      * @param  array<array-key, mixed>  $query

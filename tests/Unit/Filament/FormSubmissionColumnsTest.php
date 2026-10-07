@@ -38,7 +38,44 @@ it('gives every input field of a custom form a column', function () {
         'Created at' => 'created_at',
         'Voornaam' => 'data.voornaam',
         'Achternaam' => 'data.achternaam',
+        'Submitted from' => 'source_url',
+        'Browser' => 'meta.user_agent',
+        'Language' => 'meta.locale',
+        'Signed in as' => 'meta.user',
+        'Campaign' => 'meta.campaign',
     ]);
+});
+
+it('offers where a submission came from as columns, as far as the config collects it', function () {
+    $form = customForm([['type' => 'text', 'label' => 'Voornaam']]);
+    $submission = FormSubmission::create([
+        'form_id' => $form->id,
+        'source_url' => 'https://www.fonk.nl/vacatures/adviseur',
+        'meta' => [
+            'user_agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+            'campaign' => ['source' => 'nieuwsbrief', 'campaign' => 'najaar'],
+            'ip' => '203.0.113.0',
+        ],
+    ]);
+
+    $columns = collect(FormSubmissionColumns::for($form)->columns())
+        ->keyBy(fn (TextColumn $column): string => $column->getName());
+
+    // An IP address is only kept when the config asks for it, so neither is its column.
+    expect($columns)->not->toHaveKey('meta.ip')
+        ->and($columns->get('source_url')->isToggledHiddenByDefault())->toBeTrue()
+        ->and($columns->get('meta.campaign')->isToggledHiddenByDefault())->toBeTrue();
+
+    test()->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+
+    Livewire::test(FormSubmissionsRelationManager::class, ['ownerRecord' => $form, 'pageClass' => EditForm::class])
+        ->assertTableColumnFormattedStateSet('source_url', 'fonk.nl/vacatures/adviseur', $submission)
+        ->assertTableColumnStateSet('meta.user_agent', 'Chrome · macOS', $submission)
+        ->assertTableColumnStateSet('meta.campaign', 'source: nieuwsbrief, campaign: najaar', $submission);
+
+    config(['filament-form-builder.submission_meta.ip' => 'anonymized']);
+
+    expect(columnMap($form))->toHaveKey('IP address', 'meta.ip');
 });
 
 it('leaves out fields that never reach the submission', function () {

@@ -334,6 +334,9 @@ return [
         'trigger' => 'Filter',
         'heading' => 'Filter submissions',
         'description' => 'Show only the submissions that match every rule. A rule such as ‘does not contain’ also counts empty answers.',
+        'utm_source' => 'Campaign source',
+        'utm_medium' => 'Campaign medium',
+        'utm_campaign' => 'Campaign name',
         'is_checked' => [
             'label' => ['direct' => 'Is checked', 'inverse' => 'Is not checked'],
             'summary' => ['direct' => ':attribute is checked', 'inverse' => ':attribute is not checked'],

@@ -131,6 +131,28 @@ it('builds an export across forms from the columns that were picked', function (
         ->not->toHaveKey('data.telefoon');
 });
 
+it('offers where a submission came from, unticked until someone wants it', function () {
+    $form = formWithFields('Solliciteren', ['Voornaam']);
+    $submission = FormSubmission::create([
+        'form_id' => $form->id,
+        'data' => ['voornaam' => 'Jesse'],
+        'source_url' => 'https://fonk.nl/vacatures/adviseur',
+        'meta' => ['locale' => 'nl', 'campaign' => ['source' => 'nieuwsbrief']],
+    ]);
+
+    FormSubmissionExporter::$form = $form;
+    $columns = collect(FormSubmissionExporter::getColumns())->keyBy(fn (ExportColumn $column): string => $column->getName());
+
+    expect($columns->only(['source_url', 'meta.user_agent', 'meta.locale', 'meta.user', 'meta.campaign'])->map->isEnabledByDefault()->all())
+        ->toBe(['source_url' => false, 'meta.user_agent' => false, 'meta.locale' => false, 'meta.user' => false, 'meta.campaign' => false])
+        ->and($columns->get('data.voornaam')->isEnabledByDefault())->toBeTrue()
+        ->and($columns)->not->toHaveKey('meta.ip');
+
+    $exporter = new FormSubmissionExporter(new Export(), ['source_url' => 'Submitted from', 'meta.user_agent' => 'Browser', 'meta.campaign' => 'Campaign'], ['form_id' => $form->id]);
+
+    expect($exporter($submission->fresh()))->toBe(['https://fonk.nl/vacatures/adviseur', null, 'source: nieuwsbrief']);
+});
+
 it('reports how many submissions were exported', function () {
     $export = new Export(['total_rows' => 3, 'successful_rows' => 2]);
 

@@ -196,9 +196,11 @@ puts these answers together in an "Other data" column, one per line.
 A submission also keeps where it came from: the page its form was on, and in
 `meta` the browser, the language of the site, the signed-in user, the
 `utm_*` parameters of the page and, only when switched on, the IP address.
-The details on its page show them. The `submission_meta` config turns each on
-or off; an IP address is personal data, so `ip` is `false` by default, or
-`'anonymized'` (without its last part) or `'full'`.
+The details on its page show them, and the submission tables and the export
+offer them as columns, off until someone ticks them. The `submission_meta`
+config turns each on or off, its column with it; an IP address is personal
+data, so `ip` is `false` by default, or `'anonymized'` (without its last part)
+or `'full'`.
 
 A submission counts as read once someone opens its page, stored in `read_at`
 without touching `updated_at` or firing an update. Unread ones show an
@@ -220,9 +222,11 @@ The tab filters by rules such as "Name contains jan" or
 "Hours is at least 32", combined with and and or. Every field offers the rules
 that suit its type: text matches whatever its case, a number compares as a
 number, a choice goes by its options, a checkbox by whether it was ticked and
-an upload by whether there is a file. The inverse of a rule, such as "does not
-contain", also matches the submissions that left the field empty. The list of
-all submissions only filters by form.
+an upload by whether there is a file. The page a submission came from and its
+campaign's `utm_source`, `utm_medium` and `utm_campaign` have text rules too.
+The inverse of a rule, such as "does not contain", also matches the
+submissions that left the field empty. The list of all submissions only
+filters by form.
 
 A field type of your own offers its rules in `getFilterConstraints()`. By
 default every column it fills gets the text rules:

@@ -141,10 +141,25 @@ it('offers a rule per column, per value the type adds and for the date', functio
 
     $constraints = FormSubmissionColumns::for(Form::create(['title' => 'Vacature', 'template' => 'application']))->constraints();
 
-    expect(array_keys($constraints))->toBe(['naam', 'vacature', 'privacy', 'ontvangen_via', 'submitted_at'])
+    expect(array_keys($constraints))->toBe(['naam', 'vacature', 'privacy', 'ontvangen_via', 'submitted_from', 'utm_source', 'utm_medium', 'utm_campaign', 'submitted_at'])
         ->and($constraints['ontvangen_via']->getLabel())->toBe('Ontvangen via')
         ->and($constraints['submitted_at'])->toBeInstanceOf(DateConstraint::class)
         ->and(array_keys((new BranchFilterField(['key' => 'vestiging']))->getFilterConstraints()))->toHaveCount(2);
+});
+
+it('finds submissions by the page they came from and its campaign', function () {
+    $form = filteredForm();
+    [$jan, $anna] = FormSubmission::query()->orderBy('id')->get();
+    $jan->update(['source_url' => 'https://fonk.nl/vacatures/adviseur', 'meta' => ['campaign' => ['source' => 'LinkedIn', 'medium' => 'social']]]);
+    $anna->update(['source_url' => 'https://fonk.nl/contact', 'meta' => ['campaign' => ['source' => 'nieuwsbrief']]]);
+
+    expect(matching($form, 'submitted_from', 'contains', ['text' => '/vacatures/']))->toBe(['Jan de Vries'])
+        ->and(matching($form, 'utm_source', 'equals', ['text' => 'linkedin']))->toBe(['Jan de Vries'])
+        ->and(matching($form, 'utm_medium', 'isFilled', inverse: true))->toBe(['Anna', '-']);
+
+    config(['filament-form-builder.submission_meta.campaign' => false]);
+
+    expect(FormSubmissionColumns::for($form)->constraints())->not->toHaveKey('utm_source');
 });
 
 it('allows groups joined by OR, but no OR inside an OR', function () {
