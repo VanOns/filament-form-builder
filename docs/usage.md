@@ -173,7 +173,8 @@ A submission counts as read once someone opens its page, stored in `read_at`
 without touching `updated_at` or firing an update. Unread ones show an
 envelope and bold text in the tables, the navigation and a form's Submissions
 tab count them, and the tables filter and mark them in bulk. The page itself
-can mark one unread again.
+can mark one unread again and steps to the newer and older submission of the
+same form, also with the `k` and `j` keys.
 
 ## Filtering submissions
 

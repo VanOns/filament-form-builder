@@ -47,6 +47,8 @@ class ViewFormSubmission extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->getNeighbourAction('newer', Heroicon::ChevronUp, 'k'),
+            $this->getNeighbourAction('older', Heroicon::ChevronDown, 'j'),
             Action::make('markUnread')
                 ->label(__('filament-form-builder::general.submission.mark_unread'))
                 ->icon(Heroicon::OutlinedEnvelope)
@@ -63,6 +65,33 @@ class ViewFormSubmission extends ViewRecord
             ForceDeleteAction::make(),
             RestoreAction::make(),
         ];
+    }
+
+    /**
+     * Steps through the submissions of the same form in the order of its list,
+     * the newest at the top, with the keys a mail program uses.
+     */
+    protected function getNeighbourAction(string $name, Heroicon $icon, string $key): Action
+    {
+        /** @var FormSubmission $submission */
+        $submission = $this->getRecord();
+        $isNewer = $name === 'newer';
+
+        $neighbour = FormSubmission::query()
+            ->where('form_id', $submission->form_id)
+            ->where($submission->getKeyName(), $isNewer ? '>' : '<', $submission->getKey())
+            ->orderBy($submission->getKeyName(), $isNewer ? 'asc' : 'desc')
+            ->value($submission->getKeyName());
+
+        return Action::make($name)
+            ->label(__("filament-form-builder::general.submission.{$name}"))
+            ->tooltip(__("filament-form-builder::general.submission.{$name}") . " ({$key})")
+            ->icon($icon)
+            ->iconButton()
+            ->color('gray')
+            ->url($neighbour === null ? null : FormSubmissionResource::getUrl('view', ['record' => $neighbour]))
+            ->disabled($neighbour === null)
+            ->keyBindings([$key]);
     }
 
     public function infolist(Schema $schema): Schema

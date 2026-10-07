@@ -282,6 +282,8 @@ return [
         'mark_read' => 'Markeer als gelezen',
         'mark_unread' => 'Markeer als ongelezen',
         'unread_badge' => 'Ongelezen inzendingen',
+        'newer' => 'Nieuwere inzending',
+        'older' => 'Oudere inzending',
         'title' => 'Inzending #:id',
         'id' => 'Inzending',
         'form' => 'Formulier',

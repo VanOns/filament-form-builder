@@ -282,6 +282,8 @@ return [
         'mark_read' => 'Mark as read',
         'mark_unread' => 'Mark as unread',
         'unread_badge' => 'Unread submissions',
+        'newer' => 'Newer submission',
+        'older' => 'Older submission',
         'title' => 'Submission #:id',
         'id' => 'Submission',
         'form' => 'Form',

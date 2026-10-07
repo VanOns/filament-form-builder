@@ -54,6 +54,20 @@ it('marks a submission unread again and goes back to its list', function () {
     expect($submission->refresh()->isRead())->toBeFalse();
 });
 
+it('steps to the newer and the older submission of the same form', function () {
+    [$oldest, $middle, $newest] = inbox();
+    inbox(1);
+    $page = fn (FormSubmission $submission) => Livewire::test(ViewFormSubmission::class, ['record' => $submission->getRouteKey()]);
+    $url = fn (FormSubmission $submission): string => FormSubmissionResource::getUrl('view', ['record' => $submission]);
+
+    $page($middle)
+        ->assertActionHasUrl('newer', $url($newest))
+        ->assertActionHasUrl('older', $url($oldest));
+
+    $page($newest)->assertActionDisabled('newer');
+    $page($oldest)->assertActionDisabled('older');
+});
+
 it('filters and marks the submissions of a form by whether they were read', function () {
     [$read, $unread] = inbox(2);
     $read->markAsRead();
