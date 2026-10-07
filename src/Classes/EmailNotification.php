@@ -32,6 +32,16 @@ class EmailNotification
      */
     public array $receivers;
 
+    /**
+     * @var list<string>
+     */
+    public array $cc;
+
+    /**
+     * @var list<string>
+     */
+    public array $bcc;
+
     public ?string $replyTo;
 
     public FieldConditions $conditions;
@@ -58,6 +68,8 @@ class EmailNotification
         $this->sender = $notification['sender'] ?? '';
         $this->senderName = MergeTags::render($notification['senderName'], $values, asText: true);
         $this->receivers = $this->resolveAddresses($notification['to']);
+        $this->cc = $this->resolveAddresses($notification['cc']);
+        $this->bcc = $this->resolveAddresses($notification['bcc']);
         $this->replyTo = $this->resolveAddresses(array_filter([$notification['reply_to']]))[0] ?? null;
         $this->conditions = FieldConditions::fromArray($notification['conditions'], $notification['conditionMatch']);
         $this->attachments = $notification['attach_files'] ? $this->getAttachments() : [];
@@ -68,11 +80,12 @@ class EmailNotification
      * addresses and field keys, and a notification had no id or switch.
      *
      * @param  array<string, mixed>  $notification
-     * @return array{id: ?string, enabled: bool, subject: ?string, content: ?string, sender: ?string, senderName: ?string, to: list<string>, reply_to: ?string, conditions: array<mixed>, conditionMatch: string, attach_files: bool}
+     * @return array{id: ?string, enabled: bool, subject: ?string, content: ?string, sender: ?string, senderName: ?string, to: list<string>, cc: list<string>, bcc: list<string>, reply_to: ?string, conditions: array<mixed>, conditionMatch: string, attach_files: bool}
      */
     public static function normalize(array $notification): array
     {
         $recipients = $notification['to'] ?? $notification['receivers'] ?? [];
+        $list = fn (mixed $recipients): array => array_values(array_filter(array_map(static::toRecipient(...), is_array($recipients) ? $recipients : [])));
 
         return [
             'id' => is_string($notification['id'] ?? null) && $notification['id'] !== '' ? $notification['id'] : null,
@@ -81,7 +94,9 @@ class EmailNotification
             'content' => is_string($notification['content'] ?? null) ? $notification['content'] : null,
             'sender' => is_string($notification['sender'] ?? null) && $notification['sender'] !== '' ? $notification['sender'] : null,
             'senderName' => is_string($notification['senderName'] ?? null) ? $notification['senderName'] : null,
-            'to' => array_values(array_filter(array_map(static::toRecipient(...), is_array($recipients) ? $recipients : []))),
+            'to' => $list($recipients),
+            'cc' => $list($notification['cc'] ?? []),
+            'bcc' => $list($notification['bcc'] ?? []),
             'reply_to' => static::toRecipient($notification['reply_to'] ?? null),
             'conditions' => is_array($notification['conditions'] ?? null) ? array_values($notification['conditions']) : [],
             'conditionMatch' => ($notification['conditionMatch'] ?? null) === 'any' ? 'any' : 'all',

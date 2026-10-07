@@ -71,6 +71,28 @@ it('sends nothing when switched off, when its conditions fail or without recipie
         ->and($mail(['to' => ['field:naam']]))->toBeFalse();
 });
 
+it('sends the copies along with the mail of every recipient, but not to whoever it is already for', function () {
+    Queue::fake();
+
+    $form = mailForm([
+        ['id' => 'team', 'subject' => 'Nieuw', 'content' => '<p>Hoi</p>', 'to' => ['hr@example.test', 'field:email'], 'cc' => ['baas@example.test', 'hr@example.test'], 'bcc' => ['field:email']],
+    ]);
+
+    $form->getType()->sendNotifications(mailSubmission($form));
+
+    $copies = [];
+    Queue::assertPushed(SendFormNotificationJob::class, function (SendFormNotificationJob $job) use (&$copies): bool {
+        $copies[$job->receiver] = ['cc' => $job->cc, 'bcc' => $job->bcc];
+
+        return true;
+    });
+
+    expect($copies)->toBe([
+        'hr@example.test' => ['cc' => ['baas@example.test'], 'bcc' => ['jan@example.test']],
+        'jan@example.test' => ['cc' => ['baas@example.test', 'hr@example.test'], 'bcc' => []],
+    ]);
+});
+
 it('attaches the uploads that fit within the limit', function () {
     Storage::fake('local');
     Storage::disk('local')->put('form_uploads/cv.pdf', str_repeat('a', 6 * 1024));

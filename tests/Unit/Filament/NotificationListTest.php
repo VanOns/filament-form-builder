@@ -118,6 +118,29 @@ it('marks a recipient field that mails nobody', function () {
         ->assertSeeHtml('ffb-recipient-broken');
 });
 
+it('keeps copies only once they are asked for, and shows them on the card', function () {
+    $form = notifiedForm([['id' => 'team', 'subject' => 'Nieuw', 'content' => '<p>Hoi</p>', 'to' => ['hr@example.test']]]);
+    $page = editNotifications($form);
+
+    $page->mountAction(onNotifications('edit', ['item' => 'team']))
+        ->assertSchemaStateSet(['show_copies' => false])
+        ->fillForm(['show_copies' => true, 'cc' => ['baas@example.test'], 'bcc' => ['field:email']])
+        ->callMountedAction()
+        ->assertHasNoActionErrors()
+        ->assertSee('baas@example.test');
+
+    expect($form->refresh()->notifications[0])
+        ->cc->toBe(['baas@example.test'])
+        ->bcc->toBe(['field:email']);
+
+    $page->mountAction(onNotifications('edit', ['item' => 'team']))
+        ->assertSchemaStateSet(['show_copies' => true])
+        ->fillForm(['show_copies' => false])
+        ->callMountedAction();
+
+    expect($form->refresh()->notifications[0])->cc->toBe([])->bcc->toBe([]);
+});
+
 it('goes back to the default sender once the sender fields are put away', function () {
     $form = notifiedForm([['id' => 'team', 'subject' => 'Nieuw', 'content' => '<p>Hoi</p>', 'to' => ['hr@example.test'],
         'sender' => 'jobs@example.test', 'senderName' => '<p><span data-type="mergeTag" data-id="naam"></span></p>']]);

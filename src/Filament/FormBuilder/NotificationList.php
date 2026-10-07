@@ -189,6 +189,7 @@ class NotificationList extends Field
         return [
             ...$item,
             'when' => filled($item['conditions'] ?? []) ? 'conditions' : 'always',
+            'show_copies' => filled($item['cc'] ?? []) || filled($item['bcc'] ?? []),
             'show_sender' => filled($item['sender'] ?? null) || filled(strip_tags((string) ($item['senderName'] ?? ''))) || MergeTags::ids($item['senderName'] ?? null) !== [],
         ];
     }
@@ -271,7 +272,8 @@ class NotificationList extends Field
 
     /**
      * The slide-over's choices as the notification stores them: "always"
-     * drops the conditions, and put-away sender fields mean the default.
+     * drops the conditions, and fields never brought up mean no copies and the
+     * default sender.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -282,12 +284,17 @@ class NotificationList extends Field
             $data['conditions'] = [];
         }
 
+        if (!($data['show_copies'] ?? false)) {
+            $data['cc'] = [];
+            $data['bcc'] = [];
+        }
+
         if (!($data['show_sender'] ?? false)) {
             $data['sender'] = null;
             $data['senderName'] = null;
         }
 
-        unset($data['when'], $data['show_sender']);
+        unset($data['when'], $data['show_copies'], $data['show_sender']);
 
         return $data;
     }
@@ -329,6 +336,24 @@ class NotificationList extends Field
                     ->form($form)
                     ->required()
                     ->validationMessages(['required' => __('filament-form-builder::general.notifications.to_required')]),
+                Hidden::make('show_copies'),
+                Actions::make([
+                    Action::make('addCopies')
+                        ->label(__('filament-form-builder::general.notifications.add_copies'))
+                        ->icon(Heroicon::Plus)
+                        ->link()
+                        ->action(fn (Set $set) => $set('show_copies', true)),
+                ])->visible(fn (Get $get): bool => !$get('show_copies')),
+                RecipientsInput::make('cc')
+                    ->label(__('filament-form-builder::general.notifications.cc'))
+                    ->helperText(__('filament-form-builder::general.notifications.cc_helper'))
+                    ->form($form)
+                    ->visible(fn (Get $get): bool => (bool) $get('show_copies')),
+                RecipientsInput::make('bcc')
+                    ->label(__('filament-form-builder::general.notifications.bcc'))
+                    ->helperText(__('filament-form-builder::general.notifications.bcc_helper'))
+                    ->form($form)
+                    ->visible(fn (Get $get): bool => (bool) $get('show_copies')),
                 RecipientsInput::make('reply_to')
                     ->label(__('filament-form-builder::general.notifications.reply_to'))
                     ->helperText(__('filament-form-builder::general.notifications.reply_to_helper'))
@@ -520,7 +545,7 @@ class NotificationList extends Field
     /**
      * Each notification as its card shows it.
      *
-     * @return array<string, array{subject: HtmlString, enabled: bool, to: list<array{label: string, isField: bool, isBroken: bool}>, replyTo: ?array{label: string, isField: bool, isBroken: bool}, conditions: ?string, attachFiles: bool}>
+     * @return array<string, array{subject: HtmlString, enabled: bool, rows: list<array{label: string, recipients: list<array{label: string, isField: bool, isBroken: bool}>}>, conditions: ?string, attachFiles: bool}>
      */
     public function getCards(): array
     {
@@ -539,11 +564,18 @@ class NotificationList extends Field
         $cards = [];
 
         foreach ($this->getRawState() ?? [] as $id => $item) {
+            $rows = [['label' => __('filament-form-builder::general.notifications.to'), 'recipients' => array_map($recipient, $item['to'] ?? [])]];
+
+            foreach (['cc' => $item['cc'] ?? [], 'bcc' => $item['bcc'] ?? [], 'reply_to' => array_filter([$item['reply_to'] ?? null])] as $row => $recipients) {
+                if ($recipients !== []) {
+                    $rows[] = ['label' => __("filament-form-builder::general.notifications.{$row}"), 'recipients' => array_values(array_map($recipient, $recipients))];
+                }
+            }
+
             $cards[$id] = [
                 'subject' => new HtmlString(strip_tags(MergeTags::render($item['subject'] ?? null, $tags), '<span>')),
                 'enabled' => (bool) ($item['enabled'] ?? true),
-                'to' => array_map($recipient, $item['to'] ?? []),
-                'replyTo' => filled($item['reply_to'] ?? null) ? $recipient($item['reply_to']) : null,
+                'rows' => $rows,
                 'conditions' => $conditions->badge($item['conditions'] ?? [], $item['conditionMatch'] ?? 'all'),
                 'attachFiles' => (bool) ($item['attach_files'] ?? false),
             ];

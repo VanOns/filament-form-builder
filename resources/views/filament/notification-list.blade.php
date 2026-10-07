@@ -87,25 +87,18 @@
                 </header>
 
                 <dl class="ffb-mail-card-rows">
-                    <div class="ffb-mail-card-row">
-                        <dt>{{ __('filament-form-builder::general.notifications.to') }}</dt>
-                        <dd>
-                            @forelse ($card['to'] as $recipient)
-                                @include('filament-form-builder::filament.partials.recipient', ['recipient' => $recipient])
-                            @empty
-                                <span class="ffb-mail-card-muted">{{ __('filament-form-builder::general.notifications.no_recipients') }}</span>
-                            @endforelse
-                        </dd>
-                    </div>
-
-                    @if ($card['replyTo'] !== null)
+                    @foreach ($card['rows'] as $row)
                         <div class="ffb-mail-card-row">
-                            <dt>{{ __('filament-form-builder::general.notifications.reply_to') }}</dt>
+                            <dt>{{ $row['label'] }}</dt>
                             <dd>
-                                @include('filament-form-builder::filament.partials.recipient', ['recipient' => $card['replyTo']])
+                                @forelse ($row['recipients'] as $recipient)
+                                    @include('filament-form-builder::filament.partials.recipient', ['recipient' => $recipient])
+                                @empty
+                                    <span class="ffb-mail-card-muted">{{ __('filament-form-builder::general.notifications.no_recipients') }}</span>
+                                @endforelse
                             </dd>
                         </div>
-                    @endif
+                    @endforeach
                 </dl>
 
                 <footer class="ffb-mail-card-footer">

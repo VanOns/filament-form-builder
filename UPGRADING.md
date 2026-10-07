@@ -92,7 +92,8 @@ code. See [Form types](docs/usage.md#form-types).
   type offers its rules in `getFilterConstraints()`; see [Filtering submissions](docs/usage.md#filtering-submissions).
 
 * A notification lists its recipients in `to`, an address or `field:key` for the answer of a field,
-  where v2 had `receivers`. It also has an `id`, `enabled`, `reply_to`, `conditions` and `attach_files`.
+  where v2 had `receivers`. It also has an `id`, `enabled`, `cc`, `bcc`, `reply_to`, `conditions` and
+  `attach_files`.
   A notification stored before is read as one of now and saved that way once its form is saved.
 
 ### Stored forms and submissions

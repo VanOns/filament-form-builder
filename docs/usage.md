@@ -198,6 +198,8 @@ how often they went out. A notification is edited in a slide-over:
 
 - **To**: fields of the form that hold an e-mail address, or addresses typed in.
   Every recipient gets a mail of their own.
+- **CC** and **BCC**: the same kind of recipients, getting a copy of each of
+  those mails; an address the mail is already for gets no copy of it.
 - **Reply to**: a field or an address, so a reply goes to the person who sent
   the form.
 - **Sending**: always, or only when the answers meet conditions, the same rules

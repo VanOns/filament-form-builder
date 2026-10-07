@@ -192,7 +192,10 @@ class FormResource extends Resource
                 $notification[$text] = MergeTags::rename($notification[$text] ?? null, $from, $to);
             }
 
-            $notification['to'] = array_map($field, $notification['to'] ?? []);
+            foreach (['to', 'cc', 'bcc'] as $list) {
+                $notification[$list] = array_map($field, $notification[$list] ?? []);
+            }
+
             $notification['reply_to'] = $field($notification['reply_to'] ?? null);
             $notification['conditions'] = array_map(
                 fn (array $rule): array => ($rule['key'] ?? null) === $from ? [...$rule, 'key' => $to] : $rule,

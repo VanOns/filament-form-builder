@@ -52,6 +52,10 @@ trait HasNotifications
         );
 
         foreach ($notification->receivers as $receiver) {
+            // Every recipient gets a mail of their own; the copies go along with each, but not to whoever it is already for.
+            $cc = array_values(array_diff($notification->cc, [$receiver]));
+            $bcc = array_values(array_diff($notification->bcc, [$receiver, ...$cc]));
+
             try {
                 $log = FormSubmissionNotificationLog::create([
                     'form_submission_id' => $submission->id,
@@ -72,6 +76,8 @@ trait HasNotifications
                     senderName: $notification->senderName,
                     replyTo: $notification->replyTo,
                     attachments: $attachments,
+                    cc: $cc,
+                    bcc: $bcc,
                 );
             } catch (Throwable $e) {
                 report($e);

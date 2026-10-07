@@ -33,12 +33,22 @@ class SendFormNotificationJob implements ShouldQueue
          * @var list<array{path: string, name: string}>
          */
         public array $attachments = [],
+        /**
+         * @var list<string>
+         */
+        public array $cc = [],
+        /**
+         * @var list<string>
+         */
+        public array $bcc = [],
     ) {
     }
 
     public function handle(): void
     {
         Mail::to($this->receiver)
+            ->cc($this->cc)
+            ->bcc($this->bcc)
             ->send(new FormSubmissionCreatedMail(
                 emailSubject: $this->subject,
                 emailContent: $this->content,
