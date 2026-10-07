@@ -12,6 +12,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Casts\FieldSnapshot;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
@@ -56,7 +57,7 @@ class FormSubmission extends Model
         return [
             'data' => 'array',
             'files' => 'array',
-            'field_snapshot' => 'array',
+            'field_snapshot' => FieldSnapshot::class,
             'meta' => 'array',
             'integrations' => 'array',
             'read_at' => 'datetime',

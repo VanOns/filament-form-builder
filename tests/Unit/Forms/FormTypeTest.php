@@ -99,7 +99,8 @@ it('stores a hidden field and the values the type adds itself', function () {
         'privacy' => '1',
     ]);
 
-    expect(FormSubmission::sole()->data)->toBe([
+    // By content: MySQL keeps the keys of a JSON object in an order of its own.
+    expect(FormSubmission::sole()->data)->toEqual([
         'naam' => 'Jan',
         'vacature' => 'Senior adviseur',
         'privacy' => '1',

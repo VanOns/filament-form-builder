@@ -1,6 +1,7 @@
 <?php
 
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\DB;
 use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\CheckboxField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\NumberField;
@@ -75,6 +76,21 @@ it('keeps the fields of its form as they were when it was submitted', function (
     ])
         ->and($submission->field_snapshot['vestiging']['type'])->toBe(EstablishmentField::class)
         ->and($submission->field_snapshot['pagina']['label'])->toBe('Verstuurd vanaf');
+});
+
+it('keeps the order of the form where the database sorts the keys of JSON', function () {
+    $submission = vacancySubmission(['naam' => 'Jan']);
+    $stored = json_decode((string) DB::table('form_submissions')->where('id', $submission->id)->value('field_snapshot'), true);
+    $order = ['naam', 'vestiging', 'uren', 'cv_link', 'privacy', 'pagina'];
+
+    // MySQL would put uren before vestiging, and pagina before cv_link.
+    expect(array_column($stored, 'key'))->toBe($order)
+        ->and(array_keys($submission->fresh()->field_snapshot))->toBe($order)
+        ->and($submission->fresh()->field_snapshot['vestiging']['columns'])->toBe([
+            'vestiging' => 'Vestiging',
+            'vestiging_naam' => 'Vestiging naam',
+            'vestiging_email' => 'Vestiging e-mailadres',
+        ]);
 });
 
 it('shows a field that fills several columns as one answer', function () {

@@ -122,6 +122,24 @@ it('shows the columns of the fields that ask for it, under their short name', fu
         ->and($submission->getFormattedData(formatKeys: true))->toBe(['Uren' => '32']);
 });
 
+it('searches and sorts the answers whatever their case', function () {
+    test()->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+    $form = customForm([['type' => 'text', 'label' => 'Naam', 'key' => 'naam', 'showColumn' => true]]);
+    [$jan, $anna, $bob] = array_map(
+        fn (string $naam): FormSubmission => FormSubmission::create(['form_id' => $form->id, 'data' => ['naam' => $naam]]),
+        ['Jan de Vries', 'anna', 'Bob'],
+    );
+
+    // Compared as stored, MySQL would miss "Jan" for "jan" and put "anna" after "Bob".
+    Livewire::test(FormSubmissionsRelationManager::class, ['ownerRecord' => $form, 'pageClass' => EditForm::class])
+        ->searchTable('jan')
+        ->assertCanSeeTableRecords([$jan])
+        ->assertCanNotSeeTableRecords([$anna, $bob])
+        ->searchTable('')
+        ->sortTable('data.naam')
+        ->assertCanSeeTableRecords([$anna, $bob, $jan], inOrder: true);
+});
+
 it('shortens a label that is a whole paragraph', function () {
     $consent = 'Ik ga ermee akkoord dat mijn gegevens via deze website tot 4 weken worden bewaard';
     $form = customForm([['type' => 'text', 'label' => $consent, 'key' => 'akkoord']]);

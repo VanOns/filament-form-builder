@@ -55,6 +55,52 @@ jobs:
       - name: 🧪 Run Pest tests
         run: composer run test
 
+  # SQLite hides how MySQL treats JSON: it sorts object keys and compares values case-sensitively.
+  test-mysql:
+    runs-on: ubuntu-latest
+    name: 'Test: MySQL - F${{ matrix.filament }}'
+
+    strategy:
+      fail-fast: true
+      matrix:
+        filament: [ 4.*, 5.* ]
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - name: 📄 Clone repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: ⚙️Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        with:
+          php-version: 8.4
+          extensions: pdo_mysql
+          coverage: none
+
+      - name: ⬇️Install Composer dependencies
+        run: |
+          composer require "filament/filament:${{ matrix.filament }}" --no-interaction --no-update
+          composer update --prefer-stable -W --prefer-dist --no-progress --no-ansi --no-interaction
+
+      - name: 🧪 Run Pest tests
+        run: composer run test
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+
   analyse:
     runs-on: ubuntu-latest
     name: Analyse
