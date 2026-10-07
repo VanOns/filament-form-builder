@@ -265,8 +265,9 @@ A custom field can depend on other answers: on its Conditions tab an editor adds
 rules such as "Onderwerp is equal to anders" and chooses whether all of them or
 any of them must hold. The field renders the rules as JSON in a `data-conditions`
 attribute, which `resources/js/form-builder.js` evaluates to show or hide it; the
-form loads that script itself. On the server, a required conditional field is
-only required while its conditions show it.
+form loads that script itself. A hidden field is disabled, so it is not posted
+and what the visitor typed is back when it shows again. On the server, a
+required conditional field is only required while its conditions show it.
 
 What a rule can test depends on the field it looks at, through the field type's
 `getConditionOperators()`: any answer can equal a value or be empty, a number
@@ -275,6 +276,79 @@ be before, on or before, after or on or after a date, and a checkbox is ticked
 or not. `getConditionPhrase()` gives the words a rule reads as. The same rules
 decide when an e-mail notification goes out and which outcome follows a
 submission.
+
+### In a front end of your own
+
+A front end in React, Vue or anything else, such as one on Inertia, uses the
+same rules through `resources/js/conditions.js`. It has no dependencies, and
+`resources/js/conditions.d.ts` types it. Point an alias at the package, the
+way Ziggy is often imported from `vendor`:
+
+```js
+// vite.config.js
+resolve: {
+    alias: {
+        '@form-builder': path.resolve(__dirname, 'vendor/van-ons/filament-form-builder/resources/js'),
+    },
+},
+```
+
+```json
+// tsconfig.json, compilerOptions
+"paths": {
+    "@form-builder/*": ["./vendor/van-ons/filament-form-builder/resources/js/*"]
+}
+```
+
+Hand the page the conditions with the fields. `$form->getFieldConditions()`
+gives the fields that have any, by key:
+
+```php
+return Inertia::render('Contact', [
+    'form' => [
+        'id' => $form->id,
+        'fields' => $fields, // however your front end reads them
+        'conditions' => $form->getFieldConditions(),
+    ],
+]);
+```
+
+| Function                       | Gives                                                                    |
+|--------------------------------|--------------------------------------------------------------------------|
+| `hiddenKeys(conditions, values)` | The keys of the fields to hide, as a `Set`. A hidden field counts as empty for the others, so a field that depends on a hidden one hides too |
+| `readValues(form)`             | The answers in a form element by key, the way it would post them         |
+| `passes(conditions, values)`   | Whether one field's conditions hold                                      |
+| `matches(value, operator, expected)` | Whether an answer meets one rule                                   |
+
+They read the rules exactly as the server does, so a field the page hides is
+one the server does not require. With Inertia's `<Form>`, which posts what is
+in the form element, reading the answers on every change is enough:
+
+```tsx
+import { Form } from '@inertiajs/react'
+import { useState } from 'react'
+import { hiddenKeys, readValues } from '@form-builder/conditions'
+
+export default function ContactForm({ form }) {
+    const defaults = Object.fromEntries(form.fields.map((field) => [field.key, field.defaultValue]))
+    const [hidden, setHidden] = useState(() => hiddenKeys(form.conditions, defaults))
+
+    return (
+        <Form
+            action={`/filament-form-builder/${form.id}/submit`}
+            method="post"
+            onChange={(event) => setHidden(hiddenKeys(form.conditions, readValues(event.currentTarget)))}
+        >
+            {form.fields
+                .filter((field) => !hidden.has(field.key))
+                .map((field) => <Field key={field.key} field={field} />)}
+        </Form>
+    )
+}
+```
+
+A field left out of the form is not posted. With `useForm()` instead, pass its
+`data` as the values and leave the hidden keys out with `transform()`.
 
 ## Submit notification
 

@@ -207,6 +207,25 @@ class Form extends Model
     }
 
     /**
+     * The conditions of the fields that have any, by key: what a front end of
+     * your own hands to resources/js/conditions.js.
+     *
+     * @return array<string, array{match: string, rules: list<array{key: string, operator: string, value: ?string}>}>
+     */
+    public function getFieldConditions(): array
+    {
+        $conditions = [];
+
+        foreach ($this->getFields(inputsOnly: true) as $field) {
+            if ($field->hasConditions()) {
+                $conditions[$field->getKey()] = $field->getConditions()->toArray();
+            }
+        }
+
+        return $conditions;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function getRules(): array

@@ -96,6 +96,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
             // For the forms on the site, which load them themselves; never in the panel.
             Css::make('form-builder', __DIR__.'/../resources/css/form-builder.css')->loadedOnRequest(),
             Js::make('form-builder', __DIR__.'/../resources/js/form-builder.js')->loadedOnRequest(),
+            Js::make('conditions', __DIR__.'/../resources/js/conditions.js')->loadedOnRequest(),
         ], 'van-ons/filament-form-builder');
     }
 

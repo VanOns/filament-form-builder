@@ -77,6 +77,15 @@ it adds it with `php artisan make:queue-batches-table`. To leave the export out
 of a panel, call `->exportAction(false)` on the plugin; `export_action` in the
 config sets it for every panel.
 
+### A front end in React, Vue or Inertia
+
+`<x-render-form>` shows a form with its conditional fields working. A front end
+of your own uses the same rules through `resources/js/conditions.js`: hand it
+`$form->getFieldConditions()` and the answers so far, and `hiddenKeys()` says
+which fields to hide, exactly as the server reads them. See
+[In a front end of your own](docs/usage.md#in-a-front-end-of-your-own) for the
+import alias and an Inertia example.
+
 ## Documentation
 
 Please see the [documentation](docs) for detailed information about installation and usage.

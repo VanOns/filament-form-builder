@@ -64,3 +64,15 @@ it('has no fields when its type is not registered', function () {
     expect($form->getType())->toBeInstanceOf(FormType::class)
         ->and($form->getFields())->toBe([]);
 });
+
+it('hands the conditions of its fields to a front end of its own', function () {
+    $form = Form::create(['title' => 'Offerte', 'template' => 'custom', 'custom' => ['fields' => [
+        ['type' => 'radio', 'label' => 'Onderwerp', 'key' => 'onderwerp', 'options' => [['value' => 'anders', 'label' => 'Iets anders']]],
+        ['type' => 'textarea', 'label' => 'Toelichting', 'key' => 'toelichting', 'conditionMatch' => 'any',
+            'conditions' => [['key' => 'onderwerp', 'operator' => 'equals', 'value' => 'anders']]],
+    ]]]);
+
+    expect($form->getFieldConditions())->toBe([
+        'toelichting' => ['match' => 'any', 'rules' => [['key' => 'onderwerp', 'operator' => 'equals', 'value' => 'anders']]],
+    ]);
+});
