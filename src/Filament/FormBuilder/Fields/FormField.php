@@ -48,6 +48,7 @@ abstract class FormField
         $span = $this->getColumnSpan();
 
         return $this->getAttributes(array_filter([
+            'class' => 'ffb-field',
             'data-form-builder-input-wrapper' => $this->getKey(),
             'data-form-builder-column-span' => (string) $span,
             'data-form-builder-new-row' => $this->newRow ? 'true' : null,

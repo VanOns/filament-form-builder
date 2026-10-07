@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder;
 
 use Filament\Support\Assets\AlpineComponent;
 use Filament\Support\Assets\Css;
+use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -92,6 +93,9 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
             AlpineComponent::make('form-canvas', __DIR__.'/../resources/js/components/form-canvas.js'),
             AlpineComponent::make('merge-tag-picker', __DIR__.'/../resources/js/components/merge-tag-picker.js'),
             AlpineComponent::make('recipients-input', __DIR__.'/../resources/js/components/recipients-input.js'),
+            // For the forms on the site, which load them themselves; never in the panel.
+            Css::make('form-builder', __DIR__.'/../resources/css/form-builder.css')->loadedOnRequest(),
+            Js::make('form-builder', __DIR__.'/../resources/js/form-builder.js')->loadedOnRequest(),
         ], 'van-ons/filament-form-builder');
     }
 

@@ -5,5 +5,5 @@
 @endphp
 
 <div {{ $field->getWrapperAttributes() }}>
-    <div>{!! $field->text !!}</div>
+    <div class="ffb-text">{!! $field->text !!}</div>
 </div>

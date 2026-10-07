@@ -1,0 +1,143 @@
+/*
+ * The basics for forms on the site. Every rule sits in :where(), so any rule of
+ * the site's own wins; the custom properties set the few colours used.
+ */
+
+:where(.ffb-form) {
+    --ffb-background: #fff;
+    --ffb-border: #d4d4d8;
+    --ffb-muted: #71717a;
+    --ffb-error: #b91c1c;
+    --ffb-button: #18181b;
+    --ffb-button-text: #fff;
+    --ffb-radius: 0.375rem;
+
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1.25rem 1rem;
+}
+
+:where(.ffb-form) > * {
+    grid-column: 1 / -1;
+}
+
+:where(.ffb-form) :where(.ffb-field) {
+    grid-column: var(--form-builder-column-start, auto) / span var(--form-builder-column-span, 12);
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+@media (max-width: 40rem) {
+    :where(.ffb-form) :where(.ffb-field) {
+        grid-column: 1 / -1;
+    }
+}
+
+:where(.ffb-label) {
+    padding: 0;
+    font-weight: 600;
+}
+
+:where(.ffb-required),
+:where(.ffb-error) {
+    color: var(--ffb-error);
+}
+
+:where(.ffb-description),
+:where(.ffb-error) {
+    margin: 0;
+    font-size: 0.875em;
+}
+
+:where(.ffb-description) {
+    color: var(--ffb-muted);
+}
+
+:where(.ffb-field) :where(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea) {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--ffb-border);
+    border-radius: var(--ffb-radius);
+    background-color: var(--ffb-background);
+    color: inherit;
+    font: inherit;
+}
+
+/* Browsers size a select and a date input their own way; this lines them up with the rest. */
+:where(.ffb-field) :where(input:not([type="checkbox"], [type="radio"], [type="file"]), select) {
+    height: calc(1.5em + 1rem + 2px);
+    line-height: 1.5;
+}
+
+:where(.ffb-field) :where(select) {
+    appearance: none;
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25rem;
+}
+
+:where(.ffb-field) :where(select:has(> option[value=""]:checked)) {
+    color: var(--ffb-muted);
+}
+
+:where(.ffb-field) :where(select option) {
+    color: CanvasText;
+}
+
+:where(.ffb-field) :where([aria-invalid="true"]) {
+    border-color: var(--ffb-error);
+}
+
+:where(.ffb-options) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+:where(.ffb-check) {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+:where(.ffb-check) :where(.ffb-label) {
+    font-weight: inherit;
+}
+
+:where(.ffb-title) {
+    margin: 0;
+}
+
+:where(.ffb-text) > :first-child {
+    margin-top: 0;
+}
+
+:where(.ffb-text) > :last-child {
+    margin-bottom: 0;
+}
+
+:where(.ffb-submit) {
+    align-self: flex-start;
+    padding: 0.625rem 1.25rem;
+    border: 0;
+    border-radius: var(--ffb-radius);
+    background: var(--ffb-button);
+    color: var(--ffb-button-text);
+    font: inherit;
+    cursor: pointer;
+}
+
+:where(.ffb-message) {
+    padding: 0.75rem 1rem;
+    border-radius: var(--ffb-radius);
+    background: #ecfdf5;
+    color: #065f46;
+}

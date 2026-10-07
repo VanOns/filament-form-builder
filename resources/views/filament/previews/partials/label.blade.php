@@ -7,7 +7,3 @@
         <span class="ffb-preview-badge">{{ __('filament-form-builder::fields.hidden_badge') }}</span>
     @endif
 </div>
-
-@if (filled($field->description ?? null))
-    <div class="ffb-preview-description">{{ $field->description }}</div>
-@endif

@@ -113,10 +113,18 @@ class FormBuilderForm {
         return values.length === 1 ? values[0] : values;
     }
 
+    // A form can be on the page twice over, or the script loaded twice: each form starts once.
     static initAll() {
-        const forms = document.querySelectorAll('[data-form-builder-form]');
-        forms.forEach(formElement => new FormBuilderForm(formElement));
+        document.querySelectorAll('[data-form-builder-form]').forEach((formElement) => {
+            if (!formElement.formBuilder) {
+                formElement.formBuilder = new FormBuilderForm(formElement);
+            }
+        });
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => FormBuilderForm.initAll());
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => FormBuilderForm.initAll());
+} else {
+    FormBuilderForm.initAll();
+}

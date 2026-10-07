@@ -3,7 +3,7 @@
 Start by installing the package via Composer:
 
 ```bash
-composer require van-ons/filament-form-builder:^2.0
+composer require van-ons/filament-form-builder:^3.0
 ```
 
 Next, publish and run the migrations:
@@ -11,6 +11,14 @@ Next, publish and run the migrations:
 ```bash
 php artisan vendor:publish --tag=filament-form-builder-migrations
 php artisan migrate
+```
+
+Then publish the assets: the builder's own, and the script and stylesheet that
+forms on the site load. A Filament app usually does this on every
+`composer update` through `php artisan filament:upgrade`.
+
+```bash
+php artisan filament:assets
 ```
 
 Finally, add the plugin to your Filament panel provider:

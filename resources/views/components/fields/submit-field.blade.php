@@ -5,5 +5,5 @@
 @endphp
 
 <div {{ $field->getWrapperAttributes() }}>
-    <button type="submit">{{ $field->getLabel() }}</button>
+    <button type="submit" class="ffb-submit">{{ $field->getLabel() }}</button>
 </div>

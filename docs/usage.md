@@ -260,9 +260,9 @@ as the same tag, and the editor shows it as one once the form is opened.
 A custom field can depend on other answers: on its Conditions tab an editor adds
 rules such as "Onderwerp is equal to anders" and chooses whether all of them or
 any of them must hold. The field renders the rules as JSON in a `data-conditions`
-attribute, which `resources/js/form-builder.js` evaluates to show or hide it. On
-the server, a required conditional field is only required while its conditions
-show it.
+attribute, which `resources/js/form-builder.js` evaluates to show or hide it; the
+form loads that script itself. On the server, a required conditional field is
+only required while its conditions show it.
 
 What a rule can test depends on the field it looks at, through the field type's
 `getConditionOperators()`: any answer can equal a value or be empty, a number
@@ -500,34 +500,62 @@ the minimum as the minimum, and an empty one as the full row.
 `$field->getWidth()` returns the `FieldWidth`, `$field->getColumnSpan()` the
 number of columns.
 
-### Laying the grid out in CSS
+### Styling forms on the site
 
-The shipped views render `{{ $form->getWrapperAttributes() }}` on the form and
-`{{ $field->getWrapperAttributes() }}` on every field wrapper, which carries the
-span. Two rules turn that into the grid, and a third stacks the fields on a
-narrow screen:
+A form loads `form-builder.js`, for its conditions, and a minimal stylesheet,
+once per page however many forms it has. Both come from
+`php artisan filament:assets`. The stylesheet lays the fields out on the grid,
+stacks them on a narrow screen and gives labels, inputs, errors and the button
+a plain look. Every rule in it sits in `:where()`, so any rule of the site's own
+wins, and a few custom properties on `.ffb-form` set its colours:
 
 ```css
-[data-form-builder-form] {
+.ffb-form {
+    --ffb-background: #fff;
+    --ffb-border: #d4d4d8;
+    --ffb-muted: #71717a;
+    --ffb-error: #b91c1c;
+    --ffb-button: #18181b;
+    --ffb-button-text: #fff;
+    --ffb-radius: 0.375rem;
+}
+```
+
+To style forms entirely yourself, set `styles` to `false` in the config. The
+markup has a class for everything a site styles:
+
+| Class             | On                                                         |
+|-------------------|------------------------------------------------------------|
+| `ffb-form`        | The form                                                   |
+| `ffb-field`       | The wrapper of every field, a `fieldset` for choices       |
+| `ffb-label`       | The label, or the legend of a choice field                 |
+| `ffb-required`    | The star after a required field's label                    |
+| `ffb-description` | The description below a field, or a choice field's legend  |
+| `ffb-check`       | The label around a checkbox or an option, input first      |
+| `ffb-options`     | The options of a choice field                              |
+| `ffb-error`       | A validation message, inside the field's wrapper           |
+| `ffb-title`       | A title's heading                                          |
+| `ffb-text`        | A text block                                               |
+| `ffb-submit`      | The submit button                                          |
+| `ffb-message`     | The thank-you message after a submission                   |
+
+A field with an error also has `aria-invalid="true"`. The grid comes from the
+wrapper's custom properties, which a stylesheet of your own picks up the same
+way:
+
+```css
+.ffb-form {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
 }
 
-[data-form-builder-input-wrapper] {
+.ffb-field {
     grid-column: var(--form-builder-column-start, auto) / span var(--form-builder-column-span, 12);
-}
-
-@media (max-width: 40rem) {
-    [data-form-builder-input-wrapper] {
-        grid-column: 1 / -1;
-    }
 }
 ```
 
 The fields an editor builds form a block of their own: the first of them starts
 a new row, and so does the first field from code after them. Their wrapper
-carries `--form-builder-column-start: 1` and `data-form-builder-new-row`, which
-the rule above picks up. The span is also available as
-`data-form-builder-column-span` for projects that would rather select on
-attributes than custom properties. The package ships no
-CSS of its own, so nothing changes visually until you add rules like these.
+carries `--form-builder-column-start: 1` and `data-form-builder-new-row`. The
+span is also available as `data-form-builder-column-span` for projects that
+would rather select on attributes than custom properties.

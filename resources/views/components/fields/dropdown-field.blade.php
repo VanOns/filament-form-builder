@@ -4,16 +4,17 @@
      */
 @endphp
 
-<label for="{{ $field->getKey() }}" {{ $field->getWrapperAttributes() }}>
+<div {{ $field->getWrapperAttributes() }}>
     <x-filament-form-builder::field-label
+        :for="$field->getKey()"
         :label="$field->getLabel()"
-        :description="$field->description"
         :required="$field->isRequired()"
     />
     <select
         id="{{ $field->getKey() }}"
         name="{{ $field->getKey() }}"
         @required($field->isRequired())
+        @error($field->getKey()) aria-invalid="true" @enderror
         {{ $field->getAttributes() }}
     >
         <option value="">{{ $field->placeholder }}</option>
@@ -26,7 +27,8 @@
             </option>
         @endforeach
     </select>
-</label>
-@error($field->getKey())
-    <p>{{ $message }}</p>
-@enderror
+    @if ($field->description)
+        <p class="ffb-description">{{ $field->description }}</p>
+    @endif
+    <x-filament-form-builder::field-error :keys="$field->getKey()" />
+</div>

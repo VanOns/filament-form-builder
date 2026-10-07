@@ -24,9 +24,14 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 * `forms.template` now holds the name a form type is registered under instead of a template class: set
   it to `custom`, `contact` or the name of your own type.
 * Republish the config, or compare yours with [`config/general.php`](config/general.php).
-* Run `php artisan filament:assets`: the canvas brings its own stylesheet and Alpine component.
+* Run `php artisan filament:assets`: the canvas brings its own stylesheet and Alpine component, and
+  forms on the site load `form-builder.js` and a minimal stylesheet from it. Remove a script tag of
+  your own for `form-builder.js`, and set `styles` to `false` if you style forms entirely yourself.
 * Republish any views you published. `components/custom-form-renderer` is now `components/form`,
-  `components/forms/contact-form` is gone and `components/fields/hidden-field` is new.
+  `components/forms/contact-form` is gone and `components/fields/hidden-field` and `components/field-error`
+  are new. The field views changed: a `div` wraps each field (a `fieldset` for choices) with a
+  `label for` inside, errors sit inside that wrapper, and everything has an `ffb-*` class, see
+  [Styling forms on the site](docs/usage.md#styling-forms-on-the-site).
 * Integrations run from `RunFormIntegrationsJob`, so they need a queue worker unless the queue is `sync`.
 
 ### Config
@@ -50,6 +55,7 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 | `add_nav_group`                              | `navigation_group`, or `->navigationGroup()` on the plugin per panel                  |
 |                                              | `without_fields`, or `->withoutFields()` on the plugin per panel: types out of the palette |
 |                                              | `fields` gains `date` and `consent`                                                   |
+|                                              | `styles`: the minimal stylesheet forms on the site load                               |
 | `enable_export_action`: `false`              | `export_action`: `true`, or `->exportAction()` on the plugin per panel, see [Exporting submissions](docs/installation.md#exporting-submissions) |
 
 ### Templates become form types

@@ -5,5 +5,5 @@
 @endphp
 
 <div {{ $field->getWrapperAttributes() }}>
-    <{{ $field->headingLevel ?? 'h2' }}>{{ $field->title }}</{{ $field->headingLevel ?? 'h2' }}>
+    <{{ $field->headingLevel ?? 'h2' }} class="ffb-title">{{ $field->title }}</{{ $field->headingLevel ?? 'h2' }}>
 </div>

@@ -5,6 +5,7 @@
 
 <div class="ffb-preview">
     @include('filament-form-builder::filament.previews.partials.label')
+    @include('filament-form-builder::filament.previews.partials.description')
 
     <div class="ffb-preview-options">
         @forelse (array_slice($options, 0, 5) as $option)

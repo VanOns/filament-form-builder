@@ -1,15 +1,12 @@
 @props([
+    'for',
     'label',
-    'description' => null,
-    'required' => false
+    'required' => false,
 ])
 
-<p>
+<label for="{{ $for }}" class="ffb-label">
     {{ $label }}
     @if ($required)
-        <span>*</span>
+        <span class="ffb-required" aria-hidden="true">*</span>
     @endif
-</p>
-@if ($description)
-    <p>{{ $description }}</p>
-@endif
+</label>

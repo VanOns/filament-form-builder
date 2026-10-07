@@ -360,6 +360,7 @@ class Form extends Model
     public function getWrapperAttributes(): HtmlString
     {
         return AttributeHelper::render([
+            'class' => 'ffb-form',
             'enctype' => 'multipart/form-data',
             'data-form-builder-form' => $this->id,
         ]);

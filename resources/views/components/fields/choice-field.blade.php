@@ -6,29 +6,29 @@
     $selected = (array) old($field->getKey(), $field->getDefaultValue() ?? []);
 @endphp
 
-<div {{ $field->getWrapperAttributes() }}>
-    <x-filament-form-builder::field-label
-        :label="$field->getLabel()"
-        :description="$field->description"
-        :required="$field->isRequired()"
-    />
-    @foreach($field->options as $option)
-        <label>
-            <input
-                type="{{ $multiple ? 'checkbox' : 'radio' }}"
-                name="{{ $field->getKey() . ($multiple ? '[]' : '') }}"
-                value="{{ $option['value'] ?? '' }}"
-                @checked(in_array($option['value'] ?? '', $selected, true))
-                {{ $field->getAttributes(withRequired: false) }}
-            >
-            {{ $option['label'] ?? '' }}
-        </label>
-    @endforeach
-</div>
-
-@error($field->getKey())
-    <p>{{ $message }}</p>
-@enderror
-@error($field->getKey() . '.*')
-    <p>{{ $message }}</p>
-@enderror
+<fieldset {{ $field->getWrapperAttributes() }}>
+    <legend class="ffb-label">
+        {{ $field->getLabel() }}
+        @if ($field->isRequired())
+            <span class="ffb-required" aria-hidden="true">*</span>
+        @endif
+    </legend>
+    @if ($field->description)
+        <p class="ffb-description">{{ $field->description }}</p>
+    @endif
+    <div class="ffb-options">
+        @foreach($field->options as $option)
+            <label class="ffb-check">
+                <input
+                    type="{{ $multiple ? 'checkbox' : 'radio' }}"
+                    name="{{ $field->getKey() . ($multiple ? '[]' : '') }}"
+                    value="{{ $option['value'] ?? '' }}"
+                    @checked(in_array($option['value'] ?? '', $selected, true))
+                    {{ $field->getAttributes(withRequired: false) }}
+                >
+                <span>{{ $option['label'] ?? '' }}</span>
+            </label>
+        @endforeach
+    </div>
+    <x-filament-form-builder::field-error :keys="[$field->getKey(), $field->getKey() . '.*']" />
+</fieldset>

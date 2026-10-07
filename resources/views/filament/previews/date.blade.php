@@ -8,5 +8,6 @@
         <span>{{ Carbon::now()->translatedFormat($field->getFormat()) }}</span>
         <x-filament::icon :icon="Heroicon::OutlinedCalendarDays" class="ffb-preview-date-icon" />
     </div>
+    @include('filament-form-builder::filament.previews.partials.description')
     <div class="ffb-preview-key">{{ $field->getKey() }}</div>
 </div>

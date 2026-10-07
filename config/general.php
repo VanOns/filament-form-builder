@@ -35,6 +35,9 @@ return [
     'field_conditions' => true,
     'email_notifications' => true,
     'redirect_query' => true,
+    // The forms on the site load a minimal stylesheet with the grid; turn it off
+    // to style them entirely yourself.
+    'styles' => true,
     'form_middleware' => ['web'],
     'rate_limit_per_hour' => 60,
     'uploads' => [
