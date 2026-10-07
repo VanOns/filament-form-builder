@@ -12,6 +12,8 @@ return [
     'rows' => 'Rows',
     'advanced' => 'Advanced',
     'key_helper' => 'Leave empty to derive the key from the label. After that the key stays the same, even when the label changes.',
+    'in_overviews' => 'In overviews',
+    'on_the_site' => 'On the site',
     'column_label' => 'Column name',
     'column_label_helper' => 'A short name for the column in the submissions, the export, the filters and the mails. Empty: the label.',
     'show_column' => 'Show as a column in the submissions',

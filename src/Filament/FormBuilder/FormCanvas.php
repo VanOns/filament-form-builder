@@ -10,6 +10,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
@@ -871,34 +872,40 @@ class FormCanvas extends Field
                 ->validationMessages(['not_regex' => __('filament-form-builder::fields.key_invalid_characters')]),
         ];
 
-        if ($type::hasColumnLabelSetting()) {
-            $schema[] = TextInput::make('columnLabel')
+        $overviews = array_filter([
+            $type::hasColumnLabelSetting() ? TextInput::make('columnLabel')
                 ->label(__('filament-form-builder::fields.column_label'))
                 ->placeholder(fn (Get $get): ?string => $get('label'))
-                ->helperText(__('filament-form-builder::fields.column_label_helper'));
-        }
-
-        $schema[] = Toggle::make('showColumn')
-            ->label(__('filament-form-builder::fields.show_column'))
-            ->helperText(__('filament-form-builder::fields.show_column_helper'));
-
-        if ($type::canBeHidden()) {
-            $schema[] = Toggle::make('hidden')
-                ->label(__('filament-form-builder::fields.hidden'))
-                ->helperText(__('filament-form-builder::fields.hidden_helper'));
-        }
+                ->helperText(__('filament-form-builder::fields.column_label_helper')) : null,
+            Toggle::make('showColumn')
+                ->label(__('filament-form-builder::fields.show_column'))
+                ->helperText(__('filament-form-builder::fields.show_column_helper')),
+        ]);
 
         $default = $type::getDefaultValueComponent();
 
-        return array_values(array_filter([
-            ...$schema,
+        $site = array_filter([
+            $type::canBeHidden() ? Toggle::make('hidden')
+                ->label(__('filament-form-builder::fields.hidden'))
+                ->helperText(__('filament-form-builder::fields.hidden_helper')) : null,
             $default,
             $default === null ? null : TextInput::make('queryParameter')
                 ->label(__('filament-form-builder::fields.query_parameter'))
                 ->prefix('?')
                 ->alphaDash()
                 ->helperText(__('filament-form-builder::fields.query_parameter_helper')),
-        ]));
+        ]);
+
+        $group = fn (string $heading, array $components): Section => Section::make(__("filament-form-builder::fields.{$heading}"))
+            ->contained(false)
+            ->extraAttributes(['class' => 'ffb-settings-group'])
+            ->schema(array_values($components));
+
+        return array_filter([
+            ...$schema,
+            $group('in_overviews', $overviews),
+            $site === [] ? null : $group('on_the_site', $site),
+        ]);
     }
 
     /**

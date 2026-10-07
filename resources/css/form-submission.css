@@ -1065,7 +1065,7 @@
     color: var(--ffb-muted-text);
 }
 
-.ffb-mail-form-group .fi-section-header-heading {
+.ffb-settings-group .fi-section-header-heading {
     color: var(--gray-400);
     font-size: 0.75rem;
     font-weight: 600;

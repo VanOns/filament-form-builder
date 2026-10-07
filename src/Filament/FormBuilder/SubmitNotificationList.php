@@ -66,7 +66,7 @@ class SubmitNotificationList extends Field
             ->schema(fn (Livewire $livewire): array => [
                 Section::make(__('filament-form-builder::general.submit_rules.if'))
                     ->contained(false)
-                    ->extraAttributes(['class' => 'ffb-mail-form-group'])
+                    ->extraAttributes(['class' => 'ffb-settings-group'])
                     ->schema((new ConditionsEditor(
                         ConditionsEditor::fieldsOf(MergeTagEditor::form($livewire)),
                         'filament-form-builder::general.submit_rules.conditions_summary',
@@ -75,7 +75,7 @@ class SubmitNotificationList extends Field
                     ))->schema()),
                 Section::make(__('filament-form-builder::general.submit_rules.then'))
                     ->contained(false)
-                    ->extraAttributes(['class' => 'ffb-mail-form-group ffb-mail-form-divided'])
+                    ->extraAttributes(['class' => 'ffb-settings-group ffb-mail-form-divided'])
                     ->schema(SubmitNotifications::getOutcomeSchema()),
             ])
             ->action(function (array $arguments, array $data): void {

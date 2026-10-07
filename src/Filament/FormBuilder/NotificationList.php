@@ -328,7 +328,7 @@ class NotificationList extends Field
         $form = MergeTagEditor::form($livewire);
         $group = fn (string $heading): Section => Section::make(__("filament-form-builder::general.notifications.{$heading}"))
             ->contained(false)
-            ->extraAttributes(['class' => 'ffb-mail-form-group']);
+            ->extraAttributes(['class' => 'ffb-settings-group']);
 
         return [
             $group('recipients')->schema([

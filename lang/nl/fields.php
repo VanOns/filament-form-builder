@@ -12,6 +12,8 @@ return [
     'rows' => 'Rijen',
     'advanced' => 'Geavanceerd',
     'key_helper' => 'Laat leeg om de key uit het label te maken. Daarna blijft de key vast, ook als het label verandert.',
+    'in_overviews' => 'In overzichten',
+    'on_the_site' => 'Op de site',
     'column_label' => 'Kolomnaam',
     'column_label_helper' => 'Een korte naam voor de kolom in de inzendingen, de export, de filters en de mails. Leeg: het label.',
     'show_column' => 'Tonen als kolom in de inzendingen',
