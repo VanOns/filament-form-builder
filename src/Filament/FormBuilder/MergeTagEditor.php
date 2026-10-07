@@ -20,11 +20,15 @@ use VanOns\FilamentFormBuilder\Models\Form;
  */
 final class MergeTagEditor
 {
-    public static function make(string $name, bool $withAllFields = true): RichEditor
+    /**
+     * Without the link to the submission where the text reaches a visitor
+     * rather than a colleague.
+     */
+    public static function make(string $name, bool $withAllFields = true, bool $withSubmissionLink = true): RichEditor
     {
         return RichEditor::make($name)
-            ->mergeTags(fn (Livewire $livewire, mixed $state): array => static::tags($livewire, $state, $withAllFields))
-            ->tools(fn (Livewire $livewire): RichEditorTool => static::tool($livewire, $withAllFields))
+            ->mergeTags(fn (Livewire $livewire, mixed $state): array => static::tags($livewire, $state, $withAllFields, $withSubmissionLink))
+            ->tools(fn (Livewire $livewire): RichEditorTool => static::tool($livewire, $withAllFields, $withSubmissionLink))
             ->aboveContent(fn (Livewire $livewire, mixed $state): HtmlString => static::icons($livewire, $state))
             ->extraAttributes(['class' => 'ffb-merge-tag-editor']);
     }
@@ -58,9 +62,9 @@ final class MergeTagEditor
      *
      * @return array<string, string>
      */
-    public static function tags(Livewire $livewire, mixed $state, bool $withAllFields = true): array
+    public static function tags(Livewire $livewire, mixed $state, bool $withAllFields = true, bool $withSubmissionLink = true): array
     {
-        $tags = static::form($livewire)->getMergeTags($withAllFields);
+        $tags = static::form($livewire)->getMergeTags($withAllFields, $withSubmissionLink);
 
         foreach (MergeTags::ids($state) as $id) {
             $tags[$id] ??= __('filament-form-builder::general.merge_tags.missing', ['key' => $id]);
@@ -104,12 +108,12 @@ final class MergeTagEditor
      * Filament's tag button, opening the package's picker instead of the flat
      * list: grouped, with the icon of each field type and a search.
      */
-    public static function tool(Livewire $livewire, bool $withAllFields = true): RichEditorTool
+    public static function tool(Livewire $livewire, bool $withAllFields = true, bool $withSubmissionLink = true): RichEditorTool
     {
         $groups = [];
         $icons = [];
 
-        foreach (static::form($livewire)->getMergeTagGroups($withAllFields) as $group) {
+        foreach (static::form($livewire)->getMergeTagGroups($withAllFields, $withSubmissionLink) as $group) {
             $tags = [];
 
             foreach ($group['tags'] as $id => $tag) {

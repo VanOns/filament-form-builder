@@ -5,7 +5,7 @@
 <form method="POST" action="{{ route('filament-form-builder.form.store', ['formId' => $form->id]) }}" {{ $form->getWrapperAttributes() }}>
     @if (session('submit_notification_type') === 'content' && $success = session('submit_notification_content'))
         <div class="py-4">
-            <p>{!! $success !!}</p>
+            {!! $success !!}
         </div>
     @endif
     @csrf

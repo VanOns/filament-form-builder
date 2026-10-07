@@ -106,6 +106,23 @@ class SubmissionPlaceholders
     }
 
     /**
+     * Every answer as a line of its own, label first, for the "all fields" tag.
+     */
+    public function allFieldsHtml(): string
+    {
+        $data = [
+            ...static::fallbacks($this->formSubmission),
+            ...$this->formSubmission->getFormattedData(),
+        ];
+
+        return implode('', array_map(
+            fn (string | int $key, mixed $value): string => '<p><b>' . e($this->formSubmission->findLabel((string) $key)) . '</b>: ' . e((string) $value) . '</p>',
+            array_keys($data),
+            $data,
+        ));
+    }
+
+    /**
      * @return array<string, string>
      */
     public static function fallbacks(FormSubmission $submission): array

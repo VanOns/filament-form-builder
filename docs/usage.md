@@ -244,9 +244,12 @@ show it.
 
 ## Submit notification
 
-Each form has a "what happens after submission" section with two branches:
+Each form has an "After submitting" section with two branches:
 
-- **Content**: rich text shown after submit, stored in `submit_notification_content`.
+- **Content**: a thank-you message shown after submit, stored in
+  `submit_notification_content`. It takes the same merge tags as an e-mail
+  notification, except the link to the submission in the panel, and they are
+  filled in from the submission on submit.
 - **URL**: a redirect target, stored in the dedicated `submit_notification_url`
   column. The column is cast with `VanOns\FilamentFormBuilder\Casts\RedirectUrl`,
   so it may hold either a plain URL string or a structured (JSON) value.
@@ -254,8 +257,8 @@ Each form has a "what happens after submission" section with two branches:
 On submit, the controller resolves both branches through the form type
 (`$form->getType()->resolveSubmitNotification($submission)`): the URL via
 `FilamentFormBuilderPlugin::resolveRedirectUrl($form->submit_notification_url, $form)`
-and the message from `submit_notification_content`. When a URL is present it
-redirects, otherwise the message is flashed back.
+and the message from `submit_notification_content` with its tags filled in.
+When a URL is present it redirects, otherwise the message is flashed back.
 
 ### Passing field data via the query string
 
@@ -263,12 +266,18 @@ The URL branch has an optional query string, stored in
 `submit_notification_query`. Set the `submit_notification_query_enabled` config
 flag to `false` to hide the field, or override `hasSubmitNotificationQuery()` on
 a form type to drop it for that type alone. Either way a stored query string
-is no longer appended on submit. An editor writes the parameters with the same
-placeholders the e-mail notification uses:
+is no longer appended on submit.
+
+An editor adds the parameters one row at a time, a name and the answer it
+carries, and they are stored as text with the placeholders the e-mail
+notification understands:
 
 ```
 vestiging={{ $vestiging }}&form={{ $form_title }}
 ```
+
+A query string stored with more than that, such as a fixed value, stays a text
+field to edit by hand.
 
 `SubmissionPlaceholders::appendQuery()` fills them in from the submission,
 URL-encodes the values and appends the result to the resolved redirect URL,

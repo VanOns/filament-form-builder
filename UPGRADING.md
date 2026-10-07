@@ -96,6 +96,9 @@ code. See [Form types](docs/usage.md#form-types).
   `attach_files`.
   A notification stored before is read as one of now and saved that way once its form is saved.
 
+* The thank-you message takes merge tags, and `getNotificationMessage()` returns it with them filled in.
+  A new form shows a thank-you message by default instead of redirecting.
+
 ### Stored forms and submissions
 
 Nothing converts the canvas data of v2 forms. For each item in `forms.custom['fields']`:

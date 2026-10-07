@@ -2,6 +2,8 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
+use Illuminate\Support\HtmlString;
+use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
@@ -56,12 +58,29 @@ trait HasSubmitNotification
         $this->redirectUrl = $this->resolveRedirectUrl($submission);
 
         $this->notificationMessage = $this->hasNotificationMessage()
-            ? $this->form->submit_notification_content
+            ? $this->renderNotificationMessage($submission)
             : null;
 
         $this->modifySubmitNotification($submission);
 
         return $this;
+    }
+
+    /**
+     * The message with its tags filled in. The link to the submission is for
+     * the panel only, so a visitor never gets it.
+     */
+    private function renderNotificationMessage(FormSubmission $submission): ?string
+    {
+        $placeholders = SubmissionPlaceholders::make($submission);
+
+        $message = MergeTags::render($this->form->submit_notification_content, [
+            ...$placeholders->values(),
+            'all_fields' => new HtmlString($placeholders->allFieldsHtml()),
+            'submission_url' => '',
+        ]);
+
+        return filled(strip_tags($message)) ? $message : null;
     }
 
     private function resolveRedirectUrl(FormSubmission $submission): ?string

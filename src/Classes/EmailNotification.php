@@ -199,23 +199,8 @@ class EmailNotification
 
     protected function getAllFieldsHtml(): string
     {
-        $data = [
-            ...SubmissionPlaceholders::fallbacks($this->formSubmission),
-            ...$this->formSubmission->getFormattedData(),
-        ];
+        $fields = SubmissionPlaceholders::make($this->formSubmission)->allFieldsHtml();
 
-        if ($data === []) {
-            return '';
-        }
-
-        $allFieldsFormatted = array_map(function ($key, $value) {
-            $label = $this->formSubmission->findLabel((string) $key);
-
-            return '<p><b>' . e($label) . '</b>: ' . e((string) $value) . '</p>';
-        }, array_keys($data), $data);
-
-        return Blade::render(MailPanel::$view, [
-            'slot' => implode('', $allFieldsFormatted),
-        ]);
+        return $fields === '' ? '' : Blade::render(MailPanel::$view, ['slot' => $fields]);
     }
 }
