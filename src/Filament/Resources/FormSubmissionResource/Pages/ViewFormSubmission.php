@@ -296,6 +296,11 @@ class ViewFormSubmission extends ViewRecord
                             false => __('filament-form-builder::general.failed'),
                             default => __('filament-form-builder::general.unknown'),
                         }),
+                    TextEntry::make("integrations.{$index}.ran_at")
+                        ->label(__('filament-form-builder::general.submission.ran_at'))
+                        ->icon(Heroicon::OutlinedClock)
+                        ->dateTime('j M Y, H:i:s')
+                        ->placeholder('—'),
                     KeyValueEntry::make("integrations.{$index}.response.response")
                         ->label(__('filament-form-builder::general.response'))
                         ->keyLabel(__('filament-form-builder::general.key'))

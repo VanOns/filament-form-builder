@@ -83,3 +83,12 @@ it('keeps the integration responses of one submission out of the next', function
         ->and($second->fresh()->integrations)->toHaveCount(1)
         ->and($second->fresh()->integrations[0]['response']['response']['submission'])->toBe($second->id);
 });
+
+it('remembers when each integration ran', function () {
+    $this->travelTo(now()->setDateTime(2026, 10, 7, 14, 33, 5));
+    $submission = FormSubmission::create(['form_id' => lifecycleForm()->id, 'data' => []]);
+
+    (new RunFormIntegrationsJob($submission))->handle();
+
+    expect($submission->fresh()->integrations[0]['ran_at'])->toBe(now()->toIso8601String());
+});

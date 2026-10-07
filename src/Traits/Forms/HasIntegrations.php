@@ -34,6 +34,7 @@ trait HasIntegrations
             $responses[] = [
                 'integration' => get_class($integration),
                 'response' => $integration->responseData(),
+                'ran_at' => now()->toIso8601String(),
             ];
         }
 

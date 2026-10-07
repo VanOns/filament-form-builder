@@ -155,6 +155,19 @@ it('links to the page the form was sent from', function () {
         ->assertSeeHtml('href="https://example.test/werken-bij"');
 });
 
+it('shows when an integration ran', function () {
+    $submission = viewedSubmission();
+    $submission->update(['integrations' => [[
+        'integration' => 'App\\Integrations\\Recruitee',
+        'response' => ['response' => ['candidate_id' => '48213'], 'success' => true],
+        'ran_at' => '2026-10-07T14:33:05+00:00',
+    ]]]);
+
+    Livewire::test(ViewFormSubmission::class, ['record' => $submission->getKey()])
+        ->assertSee('Ran at')
+        ->assertSee('7 Oct 2026, 14:33:05');
+});
+
 it('keeps a typed script out of the page', function () {
     $form = Form::create(['title' => 'Contact', 'template' => 'custom', 'custom' => ['fields' => [
         ['type' => 'text', 'label' => 'Bericht', 'key' => 'bericht'],

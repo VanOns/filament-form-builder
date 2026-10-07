@@ -321,6 +321,7 @@ return [
         'details' => 'Details',
         'submitted_at' => 'Ingestuurd op',
         'submitted_from' => 'Ingestuurd vanaf',
+        'ran_at' => 'Uitgevoerd op',
         'form_type' => 'Formuliertype',
         'other_data' => 'Overige gegevens',
     ],

@@ -321,6 +321,7 @@ return [
         'details' => 'Details',
         'submitted_at' => 'Submitted at',
         'submitted_from' => 'Submitted from',
+        'ran_at' => 'Ran at',
         'form_type' => 'Form type',
         'other_data' => 'Other data',
     ],
