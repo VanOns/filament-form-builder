@@ -3,8 +3,8 @@
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\CardList;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\QueryParameters;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\SubmitNotificationList;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
 use VanOns\FilamentFormBuilder\Forms\CustomForm;
 use VanOns\FilamentFormBuilder\Models\Form;
@@ -187,7 +187,7 @@ it('saves the outcomes for certain answers before the one a form always has', fu
 it('moves an outcome up and down', function () {
     $items = ['a' => ['id' => 'a'], 'b' => ['id' => 'b'], 'c' => ['id' => 'c']];
 
-    expect(array_keys(SubmitNotificationList::move($items, 'c', -1)))->toBe(['a', 'c', 'b'])
-        ->and(array_keys(SubmitNotificationList::move($items, 'a', -1)))->toBe(['a', 'b', 'c'])
-        ->and(array_keys(SubmitNotificationList::insertAfter($items, 'a', ['id' => 'x'])))->toBe(['a', 'x', 'b', 'c']);
+    expect(array_keys(CardList::move($items, 'c', -1)))->toBe(['a', 'c', 'b'])
+        ->and(array_keys(CardList::move($items, 'a', -1)))->toBe(['a', 'b', 'c'])
+        ->and(array_keys(CardList::insertAfter($items, 'a', ['id' => 'x'])))->toBe(['a', 'x', 'b', 'c']);
 });

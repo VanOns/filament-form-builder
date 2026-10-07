@@ -2,12 +2,26 @@
 
 namespace VanOns\FilamentFormBuilder\Classes;
 
+use Filament\Support\Icons\Heroicon;
 use Throwable;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class SubmissionPlaceholders
 {
+    /**
+     * The tags every form has, by the group the editor lists them in. A field
+     * can never take one of these keys.
+     */
+    public const BUILT_IN = [
+        'form_title' => ['group' => 'form', 'icon' => Heroicon::OutlinedDocumentText],
+        'all_fields' => ['group' => 'form', 'icon' => Heroicon::OutlinedQueueList],
+        'submission_id' => ['group' => 'submission', 'icon' => Heroicon::OutlinedHashtag],
+        'submitted_at' => ['group' => 'submission', 'icon' => Heroicon::OutlinedCalendar],
+        'submitted_from' => ['group' => 'submission', 'icon' => Heroicon::OutlinedGlobeAlt],
+        'submission_url' => ['group' => 'submission', 'icon' => Heroicon::OutlinedArrowTopRightOnSquare],
+    ];
+
     /**
      * @var array<string, string>|null
      */

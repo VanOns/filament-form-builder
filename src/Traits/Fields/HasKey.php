@@ -4,6 +4,9 @@ namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\Honeypot;
+use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\RecaptchaField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TurnstileField;
 
 trait HasKey
 {
@@ -19,17 +22,14 @@ trait HasKey
      *
      * @var array<string>
      */
-    public static array $reservedKeys = [
-        '_token', '_method', 'g-recaptcha-response', 'cf-turnstile-response',
-        'form_title', 'all_fields', 'submission_id', 'submitted_at', 'submitted_from', 'submission_url',
-    ];
+    public static array $reservedKeys = ['_token', '_method', RecaptchaField::KEY, TurnstileField::KEY];
 
     /**
      * @return array<string>
      */
     public static function reservedKeys(): array
     {
-        return [...static::$reservedKeys, ...Honeypot::keys()];
+        return [...static::$reservedKeys, ...array_keys(SubmissionPlaceholders::BUILT_IN), ...Honeypot::keys()];
     }
 
     public function key(string $key): static

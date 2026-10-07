@@ -4,7 +4,6 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -36,9 +35,8 @@ use stdClass;
 use Throwable;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
-use VanOns\FilamentFormBuilder\Classes\SubmissionFile;
+use VanOns\FilamentFormBuilder\Enums\NotificationStatus;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FileUploadField;
-use VanOns\FilamentFormBuilder\Mail\FormSubmission\FormSubmissionCreatedMail;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
@@ -46,7 +44,7 @@ use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
 /**
  * The e-mail notifications of a form as cards, each edited in a slide-over.
  */
-class NotificationList extends Field
+class NotificationList extends CardList
 {
     protected string $view = 'filament-form-builder::filament.notification-list';
 
@@ -54,30 +52,29 @@ class NotificationList extends Field
     {
         parent::setUp();
 
-        $this->default([]);
-
-        // Stored as a list; while the form is open, by id, so an action can name one.
-        $this->afterStateHydrated(static function (NotificationList $component, ?array $rawState): void {
-            $items = [];
-
-            foreach ($rawState ?? [] as $item) {
-                if (is_array($item)) {
-                    $item = $component->prepare($item);
-                    $items[$item['id']] = $item;
-                }
-            }
-
-            $component->rawState($items);
-        });
-
-        $this->mutateDehydratedStateUsing(static fn (?array $state): array => array_values($state ?? []));
-
         $this->registerActions([
             fn (NotificationList $component): Action => $component->getFormAction('add'),
             fn (NotificationList $component): Action => $component->getFormAction('edit'),
-            fn (NotificationList $component): Action => $component->getCloneAction(),
-            fn (NotificationList $component): Action => $component->getDeleteAction(),
-            fn (NotificationList $component): Action => $component->getToggleAction(),
+            fn (NotificationList $component): Action => $component->getChangeAction('clone', function (array $items, string $id): array {
+                $copy = (string) Str::uuid();
+
+                return [...$items, $copy => [...$items[$id], 'id' => $copy]];
+            })
+                ->requiresConfirmation()
+                ->modalIcon(Heroicon::OutlinedDocumentDuplicate)
+                ->modalHeading(__('filament-form-builder::general.notifications.clone_heading'))
+                ->modalDescription(__('filament-form-builder::general.notifications.clone_description'))
+                ->modalSubmitActionLabel(__('filament-forms::components.builder.actions.clone.label')),
+            fn (NotificationList $component): Action => $component->getChangeAction('delete', fn (array $items, string $id): array => array_diff_key($items, [$id => true]))
+                ->requiresConfirmation()
+                ->color('danger')
+                ->modalHeading(__('filament-form-builder::general.notifications.delete_heading'))
+                ->modalDescription(__('filament-form-builder::general.notifications.delete_description'))
+                ->modalSubmitActionLabel(__('filament-forms::components.builder.actions.delete.label')),
+            fn (NotificationList $component): Action => $component->getChangeAction('toggle', fn (array $items, string $id): array => [
+                ...$items,
+                $id => [...$items[$id], 'enabled' => !($items[$id]['enabled'] ?? true)],
+            ]),
         ]);
     }
 
@@ -132,55 +129,6 @@ class NotificationList extends Field
                 }
 
                 $component->saveItem(is_string($arguments['item'] ?? null) ? $arguments['item'] : null, $data);
-            });
-    }
-
-    public function getCloneAction(): Action
-    {
-        return Action::make('clone')
-            ->requiresConfirmation()
-            ->modalIcon(Heroicon::OutlinedDocumentDuplicate)
-            ->modalHeading(__('filament-form-builder::general.notifications.clone_heading'))
-            ->modalDescription(__('filament-form-builder::general.notifications.clone_description'))
-            ->modalSubmitActionLabel(__('filament-forms::components.builder.actions.clone.label'))
-            ->action(function (array $arguments, NotificationList $component): void {
-                $items = $component->getRawState() ?? [];
-                $item = $items[$arguments['item'] ?? ''] ?? null;
-
-                if ($item !== null) {
-                    $id = (string) Str::uuid();
-                    $component->store([...$items, $id => [...$item, 'id' => $id]]);
-                }
-            });
-    }
-
-    public function getDeleteAction(): Action
-    {
-        return Action::make('delete')
-            ->requiresConfirmation()
-            ->color('danger')
-            ->modalHeading(__('filament-form-builder::general.notifications.delete_heading'))
-            ->modalDescription(__('filament-form-builder::general.notifications.delete_description'))
-            ->modalSubmitActionLabel(__('filament-forms::components.builder.actions.delete.label'))
-            ->action(function (array $arguments, NotificationList $component): void {
-                $items = $component->getRawState() ?? [];
-                unset($items[$arguments['item'] ?? '']);
-
-                $component->store($items);
-            });
-    }
-
-    public function getToggleAction(): Action
-    {
-        return Action::make('toggle')
-            ->action(function (array $arguments, NotificationList $component): void {
-                $items = $component->getRawState() ?? [];
-                $id = (string) ($arguments['item'] ?? '');
-
-                if (isset($items[$id])) {
-                    $items[$id]['enabled'] = !($items[$id]['enabled'] ?? true);
-                    $component->store($items);
-                }
             });
     }
 
@@ -262,13 +210,7 @@ class NotificationList extends Field
      */
     public function saveItem(?string $id, array $data): void
     {
-        $data = $this->fromSlideOver($data);
-
-        $items = $this->getRawState() ?? [];
-        $id ??= (string) Str::uuid();
-        $items[$id] = $this->prepare([...$items[$id] ?? [], ...$data, 'id' => $id]);
-
-        if ($this->store($items)) {
+        if ($this->putItem($id, $this->fromSlideOver($data))) {
             Notification::make()
                 ->success()
                 ->title(__('filament-form-builder::general.notifications.saved'))
@@ -403,7 +345,7 @@ class NotificationList extends Field
                     Toggle::make('attach_files')
                         ->label(__('filament-form-builder::general.notifications.attach_files'))
                         ->helperText(__('filament-form-builder::general.notifications.attach_files_helper', [
-                            'size' => Number::fileSize((int) config('filament-form-builder.uploads.attach_max_size', 10240) * 1024),
+                            'size' => Number::fileSize(EmailNotification::attachmentLimit()),
                         ])),
                 ]),
             ...$this->getSenderSchema(),
@@ -484,15 +426,7 @@ class NotificationList extends Field
         $notification = new EmailNotification($submission, $this->fromSlideOver($data));
 
         try {
-            Mail::to($address)->send(new FormSubmissionCreatedMail(
-                emailSubject: $notification->subject,
-                emailContent: $notification->content,
-                formSubmission: $submission,
-                sender: $notification->sender,
-                senderName: $notification->senderName,
-                replyToAddress: $notification->replyTo,
-                files: array_map(fn (SubmissionFile $file): array => ['path' => $file->path, 'name' => $file->name], $notification->attachments),
-            ));
+            Mail::to($address)->send($notification->toMail());
 
             Notification::make()
                 ->success()
@@ -536,8 +470,8 @@ class NotificationList extends Field
             ->whereNotNull('notification_id')
             ->groupBy('notification_id')
             ->selectRaw(
-                "notification_id, sum(case when status = 'sent' then 1 else 0 end) as sent, max(sent_at) as last_sent_at, sum(case when status = 'failed' and failed_at >= ? then 1 else 0 end) as failed",
-                [now()->subWeek()],
+                'notification_id, sum(case when status = ? then 1 else 0 end) as sent, max(sent_at) as last_sent_at, sum(case when status = ? and failed_at >= ? then 1 else 0 end) as failed',
+                [NotificationStatus::Sent->value, NotificationStatus::Failed->value, now()->subWeek()],
             )
             ->get()
             ->mapWithKeys(fn (stdClass $row): array => [(string) $row->notification_id => [

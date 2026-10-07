@@ -13,19 +13,8 @@
                     @endif
                 </span>
 
-                <x-filament::badge
-                    size="sm"
-                    :color="match ($log->status) {
-                        'sent' => 'success',
-                        'failed' => 'danger',
-                        default => 'gray',
-                    }"
-                >
-                    {{ match ($log->status) {
-                        'sent' => __('filament-form-builder::general.submission.sent'),
-                        'failed' => __('filament-form-builder::general.failed'),
-                        default => __('filament-form-builder::general.queued'),
-                    } }}
+                <x-filament::badge size="sm" :color="$log->status->getColor()">
+                    {{ $log->status->getLabel() }}
                 </x-filament::badge>
             </li>
         @endforeach

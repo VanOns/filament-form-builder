@@ -22,6 +22,7 @@ use Livewire\Attributes\Session;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
 use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
+use VanOns\FilamentFormBuilder\Enums\NotificationStatus;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -196,7 +197,7 @@ class ViewFormSubmission extends ViewRecord
         return Section::make(__('filament-form-builder::general.notifications_label'))
             ->icon(Heroicon::OutlinedEnvelope)
             ->description($logs->isEmpty() ? null : __('filament-form-builder::general.submission.notifications_sent', [
-                'sent' => $logs->where('status', 'sent')->count(),
+                'sent' => $logs->where('status', NotificationStatus::Sent)->count(),
                 'total' => $logs->count(),
             ]))
             ->afterHeader([$this->getCount($logs->count())])

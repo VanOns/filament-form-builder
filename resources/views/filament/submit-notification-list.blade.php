@@ -1,5 +1,4 @@
 @use('Filament\Support\Icons\Heroicon')
-@use('Illuminate\Support\Js')
 
 @php
     $key = $getKey();
@@ -7,7 +6,7 @@
     $isDisabled = $isDisabled();
     $last = array_key_last($cards);
     $first = array_key_first($cards);
-    $mount = fn (string $action, array $arguments = []): string => 'mountAction(' . Js::from($action) . ', ' . Js::from((object) $arguments) . ', ' . Js::from(['schemaComponent' => $key]) . ')';
+    $mount = fn (string $action, array $arguments = []): ?string => $getAction($action)($arguments)->getLivewireClickHandler();
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">

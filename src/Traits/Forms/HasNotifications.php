@@ -4,7 +4,7 @@ namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
 use Throwable;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
-use VanOns\FilamentFormBuilder\Classes\SubmissionFile;
+use VanOns\FilamentFormBuilder\Enums\NotificationStatus;
 use VanOns\FilamentFormBuilder\Jobs\SendFormNotificationJob;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
@@ -46,10 +46,7 @@ trait HasNotifications
             return;
         }
 
-        $attachments = array_map(
-            fn (SubmissionFile $file): array => ['path' => $file->path, 'name' => $file->name],
-            $notification->attachments,
-        );
+        $mail = $notification->toMail();
 
         foreach ($notification->receivers as $receiver) {
             // Every recipient gets a mail of their own; the copies go along with each, but not to whoever it is already for.
@@ -63,19 +60,13 @@ trait HasNotifications
                     'notification_subject' => $notification->subject,
                     'sender' => $notification->sender,
                     'recipient' => $receiver,
-                    'status' => 'queued',
+                    'status' => NotificationStatus::Queued,
                 ]);
 
                 SendFormNotificationJob::dispatch(
                     notificationLogId: $log->id,
-                    subject: $notification->subject,
-                    content: $notification->content,
-                    sender: $notification->sender,
+                    mail: $mail,
                     receiver: $receiver,
-                    formSubmission: $submission,
-                    senderName: $notification->senderName,
-                    replyTo: $notification->replyTo,
-                    attachments: $attachments,
                     cc: $cc,
                     bcc: $bcc,
                 );

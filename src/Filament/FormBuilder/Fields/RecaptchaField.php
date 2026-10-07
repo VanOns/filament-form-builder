@@ -11,7 +11,9 @@ class RecaptchaField extends CaptchaField
     public static string $view = 'filament-form-builder::components.fields.recaptcha-field';
     public static string $previewView = 'filament-form-builder::filament.previews.recaptcha';
 
-    public ?string $key = 'g-recaptcha-response';
+    public const KEY = 'g-recaptcha-response';
+
+    public ?string $key = self::KEY;
 
     public static function isAvailable(): bool
     {

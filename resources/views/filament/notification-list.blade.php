@@ -1,5 +1,4 @@
 @use('Filament\Support\Icons\Heroicon')
-@use('Illuminate\Support\Js')
 
 @php
     $key = $getKey();
@@ -7,7 +6,7 @@
     $stats = $field->getStats();
     $missing = $field->getMissingTags();
     $isDisabled = $isDisabled();
-    $mount = fn (string $action, array $arguments): string => 'mountAction(' . Js::from($action) . ', ' . Js::from($arguments) . ', ' . Js::from(['schemaComponent' => $key]) . ')';
+    $mount = fn (string $action, array $arguments): ?string => $getAction($action)($arguments)->getLivewireClickHandler();
     $presets = [
         'empty' => Heroicon::OutlinedPlus,
         'confirmation' => Heroicon::OutlinedUser,

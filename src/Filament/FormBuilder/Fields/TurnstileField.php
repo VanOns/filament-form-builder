@@ -11,7 +11,9 @@ class TurnstileField extends CaptchaField
     public static string $view = 'filament-form-builder::components.fields.turnstile-field';
     public static string $previewView = 'filament-form-builder::filament.previews.turnstile';
 
-    public ?string $key = 'cf-turnstile-response';
+    public const KEY = 'cf-turnstile-response';
+
+    public ?string $key = self::KEY;
 
     public static function isAvailable(): bool
     {

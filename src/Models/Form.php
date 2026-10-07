@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\Honeypot;
+use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Classes\SubmitNotification;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
 use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
@@ -367,21 +368,20 @@ class Form extends Model
             $answers[$key] = ['label' => $label, 'icon' => Heroicon::OutlinedCube];
         }
 
-        $tag = fn (string $key, string | BackedEnum $icon): array => ['label' => __("filament-form-builder::general.merge_tags.{$key}"), 'icon' => $icon];
+        $groups = ['fields' => $answers, 'form' => [], 'submission' => []];
+        $left = [...($withAllFields ? [] : ['all_fields']), ...($withSubmissionLink ? [] : ['submission_url'])];
 
-        return [
-            ['label' => __('filament-form-builder::general.merge_tags.groups.fields'), 'tags' => $answers],
-            ['label' => __('filament-form-builder::general.merge_tags.groups.form'), 'tags' => array_filter([
-                'form_title' => $tag('form_title', Heroicon::OutlinedDocumentText),
-                'all_fields' => $withAllFields ? $tag('all_fields', Heroicon::OutlinedQueueList) : null,
-            ])],
-            ['label' => __('filament-form-builder::general.merge_tags.groups.submission'), 'tags' => array_filter([
-                'submission_id' => $tag('submission_id', Heroicon::OutlinedHashtag),
-                'submitted_at' => $tag('submitted_at', Heroicon::OutlinedCalendar),
-                'submitted_from' => $tag('submitted_from', Heroicon::OutlinedGlobeAlt),
-                'submission_url' => $withSubmissionLink ? $tag('submission_url', Heroicon::OutlinedArrowTopRightOnSquare) : null,
-            ])],
-        ];
+        foreach (SubmissionPlaceholders::BUILT_IN as $key => $tag) {
+            if (!in_array($key, $left, true)) {
+                $groups[$tag['group']][$key] = ['label' => __("filament-form-builder::general.merge_tags.{$key}"), 'icon' => $tag['icon']];
+            }
+        }
+
+        return array_map(
+            fn (string $group, array $tags): array => ['label' => __("filament-form-builder::general.merge_tags.groups.{$group}"), 'tags' => $tags],
+            array_keys($groups),
+            $groups,
+        );
     }
 
     /**

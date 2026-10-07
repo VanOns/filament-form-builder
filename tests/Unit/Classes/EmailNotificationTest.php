@@ -1,9 +1,12 @@
 <?php
 
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
+use VanOns\FilamentFormBuilder\Enums\NotificationStatus;
 use VanOns\FilamentFormBuilder\Jobs\SendFormNotificationJob;
+use VanOns\FilamentFormBuilder\Mail\FormSubmission\FormSubmissionCreatedMail;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
@@ -125,8 +128,24 @@ it('queues a mail per recipient and logs which notification it came from', funct
     $form->getType()->sendNotifications($submission);
 
     Queue::assertPushed(SendFormNotificationJob::class, 2);
-    Queue::assertPushed(SendFormNotificationJob::class, fn (SendFormNotificationJob $job): bool => $job->replyTo === 'jan@example.test');
+    Queue::assertPushed(SendFormNotificationJob::class, fn (SendFormNotificationJob $job): bool => $job->mail->replyToAddress === 'jan@example.test');
 
     expect(FormSubmissionNotificationLog::pluck('notification_id')->all())->toBe(['team', 'team'])
         ->and(FormSubmissionNotificationLog::pluck('recipient')->all())->toBe(['hr@example.test', 'jan@example.test']);
+});
+
+it('sends the mail it queued, also after the trip through the queue, and logs it as sent', function () {
+    Queue::fake();
+    Mail::fake();
+
+    $form = mailForm([['id' => 'team', 'subject' => 'Nieuw van {{ $naam }}', 'content' => '<p>Hoi</p>', 'to' => ['hr@example.test'], 'cc' => ['baas@example.test']]]);
+    $form->getType()->sendNotifications(mailSubmission($form));
+
+    unserialize(serialize(Queue::pushed(SendFormNotificationJob::class)->sole()))->handle();
+
+    Mail::assertSent(FormSubmissionCreatedMail::class, fn (FormSubmissionCreatedMail $mail): bool => $mail->hasTo('hr@example.test')
+        && $mail->hasCc('baas@example.test')
+        && $mail->emailSubject === 'Nieuw van Jan');
+
+    expect(FormSubmissionNotificationLog::sole()->status)->toBe(NotificationStatus::Sent);
 });

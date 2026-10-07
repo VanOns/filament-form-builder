@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Classes;
 
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
+use VanOns\FilamentFormBuilder\Mail\FormSubmission\FormSubmissionCreatedMail;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Mail\MailPanel;
 
@@ -123,6 +124,27 @@ class EmailNotification
         return str_starts_with($recipient, static::FIELD_PREFIX) ? substr($recipient, strlen(static::FIELD_PREFIX)) : null;
     }
 
+    /**
+     * In bytes.
+     */
+    public static function attachmentLimit(): int
+    {
+        return (int) config('filament-form-builder.uploads.attach_max_size', 10240) * 1024;
+    }
+
+    public function toMail(): FormSubmissionCreatedMail
+    {
+        return new FormSubmissionCreatedMail(
+            emailSubject: $this->subject,
+            emailContent: $this->content,
+            formSubmission: $this->formSubmission,
+            sender: $this->sender,
+            senderName: $this->senderName,
+            replyToAddress: $this->replyTo,
+            files: array_map(fn (SubmissionFile $file): array => ['path' => $file->path, 'name' => $file->name], $this->attachments),
+        );
+    }
+
     public function shouldSend(): bool
     {
         return $this->isEnabled
@@ -159,7 +181,7 @@ class EmailNotification
      */
     protected function getAttachments(): array
     {
-        $limit = (int) config('filament-form-builder.uploads.attach_max_size', 10240) * 1024;
+        $limit = static::attachmentLimit();
         $attachments = [];
         $total = 0;
 
