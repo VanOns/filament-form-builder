@@ -6,6 +6,7 @@
     $options = $getWidthOptions($field);
     $isEditable = $uuid !== null;
     $conditions = $getConditionBadge($field);
+    $isTakenByType = $isEditable && $isKeyTakenByType($field);
 @endphp
 
 <div
@@ -20,6 +21,7 @@
         'ffb-canvas-item',
         'ffb-canvas-item-fixed' => ! $isEditable,
         'ffb-canvas-item-hidden' => $field->isHidden(),
+        'ffb-canvas-item-taken' => $isTakenByType,
     ])
     style="--ffb-span: {{ $width->value }}"
 >
@@ -34,6 +36,12 @@
         <x-filament::icon :icon="$field::icon()" class="ffb-canvas-item-icon" />
         <span class="ffb-canvas-item-type">{{ $field::getTypeLabel() }}</span>
 
+        @if ($isTakenByType)
+            <span class="ffb-canvas-badge ffb-canvas-badge-danger" title="{{ __('filament-form-builder::general.canvas.key_taken_by_type', ['key' => $field->getKey()]) }}">
+                <x-filament::icon :icon="Heroicon::OutlinedExclamationTriangle" class="ffb-canvas-badge-icon" />
+                <span class="ffb-canvas-badge-text">{{ __('filament-form-builder::general.canvas.key_taken_by_type_badge') }}</span>
+            </span>
+        @endif
         @if ($field->isHidden())
             <span class="ffb-canvas-badge">
                 <x-filament::icon :icon="Heroicon::OutlinedEyeSlash" class="ffb-canvas-badge-icon" />

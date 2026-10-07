@@ -215,6 +215,8 @@ return [
         'usage_outcome' => 'an outcome per answer',
         'empty_heading' => 'No fields yet',
         'code' => 'Code',
+        'key_taken_by_type_badge' => 'Key taken in code',
+        'key_taken_by_type' => 'The form type has a field with the key :key itself, so this field is left out of the form. Delete it or give it another key.',
         'zone' => 'Custom fields',
         'zone_hint' => 'Editors add to this part per form.',
         'layout' => 'Layout: :layout',

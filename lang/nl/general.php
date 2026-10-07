@@ -215,6 +215,8 @@ return [
         'usage_outcome' => 'een uitkomst per antwoord',
         'empty_heading' => 'Nog geen velden',
         'code' => 'Code',
+        'key_taken_by_type_badge' => 'Key staat al in code',
+        'key_taken_by_type' => 'Het formuliertype heeft zelf een veld met de key :key, dus dit veld staat niet op het formulier. Verwijder het of geef het een andere key.',
         'zone' => 'Eigen velden',
         'zone_hint' => 'Redacteuren vullen dit deel per formulier aan.',
         'layout' => 'Indeling: :layout',

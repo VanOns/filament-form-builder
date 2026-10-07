@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Tests\Fixtures\ApplicationForm;
 use Tests\Fixtures\HalfRowForm;
@@ -150,4 +151,19 @@ it('stores the answers as the type prepared them for validation', function () {
     $this->post(route('filament-form-builder.form.store', ['formId' => $form->id]), ['postcode' => '1234 ab']);
 
     expect(FormSubmission::sole()->data)->toBe(['postcode' => '1234AB']);
+});
+
+it('leaves out a field an editor built when the type took its key in code', function () {
+    Log::spy();
+
+    $form = applicationForm([
+        ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
+        ['type' => 'text', 'label' => 'Bron', 'key' => 'ontvangen_via'],
+        ['type' => 'textarea', 'label' => 'Motivatie', 'key' => 'motivatie'],
+    ]);
+
+    expect(keysOf($form->getFields(inputsOnly: true)))->toBe(['naam', 'vacature', 'motivatie', 'privacy'])
+        ->and($form->getSubmissionFields()['naam'])->toBe('Naam');
+
+    Log::shouldHaveReceived('warning')->twice();
 });

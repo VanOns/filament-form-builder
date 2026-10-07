@@ -347,6 +347,20 @@
     color: var(--primary-400);
 }
 
+.ffb-canvas-badge-danger {
+    background: var(--danger-50);
+    color: var(--danger-700);
+}
+
+.dark .ffb-canvas-badge-danger {
+    background: color-mix(in oklab, var(--danger-400) 12%, transparent);
+    color: var(--danger-400);
+}
+
+.ffb-canvas-item-taken .ffb-canvas-item-preview {
+    opacity: 0.5;
+}
+
 .ffb-canvas-badge-icon {
     width: 0.75rem;
     height: 0.75rem;

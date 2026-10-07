@@ -33,6 +33,11 @@ class FormCanvas extends Field
      */
     protected array | Closure $fixedFields = [];
 
+    /**
+     * @var array<int, string>|Closure
+     */
+    protected array | Closure $reservedKeys = [];
+
     protected ?Closure $afterKeyRenamed = null;
 
     protected ?Closure $keyUsages = null;
@@ -74,6 +79,41 @@ class FormCanvas extends Field
         $this->fixedFields = $fields;
 
         return $this;
+    }
+
+    /**
+     * Keys the form type fills in itself, such as the values it adds before
+     * storing, which no field of the editor's may take.
+     *
+     * @param  array<int, string>|Closure  $keys
+     */
+    public function reservedKeys(array | Closure $keys): static
+    {
+        $this->reservedKeys = $keys;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getReservedKeys(): array
+    {
+        return (array) $this->evaluate($this->reservedKeys);
+    }
+
+    /**
+     * Whether the type took this editor's field's key in code, which leaves the
+     * field out of the form until it is deleted or gets another key.
+     */
+    public function isKeyTakenByType(FormField $field): bool
+    {
+        $typeKeys = [
+            ...array_map(fn (FormField $fixed): string => $fixed->getKey(), $this->getFixedInputs()),
+            ...$this->getReservedKeys(),
+        ];
+
+        return $field::isInput() && in_array($field->getKey(), $typeKeys, true);
     }
 
     /**
@@ -900,7 +940,10 @@ class FormCanvas extends Field
      */
     protected function getTakenKeys(?string $except): array
     {
-        $keys = array_map(fn (FormField $field): string => $field->getKey(), $this->getFixedInputs());
+        $keys = [
+            ...array_map(fn (FormField $field): string => $field->getKey(), $this->getFixedInputs()),
+            ...$this->getReservedKeys(),
+        ];
 
         foreach ($this->getItems() as $uuid => $item) {
             if ($uuid !== $except && $item::isInput()) {

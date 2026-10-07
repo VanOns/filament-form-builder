@@ -517,6 +517,29 @@ it('shows the fields of the form type around the canvas and keeps their keys fre
     expect(array_column(savedFields($form), 'key'))->toBe(['naam_2']);
 });
 
+it('keeps the keys of the values a type adds itself free as well', function () {
+    config(['filament-form-builder.types.application' => ApplicationForm::class]);
+
+    $form = canvasForm(attributes: ['template' => 'application']);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->callAction(onCanvas('add', ['type' => 'text']), data: ['label' => 'Ontvangen via'])
+        ->call('save');
+
+    expect(array_column(savedFields($form), 'key'))->toBe(['ontvangen_via_2']);
+});
+
+it('flags a field whose key the form type took over in code', function () {
+    config(['filament-form-builder.types.application' => ApplicationForm::class]);
+
+    $form = canvasForm([['type' => 'text', 'label' => 'Naam', 'key' => 'naam'], ['type' => 'text', 'label' => 'Motivatie', 'key' => 'motivatie']], ['template' => 'application']);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSeeHtml('ffb-canvas-item-taken')
+        ->assertSee('Key taken in code')
+        ->assertSee('The form type has a field with the key naam itself');
+});
+
 it('shows the fields of a type without room for more, without letting anyone add one', function () {
     $form = canvasForm([['type' => 'text', 'label' => 'Uit een eerder type', 'key' => 'eerder']], ['template' => 'contact']);
 

@@ -52,8 +52,11 @@ class VacancyApplication extends FormType
   without it has no canvas.
 - The canvas shows the type's own fields around the editor's, locked, and marks
   the editor's part as "Custom fields". That part always starts and ends on a
-  row of its own, on the page too. The type's keys stay reserved, so an editor's
-  field never takes one.
+  row of its own, on the page too. The type's keys stay reserved, and so do
+  those of its `extraValues()`, so an editor's field never takes one.
+- A field added in code later with a key an editor's field already has wins:
+  the editor's field is left out of the form, with a warning in the log, and
+  the canvas flags it until it is deleted or gets another key.
 - A hidden field renders as `<input type="hidden">` holding its default value,
   which suits context such as the vacancy a visitor applies for.
 - A type without fields of its own and without `CustomFields::make()` shows no

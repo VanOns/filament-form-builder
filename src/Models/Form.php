@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\SubmitNotification;
@@ -132,11 +133,12 @@ class Form extends Model
     {
         $fields = [];
         $startsRow = false;
+        $typeFields = $this->getType()->fields();
 
         // The editor's fields form a block of their own, as on the canvas.
-        foreach ($this->getType()->fields() as $field) {
+        foreach ($typeFields as $field) {
             if ($field instanceof CustomFields) {
-                $custom = $this->makeCustomFields();
+                $custom = $this->makeCustomFields($this->getTypeKeys($typeFields));
 
                 if ($fields !== [] && $custom !== []) {
                     $custom[0]->newRow();
@@ -156,19 +158,52 @@ class Form extends Model
     }
 
     /**
+     * An editor's field whose key the type took over in code is left out, so
+     * the form never posts two values under one name.
+     *
+     * @param  array<int, string>  $typeKeys
      * @return array<int, FormField>
      */
-    protected function makeCustomFields(): array
+    protected function makeCustomFields(array $typeKeys): array
     {
         $fields = [];
 
         foreach ($this->custom['fields'] ?? [] as $data) {
-            if ($type = FieldTypeHelper::resolve($data['type'] ?? null)) {
-                $fields[] = new $type($data);
+            if (! $type = FieldTypeHelper::resolve($data['type'] ?? null)) {
+                continue;
             }
+
+            $field = new $type($data);
+
+            if ($field::isInput() && in_array($field->getKey(), $typeKeys, true)) {
+                Log::warning("Form {$this->id} leaves out its field \"{$field->getKey()}\": the form type has that key in code.");
+
+                continue;
+            }
+
+            $fields[] = $field;
         }
 
         return $fields;
+    }
+
+    /**
+     * The keys the form type uses itself: its fields' and the values it adds.
+     *
+     * @param  array<int, FormField|CustomFields>|null  $typeFields
+     * @return array<int, string>
+     */
+    public function getTypeKeys(?array $typeFields = null): array
+    {
+        $keys = array_keys($this->getType()->extraValues());
+
+        foreach ($typeFields ?? $this->getType()->fields() as $field) {
+            if ($field instanceof FormField && $field::isInput()) {
+                $keys[] = $field->getKey();
+            }
+        }
+
+        return $keys;
     }
 
     /**
