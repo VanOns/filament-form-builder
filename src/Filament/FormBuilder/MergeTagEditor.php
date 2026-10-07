@@ -37,9 +37,9 @@ final class MergeTagEditor
      * One line of text with merge tags, as tall as a text input, such as a
      * subject.
      */
-    public static function line(string $name): RichEditor
+    public static function line(string $name, bool $withSubmissionLink = true): RichEditor
     {
-        return static::make($name, withAllFields: false)
+        return static::make($name, withAllFields: false, withSubmissionLink: $withSubmissionLink)
             ->toolbarButtons(['mergeTags'])
             ->extraAttributes(['class' => 'ffb-merge-tag-line'], merge: true);
     }

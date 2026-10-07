@@ -4,24 +4,27 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
-use Filament\Forms\Components\Select;
+use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\TextInput;
-use Livewire\Component as Livewire;
+use VanOns\FilamentFormBuilder\Classes\MergeTags;
 
 /**
- * The parameters a redirect passes on, one row each: a name and the answer
- * it carries. Stored as the query string text it always was, such as
- * `name={{ $name }}&form={{ $form_title }}`.
+ * The parameters a redirect passes on, one row each: a name and a value of
+ * text and merge tags. Stored as the query string text it always was, such
+ * as `name={{ $name }}&source=website`.
  */
 class QueryParameters extends Repeater
 {
     public const NAME_PATTERN = '/^[\w.\-\[\]]+$/';
+
+    private const PLACEHOLDER = '{{\s*\$[^\s{}]+\s*}}';
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->default([]);
+        $this->live();
         $this->reorderable(false);
         $this->addActionLabel(__('filament-form-builder::general.query_add'));
 
@@ -35,19 +38,12 @@ class QueryParameters extends Repeater
                 ->label(__('filament-form-builder::general.query_parameter'))
                 ->required()
                 ->regex(static::NAME_PATTERN)
-                ->validationMessages(['regex' => __('filament-form-builder::general.query_parameter_invalid')]),
-            Select::make('value')
+                ->validationMessages(['regex' => __('filament-form-builder::general.query_parameter_invalid')])
+                ->extraInputAttributes(['class' => 'ffb-mono-input'])
+                ->live(onBlur: true),
+            MergeTagEditor::line('value', withSubmissionLink: false)
                 ->label(__('filament-form-builder::general.query_value'))
-                ->options(function (Livewire $livewire, ?string $state): array {
-                    $tags = MergeTagEditor::form($livewire)->getMergeTags(withAllFields: false, withSubmissionLink: false);
-
-                    if (filled($state) && !isset($tags[$state])) {
-                        $tags[$state] = __('filament-form-builder::general.merge_tags.missing', ['key' => $state]);
-                    }
-
-                    return $tags;
-                })
-                ->required(),
+                ->live(onBlur: true),
         ]);
 
         $this->mutateDehydratedStateUsing(static fn (QueryParameters $component, ?array $state): ?string => static::build($component->dehydrateItems($state)));
@@ -72,8 +68,9 @@ class QueryParameters extends Repeater
     }
 
     /**
-     * The rows a stored query string reads as, or null when it holds more than
-     * parameters filled with one tag each, such as a fixed value.
+     * The rows a stored query string reads as, its values as one line of the
+     * editor with the placeholders as tags, or null when a part of it is no
+     * parameter, such as a name without `=`.
      *
      * @return list<array{name: string, value: string}>|null
      */
@@ -88,17 +85,27 @@ class QueryParameters extends Repeater
         $rows = [];
 
         foreach (explode('&', $query) as $parameter) {
-            if (!preg_match('/^([\w.\-\[\]]+)=\{\{\s*\$([^\s{}]+)\s*\}\}$/u', trim($parameter), $match)) {
+            [$name, $value] = array_pad(explode('=', trim($parameter), 2), 2, null);
+
+            if ($value === null || !preg_match(static::NAME_PATTERN, $name)) {
                 return null;
             }
 
-            $rows[] = ['name' => $match[1], 'value' => $match[2]];
+            $text = implode('', array_map(
+                fn (string $part): string => self::isPlaceholder($part) ? $part : rawurldecode($part),
+                self::split($value),
+            ));
+
+            $rows[] = ['name' => $name, 'value' => $text === '' ? '' : (string) MergeTags::fromLegacy('<p>' . e($text) . '</p>')];
         }
 
         return $rows;
     }
 
     /**
+     * The rows as a query string: fixed text URL-encoded, tags as the
+     * placeholders the submission fills in.
+     *
      * @param  array<mixed>  $rows
      */
     public static function build(array $rows): ?string
@@ -107,13 +114,51 @@ class QueryParameters extends Repeater
 
         foreach ($rows as $row) {
             $name = trim((string) ($row['name'] ?? ''));
-            $value = (string) ($row['value'] ?? '');
 
-            if ($name !== '' && $value !== '') {
-                $parameters[] = $name . '={{ $' . $value . ' }}';
+            if ($name === '') {
+                continue;
             }
+
+            $value = implode('', array_map(
+                fn (string $part): string => self::isPlaceholder($part) ? $part : rawurlencode($part),
+                self::split(self::toText($row['value'] ?? null)),
+            ));
+
+            $parameters[] = $name . '=' . $value;
         }
 
         return $parameters === [] ? null : implode('&', $parameters);
+    }
+
+    /**
+     * The editor's line as text with a `{{ $key }}` for each tag.
+     */
+    private static function toText(mixed $value): string
+    {
+        $html = is_array($value) ? RichContentRenderer::make($value)->toUnsafeHtml() : (string) $value;
+
+        $html = (string) preg_replace_callback(
+            '/<span\b([^>]*\bdata-type="mergeTag"[^>]*)>.*?<\/span>/s',
+            fn (array $span): string => preg_match('/\bdata-id="([^"]*)"/', $span[1], $id) ? '{{ $' . html_entity_decode($id[1], ENT_QUOTES) . ' }}' : '',
+            $html,
+        );
+
+        return trim(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function split(string $value): array
+    {
+        return array_values(array_filter(
+            preg_split('/(' . self::PLACEHOLDER . ')/u', $value, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [],
+            fn (string $part): bool => $part !== '',
+        ));
+    }
+
+    private static function isPlaceholder(string $part): bool
+    {
+        return preg_match('/^' . self::PLACEHOLDER . '$/u', $part) === 1;
     }
 }

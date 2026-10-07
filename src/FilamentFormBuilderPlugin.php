@@ -57,10 +57,11 @@ class FilamentFormBuilderPlugin implements Plugin
 
         return [
             TextInput::make('submit_notification_url')
-                ->label(__('filament-form-builder::general.url'))
+                ->label(__('filament-form-builder::general.redirect_page'))
                 ->required()
                 ->placeholder(__('filament-form-builder::general.form_redirect_example', ['url' => 'https://example.com/form-confirmation']))
-                ->suffixIcon(Heroicon::OutlinedLink)
+                ->prefixIcon(Heroicon::OutlinedLink)
+                ->live(onBlur: true)
                 ->columnSpanFull(),
         ];
     }

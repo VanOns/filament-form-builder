@@ -273,16 +273,17 @@ flag to `false` to hide the field, or override `hasSubmitNotificationQuery()` on
 a form type to drop it for that type alone. Either way a stored query string
 is no longer appended on submit.
 
-An editor adds the parameters one row at a time, a name and the answer it
-carries, and they are stored as text with the placeholders the e-mail
-notification understands:
+An editor adds the parameters one row at a time, a name and a value of text
+and merge tags, and they are stored as text: fixed text URL-encoded, tags as
+the placeholders the e-mail notification understands:
 
 ```
-vestiging={{ $vestiging }}&form={{ $form_title }}
+vestiging={{ $vestiging }}&bron=website&form={{ $form_title }}
 ```
 
-A query string stored with more than that, such as a fixed value, stays a text
-field to edit by hand.
+A query string stored with a part that is no parameter, such as a name without
+`=`, stays a text field to edit by hand. Below the rows, the editor sees the
+URL the latest submission would have sent its visitor to.
 
 `SubmissionPlaceholders::appendQuery()` fills them in from the submission,
 URL-encodes the values and appends the result to the resolved redirect URL,
