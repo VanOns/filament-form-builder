@@ -8,6 +8,7 @@ use Filament\Forms\Components\RichEditor\RichEditorTool;
 
 use function Filament\Support\generate_icon_html;
 
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Js;
 use Livewire\Component as Livewire;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
@@ -24,6 +25,7 @@ final class MergeTagEditor
         return RichEditor::make($name)
             ->mergeTags(fn (Livewire $livewire, mixed $state): array => static::tags($livewire, $state, $withAllFields))
             ->tools(fn (Livewire $livewire): RichEditorTool => static::tool($livewire, $withAllFields))
+            ->aboveContent(fn (Livewire $livewire, mixed $state): HtmlString => static::icons($livewire, $state))
             ->extraAttributes(['class' => 'ffb-merge-tag-editor']);
     }
 
@@ -65,6 +67,37 @@ final class MergeTagEditor
         }
 
         return $tags;
+    }
+
+    /**
+     * Filament draws a tag as its label only, without anything to tell the
+     * types apart; this gives each tag the icon the picker shows, and marks
+     * the ones the form no longer has.
+     */
+    public static function icons(Livewire $livewire, mixed $state): HtmlString
+    {
+        $chip = fn (string $id): string => '.ffb-merge-tag-editor span[data-type="mergeTag"][data-id="' . $id . '"]';
+        // An id lands inside a style element, so one that could close it is left out.
+        $isSafe = fn (string $id): bool => preg_match('/^[\w.-]+$/', $id) === 1;
+        $known = [];
+        $rules = [];
+
+        foreach (static::form($livewire)->getMergeTagGroups() as $group) {
+            foreach ($group['tags'] as $id => $tag) {
+                $known[] = (string) $id;
+                $svg = generate_icon_html($tag['icon'])?->toHtml();
+
+                if ($svg !== null && $isSafe((string) $id)) {
+                    $rules[] = $chip((string) $id) . '{--ffb-tag-icon:url("data:image/svg+xml,' . rawurlencode($svg) . '")}';
+                }
+            }
+        }
+
+        foreach (array_filter(array_diff(MergeTags::ids($state), $known), $isSafe) as $id) {
+            $rules[] = $chip($id) . '{--ffb-tag-icon:var(--ffb-tag-icon-missing);background:var(--ffb-tag-missing-surface);box-shadow:inset 0 0 0 1px var(--ffb-tag-missing-ring);color:var(--ffb-tag-missing-text);text-decoration:line-through}';
+        }
+
+        return new HtmlString('<style class="ffb-merge-tag-icons">' . implode('', $rules) . '</style>');
     }
 
     /**

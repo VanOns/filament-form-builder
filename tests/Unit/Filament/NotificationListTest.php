@@ -5,6 +5,7 @@ use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\MergeTagEditor;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\ViewForm;
 use VanOns\FilamentFormBuilder\Mail\FormSubmission\FormSubmissionCreatedMail;
@@ -155,6 +156,16 @@ it('goes back to the default sender once the sender fields are put away', functi
     expect($form->refresh()->notifications[0])
         ->sender->toBeNull()
         ->senderName->toBeNull();
+});
+
+it('gives every tag the icon of its field, and marks one the form no longer has', function () {
+    $page = editNotifications(notifiedForm())->instance();
+    $subject = '<p><span data-type="mergeTag" data-id="naam"></span> <span data-type="mergeTag" data-id="weg"></span></p>';
+
+    expect(MergeTagEditor::icons($page, $subject)->toHtml())
+        ->toContain('span[data-type="mergeTag"][data-id="naam"]{--ffb-tag-icon:url("data:image/svg+xml,')
+        ->toContain('span[data-type="mergeTag"][data-id="weg"]{--ffb-tag-icon:var(--ffb-tag-icon-missing);')
+        ->not->toContain('data-id="all_fields"]{--ffb-tag-icon:var(--ffb-tag-icon-missing)');
 });
 
 it('asks whether a box is ticked instead of for a value', function () {

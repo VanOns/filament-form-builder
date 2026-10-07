@@ -20,6 +20,9 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+
+use function Filament\Support\generate_icon_html;
+
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
@@ -550,10 +553,15 @@ class NotificationList extends Field
     public function getCards(): array
     {
         $form = MergeTagEditor::form($this->getLivewire());
-        $tags = array_map(
-            fn (string $label): HtmlString => new HtmlString('<span class="ffb-mail-card-tag">' . e($label) . '</span>'),
-            $form->getMergeTags(),
-        );
+        $tags = [];
+
+        foreach ($form->getMergeTagGroups() as $group) {
+            foreach ($group['tags'] as $id => $tag) {
+                $icon = generate_icon_html($tag['icon'])?->toHtml() ?? '';
+                $tags[$id] = new HtmlString('<span class="ffb-mail-card-tag"><span class="ffb-mail-card-tag-icon">' . $icon . '</span>' . e($tag['label']) . '</span>');
+            }
+        }
+
         $conditions = new ConditionsEditor($this->getConditionFields($form));
         $fields = $form->getEmailRecipients();
         $recipient = fn (string $value): array => [
@@ -573,7 +581,7 @@ class NotificationList extends Field
             }
 
             $cards[$id] = [
-                'subject' => new HtmlString(strip_tags(MergeTags::render($item['subject'] ?? null, $tags), '<span>')),
+                'subject' => new HtmlString(strip_tags(MergeTags::render($item['subject'] ?? null, $tags), '<span><svg><path>')),
                 'enabled' => (bool) ($item['enabled'] ?? true),
                 'rows' => $rows,
                 'conditions' => $conditions->badge($item['conditions'] ?? [], $item['conditionMatch'] ?? 'all'),

@@ -312,6 +312,23 @@
     letter-spacing: 0.04em;
 }
 
+.ffb-merge-tag-editor {
+    --ffb-tag-icon-missing: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='black'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z'/%3E%3C/svg%3E");
+    --ffb-tag-icon: var(--ffb-tag-icon-missing);
+    --ffb-tag-missing-surface: color-mix(in oklab, var(--danger-500) 8%, transparent);
+    --ffb-tag-missing-ring: color-mix(in oklab, var(--danger-500) 35%, transparent);
+    --ffb-tag-missing-text: var(--danger-700);
+}
+
+.dark .ffb-merge-tag-editor {
+    --ffb-tag-missing-text: var(--danger-300);
+}
+
+/* The style element that gives every tag its icon, see MergeTagEditor::icons(). */
+.fi-fo-field-content-col > :has(.ffb-merge-tag-icons) {
+    display: none;
+}
+
 .ffb-merge-tag-editor span[data-type='mergeTag'] {
     /* Prose spaces out siblings, which pushes a second tag a line down. */
     margin: 0;
@@ -330,7 +347,17 @@
     color: var(--primary-300);
 }
 
-.ffb-merge-tag-editor span[data-type='mergeTag']::before,
+.ffb-merge-tag-editor span[data-type='mergeTag']::before {
+    content: '';
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-inline-end: 0.25rem;
+    vertical-align: -0.0625rem;
+    background: currentColor;
+    mask: var(--ffb-tag-icon) center / contain no-repeat;
+}
+
 .ffb-merge-tag-editor span[data-type='mergeTag']::after {
     content: none;
 }
@@ -609,6 +636,11 @@
 
 .ffb-mail-card-subject:disabled {
     cursor: default;
+}
+
+.ffb-mail-card-tag-icon svg {
+    width: 0.75rem;
+    height: 0.75rem;
 }
 
 .ffb-mail-card-tag {
