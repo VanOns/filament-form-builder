@@ -14,7 +14,8 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 ### Installing
 
 * Publish and run the migrations: `php artisan vendor:publish --tag=filament-form-builder-migrations`,
-  then `php artisan migrate`. They add `form_submissions.files`, `form_submissions.field_snapshot` and
+  then `php artisan migrate`. They add `form_submissions.files`, `form_submissions.field_snapshot`,
+  `form_submissions.read_at` (existing submissions start out read) and
   `form_submission_notification_logs.notification_id`, and drop `form_submissions.submitter_email`.
   One also moves what a form does after a submission into a list, see below.
 * `forms.template` now holds the name a form type is registered under instead of a template class: set

@@ -31,6 +31,7 @@ use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
  * @property array<string, mixed> $data
  * @property array<string, list<array{path: string, name: string}>>|null $files
  * @property array<string, array{label: string, type: ?string, columns: array<string, string>, options: array<string, string>}>|null $field_snapshot
+ * @property Carbon|null $read_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -54,7 +55,24 @@ class FormSubmission extends Model
             'files' => 'array',
             'field_snapshot' => 'array',
             'integrations' => 'array',
+            'read_at' => 'datetime',
         ];
+    }
+
+    public function isRead(): bool
+    {
+        return $this->read_at !== null;
+    }
+
+    /**
+     * Quietly: opening a submission changes nothing about it, so it fires no
+     * update and leaves updated_at alone.
+     */
+    public function markAsRead(bool $isRead = true): void
+    {
+        $this->timestamps = false;
+        $this->forceFill(['read_at' => $isRead ? now() : null])->saveQuietly();
+        $this->timestamps = true;
     }
 
     /**

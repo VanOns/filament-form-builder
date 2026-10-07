@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages;
 
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
@@ -31,9 +32,33 @@ class ViewFormSubmission extends ViewRecord
         return __('filament-form-builder::general.submission.title', ['id' => $this->getRecord()->getKey()]);
     }
 
+    public function mount(int | string $record): void
+    {
+        parent::mount($record);
+
+        /** @var FormSubmission $submission */
+        $submission = $this->getRecord();
+
+        if (!$submission->isRead()) {
+            $submission->markAsRead();
+        }
+    }
+
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('markUnread')
+                ->label(__('filament-form-builder::general.submission.mark_unread'))
+                ->icon(Heroicon::OutlinedEnvelope)
+                ->color('gray')
+                ->action(function (): void {
+                    /** @var FormSubmission $submission */
+                    $submission = $this->getRecord();
+                    $submission->markAsRead(false);
+
+                    // Back to the list it now stands out in again, as a mail program does.
+                    $this->redirect(FormResource::getUrl('edit', ['record' => $submission->form_id, 'tab' => 'submissions']));
+                }),
             DeleteAction::make(),
             ForceDeleteAction::make(),
             RestoreAction::make(),

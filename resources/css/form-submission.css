@@ -1257,3 +1257,8 @@
     height: 1rem;
     color: var(--ffb-muted-text);
 }
+
+/* A submission nobody has opened yet stands out, as a new mail does. */
+.ffb-unread .fi-ta-text-item {
+    font-weight: 600;
+}

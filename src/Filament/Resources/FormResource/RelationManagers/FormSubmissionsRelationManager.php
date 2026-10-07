@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Filament\Tables\FormSubmissionColumns;
+use VanOns\FilamentFormBuilder\Filament\Tables\ReadStatus;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\Form;
 
@@ -30,13 +31,13 @@ class FormSubmissionsRelationManager extends RelationManager
         $form = $this->getOwnerRecord();
         $columns = FormSubmissionColumns::for($form);
 
-        return $table
+        return ReadStatus::apply($table)
             // The tab is already labelled; a heading would say it twice.
             ->heading(null)
             ->modifyQueryUsing(fn ($query) => $query->withoutGlobalScopes([SoftDeletingScope::class])->with('form'))
             ->defaultSort('created_at', 'desc')
-            ->columns($columns->columns())
-            ->filters($columns->filters(), layout: FiltersLayout::Modal)
+            ->columns([ReadStatus::column(), ...$columns->columns()])
+            ->filters([ReadStatus::filter(), ...$columns->filters()], layout: FiltersLayout::Modal)
             ->filtersFormWidth(Width::ThreeExtraLarge)
             ->filtersTriggerAction(function (Action $action): Action {
                 // Resetting the rules is undone with one click, so it need not look dangerous.
@@ -74,6 +75,7 @@ class FormSubmissionsRelationManager extends RelationManager
             ])
             ->toolbarActions([
                 Actions\BulkActionGroup::make([
+                    ...ReadStatus::bulkActions(),
                     Actions\DeleteBulkAction::make(),
                     Actions\ForceDeleteBulkAction::make(),
                     Actions\RestoreBulkAction::make(),

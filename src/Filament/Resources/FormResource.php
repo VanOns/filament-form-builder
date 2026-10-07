@@ -117,6 +117,8 @@ class FormResource extends Resource
                             ->id('submissions')
                             ->key('submissions', isInheritable: false)
                             ->icon('heroicon-o-clipboard-document-check')
+                            ->badge(fn (?FormModel $record): ?int => $record?->submissions()->whereNull('read_at')->count() ?: null)
+                            ->badgeTooltip(__('filament-form-builder::general.submission.unread_badge'))
                             ->visible(fn (?FormModel $record): bool => $record !== null)
                             ->schema(fn (?FormModel $record): array => $record === null ? [] : [
                                 Livewire::make(FormSubmissionsRelationManager::class, [

@@ -276,6 +276,12 @@ return [
         'full_width' => 'volle breedte',
     ],
     'submission' => [
+        'unread' => 'Ongelezen',
+        'read' => 'Gelezen',
+        'read_filter' => 'Gelezen',
+        'mark_read' => 'Markeer als gelezen',
+        'mark_unread' => 'Markeer als ongelezen',
+        'unread_badge' => 'Ongelezen inzendingen',
         'title' => 'Inzending #:id',
         'id' => 'Inzending',
         'form' => 'Formulier',

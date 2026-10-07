@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages;
+use VanOns\FilamentFormBuilder\Filament\Tables\ReadStatus;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -45,6 +46,18 @@ class FormSubmissionResource extends Resource
         return trans_choice('filament-form-builder::general.models.form-submission.label', 2);
     }
 
+    public static function getNavigationBadge(): ?string
+    {
+        $unread = FormSubmission::query()->whereNull('read_at')->count();
+
+        return $unread > 0 ? (string) $unread : null;
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return __('filament-form-builder::general.submission.unread_badge');
+    }
+
     public static function getNavigationGroup(): ?string
     {
         return FilamentFormBuilderPlugin::get()->getNavigationGroup();
@@ -52,9 +65,10 @@ class FormSubmissionResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return ReadStatus::apply($table)
             ->defaultSort('created_at', 'desc')
             ->columns([
+                ReadStatus::column(),
                 TextColumn::make('form.title')
                     ->label(__('filament-form-builder::general.form_title'))
                     ->sortable()
@@ -66,6 +80,7 @@ class FormSubmissionResource extends Resource
                     ->toggleable(),
             ])
             ->filters([
+                ReadStatus::filter(),
                 SelectFilter::make('form')
                     ->label(__('filament-form-builder::general.form_title'))
                     ->relationship('form', 'title')
@@ -95,6 +110,7 @@ class FormSubmissionResource extends Resource
             ])
             ->toolbarActions([
                 Actions\BulkActionGroup::make([
+                    ...ReadStatus::bulkActions(),
                     Actions\DeleteBulkAction::make(),
                     Actions\ForceDeleteBulkAction::make(),
                     Actions\RestoreBulkAction::make(),

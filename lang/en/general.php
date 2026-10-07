@@ -276,6 +276,12 @@ return [
         'full_width' => 'full width',
     ],
     'submission' => [
+        'unread' => 'Unread',
+        'read' => 'Read',
+        'read_filter' => 'Read',
+        'mark_read' => 'Mark as read',
+        'mark_unread' => 'Mark as unread',
+        'unread_badge' => 'Unread submissions',
         'title' => 'Submission #:id',
         'id' => 'Submission',
         'form' => 'Form',
