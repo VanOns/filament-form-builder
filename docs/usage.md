@@ -312,7 +312,10 @@ What a rule can test depends on the field it looks at, through the field type's
 `getConditionOperators()`: any answer can equal a value or be empty, a number
 can also be greater than, at least, less than or at most a value, a date can
 be before, on or before, after or on or after a date, and a checkbox is ticked
-or not. `getConditionPhrase()` gives the words a rule reads as. The same rules
+or not. `getConditionPhrase()` gives the words a rule reads as, and
+`getConditionValueComponent()` the input its value is filled in with: the
+field's own choices, a date picker for a date, a number field for a number and
+text for the rest. The same rules
 decide when an e-mail notification goes out and which outcome follows a
 submission.
 
