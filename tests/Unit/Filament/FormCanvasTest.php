@@ -477,6 +477,17 @@ it('groups the palette and shows a hidden field by its default value', function 
         ->assertSee('Default value: website');
 });
 
+it('shows a change in the preview of the settings before they are saved', function () {
+    $form = canvasForm([['type' => 'text', 'label' => 'Naam', 'key' => 'naam']]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+
+    $page->mountAction(onCanvas('edit', ['item' => array_keys($page->get('data.custom.fields'))[0]]))
+        ->set('mountedActions.0.data.description', 'Zoals op je paspoort')
+        ->call('partiallyRenderSchemaComponent', 'mountedActionSchema0.preview');
+
+    expect((string) $page->effects['partials']['schema-component::mountedActionSchema0.preview'])->toContain('Zoals op je paspoort');
+});
+
 it('opens a form in steps with a start block, which sets the first step and the progress', function () {
     $form = canvasForm([
         ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],

@@ -838,6 +838,7 @@ class FormCanvas extends Field
         $fields = [
             Group::make($type::getFields())->columns(2),
             View::make('filament-form-builder::filament.partials.settings-preview')
+                ->key('preview')
                 ->viewData(fn (Get $get): array => ['field' => new $type((array) $get(''))]),
         ];
 
