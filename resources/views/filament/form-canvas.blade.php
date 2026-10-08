@@ -10,6 +10,8 @@
     [$fixedBefore, $fixedAfter] = $getFixedFields();
     $hasFixedFields = $hasFixedFields();
     $acceptsFields = $acceptsFields();
+    $typeKeys = $getTypeKeys();
+    $conditionsEditor = $getConditionsEditor();
     $layout = GridLayout::current();
     $widths = collect(FieldWidth::available())->mapWithKeys(fn (FieldWidth $width): array => [$width->value => $width->getLabel()])->all();
     $canResize = count($widths) > 1;

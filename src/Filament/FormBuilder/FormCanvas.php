@@ -24,21 +24,14 @@ use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Forms\CustomFields;
+use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
 
 class FormCanvas extends Field
 {
     protected string $view = 'filament-form-builder::filament.form-canvas';
 
-    /**
-     * @var array<int, FormField|CustomFields>|Closure
-     */
-    protected array | Closure $fixedFields = [];
-
-    /**
-     * @var array<int, string>|Closure
-     */
-    protected array | Closure $reservedKeys = [];
+    protected FormType | Closure | null $formType = null;
 
     protected ?Closure $afterKeyRenamed = null;
 
@@ -71,51 +64,28 @@ class FormCanvas extends Field
     }
 
     /**
-     * The fields a form type has in code, shown around the editor's fields where
-     * CustomFields::make() sits. The canvas cannot change them.
-     *
-     * @param  array<int, FormField|CustomFields>|Closure  $fields
+     * The type whose fields from code show around the editor's fields, where
+     * CustomFields::make() sits. The canvas cannot change them, and no field of
+     * the editor's may take a key the type fills in itself.
      */
-    public function fixedFields(array | Closure $fields): static
+    public function formType(FormType | Closure | null $type): static
     {
-        $this->fixedFields = $fields;
+        $this->formType = $type;
 
         return $this;
     }
 
-    /**
-     * Keys the form type fills in itself, such as the values it adds before
-     * storing, which no field of the editor's may take.
-     *
-     * @param  array<int, string>|Closure  $keys
-     */
-    public function reservedKeys(array | Closure $keys): static
+    public function getFormType(): ?FormType
     {
-        $this->reservedKeys = $keys;
-
-        return $this;
+        return $this->evaluate($this->formType);
     }
 
     /**
      * @return array<int, string>
      */
-    public function getReservedKeys(): array
+    public function getTypeKeys(): array
     {
-        return (array) $this->evaluate($this->reservedKeys);
-    }
-
-    /**
-     * Whether the type took this editor's field's key in code, which leaves the
-     * field out of the form until it is deleted or gets another key.
-     */
-    public function isKeyTakenByType(FormField $field): bool
-    {
-        $typeKeys = [
-            ...array_map(fn (FormField $fixed): string => $fixed->getKey(), $this->getFixedInputs()),
-            ...$this->getReservedKeys(),
-        ];
-
-        return $field::isInput() && in_array($field->getKey(), $typeKeys, true);
+        return $this->getFormType()?->keys() ?? [];
     }
 
     /**
@@ -174,15 +144,9 @@ class FormCanvas extends Field
      */
     public function acceptsFields(): bool
     {
-        $fields = $this->evaluate($this->fixedFields) ?? [];
+        $type = $this->getFormType();
 
-        foreach ($fields as $field) {
-            if ($field instanceof CustomFields) {
-                return true;
-            }
-        }
-
-        return $fields === [];
+        return $type === null || $type->fields() === [] || $type->hasCustomFields();
     }
 
     /**
@@ -194,7 +158,7 @@ class FormCanvas extends Field
         $after = [];
         $isAfter = false;
 
-        foreach ($this->evaluate($this->fixedFields) ?? [] as $field) {
+        foreach ($this->getFormType()?->fields() ?? [] as $field) {
             if ($field instanceof CustomFields) {
                 $isAfter = true;
             } elseif ($isAfter) {
@@ -445,18 +409,12 @@ class FormCanvas extends Field
     }
 
     /**
-     * When a field shows, for its badge on the canvas: its one rule, or how
-     * many it has and how they combine.
+     * For the condition badges on the canvas: the editor over every field a
+     * condition can look at.
      */
-    public function getConditionBadge(FormField $field): ?string
+    public function getConditionsEditor(): ConditionsEditor
     {
-        if (! $field->hasConditions()) {
-            return null;
-        }
-
-        ['match' => $match, 'rules' => $rules] = $field->getConditions()->toArray();
-
-        return (new ConditionsEditor($this->getConditionFields(null)))->badge($rules, $match);
+        return new ConditionsEditor($this->getConditionFields(null));
     }
 
     /**
@@ -966,10 +924,7 @@ class FormCanvas extends Field
      */
     protected function getTakenKeys(?string $except): array
     {
-        $keys = [
-            ...array_map(fn (FormField $field): string => $field->getKey(), $this->getFixedInputs()),
-            ...$this->getReservedKeys(),
-        ];
+        $keys = $this->getTypeKeys();
 
         foreach ($this->getItems() as $uuid => $item) {
             if ($uuid !== $except && $item::isInput()) {

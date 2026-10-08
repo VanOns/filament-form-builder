@@ -65,6 +65,24 @@ class FormType
     }
 
     /**
+     * The keys the type fills in itself, which no field of an editor's may take.
+     *
+     * @return array<int, string>
+     */
+    public function keys(): array
+    {
+        $keys = array_keys($this->extraValues());
+
+        foreach ($this->fields() as $field) {
+            if ($field instanceof FormField && $field::isInput()) {
+                $keys[] = $field->getKey();
+            }
+        }
+
+        return $keys;
+    }
+
+    /**
      * Fields for the form's settings under the canvas, stored in its `settings` column.
      *
      * @return array<Component>

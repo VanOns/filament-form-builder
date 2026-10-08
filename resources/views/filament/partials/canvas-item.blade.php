@@ -5,8 +5,10 @@
     $width = $getCanvasWidth($field);
     $options = $getWidthOptions($field);
     $isEditable = $uuid !== null;
-    $conditions = $getConditionBadge($field);
-    $isTakenByType = $isEditable && $isKeyTakenByType($field);
+    ['match' => $match, 'rules' => $rules] = $field->getConditions()->toArray();
+    $conditions = $conditionsEditor->badge($rules, $match);
+    // The type took this key in code, which leaves the field out of the form until it gets another.
+    $isTakenByType = $isEditable && $field::isInput() && in_array($field->getKey(), $typeKeys, true);
 @endphp
 
 <div

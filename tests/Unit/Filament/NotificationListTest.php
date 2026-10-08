@@ -211,6 +211,18 @@ it('shows on a card how often its notification went out', function () {
         ->assertSee('Failed 1 time this week');
 });
 
+it('builds the form on the page once for all its editors, and again when its fields change', function () {
+    $page = editNotifications(notifiedForm())->instance();
+    $form = MergeTagEditor::form($page);
+
+    expect(MergeTagEditor::form($page))->toBe($form);
+
+    $page->data['custom']['fields'][] = ['type' => 'text', 'label' => 'Plaats', 'key' => 'plaats'];
+
+    expect(MergeTagEditor::form($page))->not->toBe($form)
+        ->and(MergeTagEditor::form($page)->getMergeTags())->toHaveKey('plaats');
+});
+
 it('shows the cards without actions on the view page', function () {
     $form = notifiedForm([['id' => 'team', 'subject' => 'Nieuw', 'content' => '<p>Hoi</p>', 'to' => ['hr@example.test']]]);
 

@@ -158,12 +158,11 @@ class Form extends Model
     {
         $fields = [];
         $startsRow = false;
-        $typeFields = $this->getType()->fields();
 
         // The editor's fields form a block of their own, as on the canvas.
-        foreach ($typeFields as $field) {
+        foreach ($this->getType()->fields() as $field) {
             if ($field instanceof CustomFields) {
-                $custom = $this->makeCustomFields($this->getTypeKeys($typeFields));
+                $custom = $this->makeCustomFields($this->getType()->keys());
 
                 if ($fields !== [] && $custom !== []) {
                     $custom[0]->newRow();
@@ -210,25 +209,6 @@ class Form extends Model
         }
 
         return $fields;
-    }
-
-    /**
-     * The keys the form type uses itself: its fields' and the values it adds.
-     *
-     * @param  array<int, FormField|CustomFields>|null  $typeFields
-     * @return array<int, string>
-     */
-    public function getTypeKeys(?array $typeFields = null): array
-    {
-        $keys = array_keys($this->getType()->extraValues());
-
-        foreach ($typeFields ?? $this->getType()->fields() as $field) {
-            if ($field instanceof FormField && $field::isInput()) {
-                $keys[] = $field->getKey();
-            }
-        }
-
-        return $keys;
     }
 
     /**

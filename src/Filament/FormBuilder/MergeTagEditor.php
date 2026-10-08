@@ -13,6 +13,7 @@ use Illuminate\Support\Js;
 use Livewire\Component as Livewire;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Models\Form;
+use WeakMap;
 
 /**
  * Rich editors that take the merge tags of the form being edited, with the
@@ -45,15 +46,30 @@ class MergeTagEditor
     }
 
     /**
+     * @var WeakMap<Livewire, array{attributes: array<string, mixed>, form: Form}>|null
+     */
+    protected static ?WeakMap $forms = null;
+
+    /**
      * The form as it stands on the page, so the tags follow the canvas before
-     * it is saved, also from inside a modal.
+     * it is saved, also from inside a modal. Every editor on the page asks for
+     * it several times, so it is only built again once the canvas changed.
      */
     public static function form(Livewire $livewire): Form
     {
-        return new Form([
+        $attributes = [
             'template' => data_get($livewire, 'data.template'),
             'custom' => data_get($livewire, 'data.custom') ?? [],
-        ]);
+        ];
+
+        static::$forms ??= new WeakMap();
+        $cached = static::$forms[$livewire] ?? null;
+
+        if ($cached === null || $cached['attributes'] !== $attributes) {
+            $cached = static::$forms[$livewire] = ['attributes' => $attributes, 'form' => new Form($attributes)];
+        }
+
+        return $cached['form'];
     }
 
     /**
