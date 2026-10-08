@@ -39,6 +39,9 @@ beforeEach(function () {
         'filament-form-builder.honeypot' => ['enabled' => true, 'field' => 'ffb_website', 'min_seconds' => 2],
         'filament-form-builder.duplicate_seconds' => 10,
     ]);
+
+    // The token counts in whole seconds: a second passing between making it and sending it would age it by one.
+    $this->freezeSecond();
 });
 
 function guardedForm(string $template = 'custom'): Form
