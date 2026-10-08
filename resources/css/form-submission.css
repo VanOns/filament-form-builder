@@ -663,9 +663,40 @@
 }
 
 .ffb-mail-card {
+    position: relative;
     border-radius: 0.75rem;
     background: #fff;
     box-shadow: 0 0 0 1px var(--ffb-ring), 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+/* The subject's button stretches over the whole card, so a click anywhere opens it; the switch and the menu lie above it. */
+.ffb-mail-card-subject:not(:disabled)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 0.75rem;
+}
+
+.ffb-mail-card .ffb-mail-switch,
+.ffb-mail-card .fi-dropdown {
+    z-index: 1;
+}
+
+.ffb-mail-card .fi-dropdown {
+    position: relative;
+}
+
+.ffb-mail-card:has(.ffb-mail-card-subject:not(:disabled)):hover {
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary-500) 35%, transparent), 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+.ffb-mail-card:has(.ffb-mail-card-subject:focus-visible) {
+    outline: 2px solid var(--primary-600);
+    outline-offset: 2px;
+}
+
+.ffb-mail-card-subject:focus-visible {
+    outline: none;
 }
 
 .dark .ffb-mail-card {
