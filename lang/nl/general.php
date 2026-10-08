@@ -364,7 +364,7 @@ return [
         'default' => 'Standaard (:retention)',
         'months' => '{1} :count maand|[0,*] :count maanden',
         'forever' => 'altijd',
-        'helper' => 'Oudere inzendingen worden elke nacht verwijderd, met hun bestanden.',
+        'helper' => 'Oudere inzendingen worden verwijderd, met hun bestanden.',
         'description' => 'Inzendingen worden na :retention automatisch verwijderd.',
     ],
     'filters' => [

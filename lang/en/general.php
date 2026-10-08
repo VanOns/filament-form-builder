@@ -364,7 +364,7 @@ return [
         'default' => 'Default (:retention)',
         'months' => '{1} :count month|[0,*] :count months',
         'forever' => 'forever',
-        'helper' => 'Older submissions are deleted every night, with their files.',
+        'helper' => 'Older submissions are deleted, with their files.',
         'description' => 'Submissions are deleted automatically after :retention.',
     ],
     'filters' => [
