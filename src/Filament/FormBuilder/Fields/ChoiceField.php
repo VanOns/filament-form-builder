@@ -49,6 +49,18 @@ abstract class ChoiceField extends FormField
         return static::toChoices($this->options);
     }
 
+    /**
+     * A choice whose every option is an e-mail address, such as the branch a
+     * visitor picks, can be what a notification is sent to.
+     */
+    public function getEmailColumns(): array
+    {
+        $values = array_map('strval', array_keys($this->getFilterOptions()));
+        $isAddresses = $values !== [] && array_filter($values, fn (string $value): bool => filter_var($value, FILTER_VALIDATE_EMAIL) === false) === [];
+
+        return $isAddresses ? $this->getSubmissionColumns() : [];
+    }
+
     public function getFilterConstraints(): array
     {
         return [AnswerConstraints::choice($this->getKey(), $this->getColumnLabel(), $this->getFilterOptions(), static::allowsMultiple())];

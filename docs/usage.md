@@ -296,7 +296,8 @@ sees after sending: who they go to, when, and how often they went out. A
 notification is edited in a slide-over:
 
 - **To**: fields of the form that hold an e-mail address, or addresses typed in.
-  Every recipient gets a mail of their own.
+  A choice whose every option is an address counts too, so a mail can go to the
+  branch a visitor picks. Every recipient gets a mail of their own.
 - **CC** and **BCC**: the same kind of recipients, getting a copy of each of
   those mails; an address the mail is already for gets no copy of it.
 - **Reply to**: a field or an address, so a reply goes to the person who sent

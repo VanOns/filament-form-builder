@@ -163,10 +163,12 @@ class EmailNotification
 
         foreach ($recipients as $recipient) {
             $key = static::fieldKey($recipient);
-            $address = $key === null ? $recipient : $data[$key] ?? null;
 
-            if (is_string($address) && filter_var(trim($address), FILTER_VALIDATE_EMAIL)) {
-                $addresses[] = trim($address);
+            // A multiple choice of addresses holds a list.
+            foreach ((array) ($key === null ? $recipient : $data[$key] ?? null) as $address) {
+                if (is_string($address) && filter_var(trim($address), FILTER_VALIDATE_EMAIL)) {
+                    $addresses[] = trim($address);
+                }
             }
         }
 

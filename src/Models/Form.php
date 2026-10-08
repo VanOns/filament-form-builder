@@ -20,6 +20,7 @@ use VanOns\FilamentFormBuilder\Events\Form\FormDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\ChoiceField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\StepField;
 use VanOns\FilamentFormBuilder\Forms\CustomFields;
@@ -437,21 +438,28 @@ class Form extends Model
     }
 
     /**
-     * The answers a notification can be sent to, as `field:key` => label.
+     * The answers a notification can be sent to, as `field:key` => label. The
+     * visitor's own address comes before one picked from a choice, as the
+     * confirmation preset sends to the first.
      *
      * @return array<string, string>
      */
     public function getEmailRecipients(): array
     {
-        $recipients = [];
+        $own = [];
+        $chosen = [];
 
         foreach ($this->getFields(inputsOnly: true) as $field) {
             foreach ($field->getEmailColumns() as $key => $label) {
-                $recipients[EmailNotification::FIELD_PREFIX . $key] = $label;
+                if ($field instanceof ChoiceField) {
+                    $chosen[EmailNotification::FIELD_PREFIX . $key] = $label;
+                } else {
+                    $own[EmailNotification::FIELD_PREFIX . $key] = $label;
+                }
             }
         }
 
-        return $recipients;
+        return [...$own, ...$chosen];
     }
 
     /**

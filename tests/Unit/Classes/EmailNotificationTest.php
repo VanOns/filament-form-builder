@@ -63,6 +63,31 @@ it('sends to the answer of a field, replies to another and leaves out what is no
         ->and($notification->replyTo)->toBe('jan@example.test');
 });
 
+it('sends to the branch a visitor picks when every option is an address, with the own address of the visitor first', function () {
+    $form = Form::create([
+        'title' => 'Intake',
+        'template' => 'custom',
+        'custom' => ['fields' => [
+            ['type' => 'dropdown', 'label' => 'Centrum', 'key' => 'centrum', 'options' => [
+                ['value' => 'utrecht@example.test', 'label' => 'Utrecht'],
+                ['value' => 'zwolle@example.test', 'label' => 'Zwolle'],
+            ]],
+            ['type' => 'checkbox_list', 'label' => 'Ook naar', 'key' => 'ook', 'options' => [
+                ['value' => 'hr@example.test', 'label' => 'HR'],
+                ['value' => 'it@example.test', 'label' => 'IT'],
+            ]],
+            ['type' => 'email', 'label' => 'E-mailadres', 'key' => 'email'],
+        ]],
+    ]);
+    $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['centrum' => 'zwolle@example.test', 'ook' => ['hr@example.test', 'it@example.test'], 'email' => 'jan@example.test']]);
+
+    $notification = new EmailNotification($submission, ['to' => ['field:centrum', 'field:ook']]);
+
+    expect($notification->receivers)->toBe(['zwolle@example.test', 'hr@example.test', 'it@example.test'])
+        ->and(array_keys($form->getEmailRecipients()))->toBe(['field:email', 'field:centrum', 'field:ook'])
+        ->and(mailForm()->getEmailRecipients())->not->toHaveKey('field:vestiging');
+});
+
 it('sends nothing when switched off, when its conditions fail or without recipients', function () {
     $submission = mailSubmission(mailForm());
     $mail = fn (array $settings): bool => (new EmailNotification($submission, ['to' => ['hr@example.test'], ...$settings]))->shouldSend();
