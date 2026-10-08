@@ -317,13 +317,6 @@ class FormResource extends Resource
                     ->collapsed()
                     ->reactive()
                     ->default([])
-                    ->afterStateHydrated(static function (Component $component, ?array $rawState): void {
-                        $component->rawState(
-                            collect($rawState ?? [])
-                                ->mapWithKeys(fn ($itemData) => [(string) Str::uuid() => $itemData])
-                                ->toArray(),
-                        );
-                    })
                     ->schema([
                         Select::make('class')
                             ->label(__('filament-form-builder::general.integration'))

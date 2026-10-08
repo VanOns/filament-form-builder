@@ -548,6 +548,24 @@ it('stores the conditions of a field with how they combine', function () {
         ]);
 });
 
+it('keeps the order the options of a choice field were dragged into', function () {
+    $form = canvasForm([['type' => 'radio', 'label' => 'Kleur', 'key' => 'kleur', 'options' => [
+        ['value' => 'rood', 'label' => 'Rood'],
+        ['value' => 'blauw', 'label' => 'Blauw'],
+        ['value' => 'groen', 'label' => 'Groen'],
+    ]]]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+
+    $page->mountAction(onCanvas('edit', ['item' => array_keys($page->get('data.custom.fields'))[0]]));
+    [$rood, $blauw, $groen] = array_keys($page->get('mountedActions.0.data.options'));
+
+    $page->callAction(TestAction::make('reorder')->schemaComponent('options', schema: 'mountedActionSchema0')->arguments(['items' => [$groen, $rood, $blauw]]))
+        ->callMountedAction()
+        ->call('save');
+
+    expect(array_column(savedFields($form)[0]['options'], 'value'))->toBe(['groen', 'rood', 'blauw']);
+});
+
 it('asks a condition on a number for a number', function () {
     $form = canvasForm([
         ['type' => 'number', 'label' => 'Leeftijd', 'key' => 'leeftijd'],

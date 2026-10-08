@@ -8,7 +8,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 
@@ -129,13 +128,6 @@ abstract class ChoiceField extends FormField
                 ->columnSpanFull()
                 ->label(__('filament-form-builder::fields.options'))
                 ->columns()
-                ->afterStateHydrated(static function (Component $component, ?array $rawState): void {
-                    $component->rawState(
-                        collect($rawState ?? [])
-                            ->mapWithKeys(fn ($itemData) => [(string) Str::uuid() => $itemData])
-                            ->toArray(),
-                    );
-                })
                 ->schema([
                     TextInput::make('value')
                         ->required(),
