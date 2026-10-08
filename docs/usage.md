@@ -415,6 +415,118 @@ page: a form sent within `honeypot.min_seconds` of it counts as a bot. Turn the
 button off while Inertia's `processing` is true; the server stores a double
 click once either way.
 
+## Steps
+
+A long form can show one step at a time. On the canvas, drag in a **New step**
+where a step should start and give it a title; the fields before the first one
+make the first step. With the first step field, a start block appears at the top
+of the canvas. It sets the first step's title, the labels of the previous and
+next buttons, and the progress: every step by its title (the default), a bar
+with "Step 2 of 3", or none.
+
+On the site, the next button checks the step's fields before moving on, and a
+step whose fields the conditions all hide is skipped. The submit button and a
+captcha come after the last step, where the next button was. The server checks
+every answer when the form is sent, as always, and the form opens again on the
+step with the first error. Without JavaScript every step shows, one below the
+other, and the form works as one.
+
+In code, a form type starts a step with `StepField`, and sets what the start
+block would in `stepSettings()`:
+
+```php
+use VanOns\FilamentFormBuilder\Classes\StepSettings;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\StepField;
+
+public function fields(): array
+{
+    return [
+        TextInputField::make('naam')->label('Naam')->required(),
+        StepField::make('motivatie_stap')->title('Motivatie'),
+        TextAreaField::make('motivatie')->label('Motivatie'),
+        SubmitField::make('verstuur'),
+    ];
+}
+
+public function stepSettings(): array
+{
+    return StepSettings::normalize(['title' => 'Over jou', 'progress' => 'bar']);
+}
+```
+
+The steps render through `components/steps`, the progress through
+`components/steps/progress-steps` or `progress-bar`; the classes are under
+[Styling forms on the site](#styling-forms-on-the-site). A `components/form` of
+your own shows the steps with
+`<x-filament-form-builder::steps :form="$form" />` where `$form->hasSteps()`.
+The answers of a submission are grouped per step on its page.
+
+### Steps in a front end of your own
+
+`resources/js/steps.js` holds the same logic for React, Vue or anything else,
+typed by `steps.d.ts`, next to `conditions.js`. Hand the page the steps with
+the fields:
+
+```php
+'steps' => $form->getStepKeys(), // per step its title and the keys of its fields
+```
+
+| Function                                   | Gives                                                                 |
+|--------------------------------------------|-----------------------------------------------------------------------|
+| `visibleSteps(steps, hidden)`              | The indexes of the steps that show, given the keys `hiddenKeys()` hides |
+| `nextStep(steps, hidden, current)`         | The next step that shows, or `null` on the last                      |
+| `previousStep(steps, hidden, current)`     | The previous step that shows, or `null` on the first                 |
+| `firstStepWithError(steps, errorKeys)`     | The step to open after the server turned the form away                |
+| `progress(steps, hidden, current)`         | `{ number, total, percent }` among the steps that show               |
+| `reportStep(element)`                      | Shows why a step's fields cannot be left yet; true when they can      |
+
+Keep every step mounted and hide the others with `hidden`: `<Form>` posts what
+is in the form element, so a step that is not rendered loses its answers. Give
+the form `noValidate`, or the browser stops at a required field in a step the
+visitor has not seen yet, and check the step with `reportStep()` instead:
+
+```tsx
+import { Form } from '@inertiajs/react'
+import { useEffect, useRef, useState } from 'react'
+import { hiddenKeys, readValues } from '@form-builder/conditions'
+import { firstStepWithError, nextStep, previousStep, progress, reportStep } from '@form-builder/steps'
+
+export default function ApplicationForm({ form, errors }) {
+    const [hidden, setHidden] = useState(() => new Set<string>())
+    const [current, setCurrent] = useState(0)
+    const fieldsets = useRef<HTMLFieldSetElement[]>([])
+    const following = nextStep(form.steps, hidden, current)
+    const before = previousStep(form.steps, hidden, current)
+    const { number, total } = progress(form.steps, hidden, current)
+
+    useEffect(() => {
+        const step = firstStepWithError(form.steps, Object.keys(errors))
+        step !== null && setCurrent(step)
+    }, [errors])
+
+    return (
+        <Form
+            action={`/filament-form-builder/${form.id}/submit`}
+            method="post"
+            noValidate
+            onChange={(event) => setHidden(hiddenKeys(form.conditions, readValues(event.currentTarget)))}
+        >
+            <p>Step {number} of {total}</p>
+            {form.steps.map((step, index) => (
+                <fieldset key={index} hidden={index !== current} ref={(element) => { fieldsets.current[index] = element }}>
+                    {step.title && <legend>{step.title}</legend>}
+                    {/* the fields of step.keys */}
+                </fieldset>
+            ))}
+            {before !== null && <button type="button" onClick={() => setCurrent(before)}>Previous</button>}
+            {following === null
+                ? <button type="submit">Send</button>
+                : <button type="button" onClick={() => reportStep(fieldsets.current[current]) && setCurrent(following)}>Next</button>}
+        </Form>
+    )
+}
+```
+
 ## Spam
 
 A form on the site sets two traps, on by default: a field nobody sees, which
@@ -704,6 +816,10 @@ markup has a class for everything a site styles:
 | `ffb-text`        | A text block                                               |
 | `ffb-submit`      | The submit button                                          |
 | `ffb-message`     | The thank-you message after a submission                   |
+| `ffb-step`        | A step, a `fieldset` with its title in `ffb-step-title`    |
+| `ffb-step-nav`    | The previous, next and submit buttons below the steps; the first two are `ffb-step-button` |
+| `ffb-progress-steps` | The steps by title; each `ffb-progress-step` has `data-state` `done`, `current` or `upcoming` |
+| `ffb-progress-bar` | The bar; `ffb-progress-fill` is as wide as `--ffb-progress` |
 
 A field with an error also has `aria-invalid="true"`. The grid comes from the
 wrapper's custom properties, which a stylesheet of your own picks up the same
