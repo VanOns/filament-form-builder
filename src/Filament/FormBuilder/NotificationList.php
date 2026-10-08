@@ -187,19 +187,18 @@ class NotificationList extends CardList
     public function getPreset(string $preset, Livewire $livewire): array
     {
         $respondent = array_key_first(MergeTagEditor::form($livewire)->getEmailRecipients());
-        $tag = fn (string $id): string => '<span data-type="mergeTag" data-id="' . e($id) . '"></span>';
         $text = fn (string $key): string => e(__("filament-form-builder::general.notifications.presets.{$key}"));
 
         return match ($preset) {
             'confirmation' => [
                 'to' => $respondent === null ? [] : [$respondent],
                 'subject' => '<p>' . $text('confirmation_subject') . '</p>',
-                'content' => '<p>' . $text('confirmation_body') . '</p><p>' . $tag('all_fields') . '</p>',
+                'content' => '<p>' . $text('confirmation_body') . '</p><p>' . MergeTags::tag('all_fields') . '</p>',
             ],
             'staff' => [
                 'reply_to' => $respondent,
-                'subject' => '<p>' . $text('staff_subject') . ' ' . $tag('form_title') . '</p>',
-                'content' => '<p>' . $text('staff_body') . '</p><p>' . $tag('all_fields') . '</p><p>' . $tag('submission_url') . '</p>',
+                'subject' => '<p>' . $text('staff_subject') . ' ' . MergeTags::tag('form_title') . '</p>',
+                'content' => '<p>' . $text('staff_body') . '</p><p>' . MergeTags::tag('all_fields') . '</p><p>' . MergeTags::tag('submission_url') . '</p>',
             ],
             default => [],
         };

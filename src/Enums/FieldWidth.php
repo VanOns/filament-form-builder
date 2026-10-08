@@ -26,6 +26,16 @@ enum FieldWidth: int
         return GridLayout::current()->widths();
     }
 
+    /**
+     * The available widths a field this wide at least can take.
+     *
+     * @return list<self>
+     */
+    public static function availableFrom(self $minimum): array
+    {
+        return array_values(array_filter(self::available(), fn (self $width): bool => $width->value >= $minimum->value));
+    }
+
     public function isAvailable(): bool
     {
         return in_array($this, self::available(), true);
@@ -42,9 +52,7 @@ enum FieldWidth: int
             return self::FULL;
         }
 
-        $options = array_values(array_filter(self::available(), fn (self $width): bool => $width->value >= $minimum->value));
-
-        return self::within((int) $span, $minimum) ?? $options[0] ?? self::FULL;
+        return self::within((int) $span, $minimum) ?? self::availableFrom($minimum)[0] ?? self::FULL;
     }
 
     /**
@@ -52,10 +60,7 @@ enum FieldWidth: int
      */
     public static function within(int $span, self $minimum = self::QUARTER): ?self
     {
-        $fitting = array_values(array_filter(
-            self::available(),
-            fn (self $width): bool => $width->value >= $minimum->value && $width->value <= $span,
-        ));
+        $fitting = array_values(array_filter(self::availableFrom($minimum), fn (self $width): bool => $width->value <= $span));
 
         return $fitting === [] ? null : $fitting[count($fitting) - 1];
     }

@@ -17,8 +17,6 @@ class QueryParameters extends Repeater
 {
     public const NAME_PATTERN = '/^[\w.\-\[\]]+$/';
 
-    private const PLACEHOLDER = '{{\s*\$[^\s{}]+\s*}}';
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -91,10 +89,7 @@ class QueryParameters extends Repeater
                 return null;
             }
 
-            $text = implode('', array_map(
-                fn (string $part): string => self::isPlaceholder($part) ? $part : rawurldecode($part),
-                self::split($value),
-            ));
+            $text = MergeTags::mapText($value, rawurldecode(...));
 
             $rows[] = ['name' => $name, 'value' => $text === '' ? '' : (string) MergeTags::fromLegacy('<p>' . e($text) . '</p>')];
         }
@@ -119,10 +114,7 @@ class QueryParameters extends Repeater
                 continue;
             }
 
-            $value = implode('', array_map(
-                fn (string $part): string => self::isPlaceholder($part) ? $part : rawurlencode($part),
-                self::split(self::toText($row['value'] ?? null)),
-            ));
+            $value = MergeTags::mapText(self::toText($row['value'] ?? null), rawurlencode(...));
 
             $parameters[] = $name . '=' . $value;
         }
@@ -139,26 +131,10 @@ class QueryParameters extends Repeater
 
         $html = (string) preg_replace_callback(
             '/<span\b([^>]*\bdata-type="mergeTag"[^>]*)>.*?<\/span>/s',
-            fn (array $span): string => preg_match('/\bdata-id="([^"]*)"/', $span[1], $id) ? '{{ $' . html_entity_decode($id[1], ENT_QUOTES) . ' }}' : '',
+            fn (array $span): string => preg_match('/\bdata-id="([^"]*)"/', $span[1], $id) ? MergeTags::placeholder(html_entity_decode($id[1], ENT_QUOTES)) : '',
             $html,
         );
 
         return trim(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5));
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function split(string $value): array
-    {
-        return array_values(array_filter(
-            preg_split('/(' . self::PLACEHOLDER . ')/u', $value, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [],
-            fn (string $part): bool => $part !== '',
-        ));
-    }
-
-    private static function isPlaceholder(string $part): bool
-    {
-        return preg_match('/^' . self::PLACEHOLDER . '$/u', $part) === 1;
     }
 }

@@ -15,7 +15,6 @@
     $layout = GridLayout::current();
     $widths = collect(FieldWidth::available())->mapWithKeys(fn (FieldWidth $width): array => [$width->value => $width->getLabel()])->all();
     $canResize = count($widths) > 1;
-    $minimums = collect($getFieldTypes())->map(fn (string $class): int => $class::minWidth()->value)->all();
     $cloneAction = $getAction('clone');
     $deleteAction = $getAction('delete');
 @endphp
@@ -25,7 +24,7 @@
         @if ($acceptsFields)
             x-load
             x-load-src="{{ FilamentAsset::getAlpineComponentSrc('form-canvas', 'van-ons/filament-form-builder') }}"
-            x-data="formCanvasComponent({ key: @js($key), widths: @js($widths), minimums: @js($minimums) })"
+            x-data="formCanvasComponent({ key: @js($key), widths: @js($widths) })"
             x-on:modal-closed.window="editing = null"
         @endif
         @class(['ffb-canvas', 'ffb-canvas-readonly' => ! $acceptsFields])
@@ -108,6 +107,7 @@
                                 <button
                                     type="button"
                                     data-type="{{ $type }}"
+                                    data-minimum="{{ $class::minWidth()->value }}"
                                     x-on:click="add(@js($type))"
                                     x-show="! search || @js(mb_strtolower($class::getTypeLabel())).includes(search.toLowerCase())"
                                     class="ffb-canvas-palette-item"

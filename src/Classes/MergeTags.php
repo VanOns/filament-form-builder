@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Classes;
 
+use Closure;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Illuminate\Contracts\Support\Htmlable;
 
@@ -13,6 +14,36 @@ use Illuminate\Contracts\Support\Htmlable;
 class MergeTags
 {
     public const LEGACY = '/{{\s*\$([^\s{}]+)\s*}}/u';
+
+    public static function tag(string $id): string
+    {
+        return '<span data-type="mergeTag" data-id="' . e($id) . '"></span>';
+    }
+
+    /**
+     * The tag as text, the way a query string and content from before hold it.
+     */
+    public static function placeholder(string $id): string
+    {
+        return '{{ $' . $id . ' }}';
+    }
+
+    /**
+     * Applies the callback to the text around the placeholders only.
+     *
+     * @param  Closure(string): string  $map
+     */
+    public static function mapText(string $value, Closure $map): string
+    {
+        // The id is the one group in LEGACY, so it lands at every odd index.
+        $parts = preg_split(self::LEGACY, $value, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [$value];
+
+        foreach ($parts as $index => $part) {
+            $parts[$index] = $index % 2 === 1 ? static::placeholder($part) : $map($part);
+        }
+
+        return implode('', $parts);
+    }
 
     /**
      * Stored content as rich editor HTML with its `{{ $key }}` text turned into
@@ -35,7 +66,7 @@ class MergeTags
             if (!str_starts_with($part, '<')) {
                 $parts[$index] = preg_replace_callback(
                     self::LEGACY,
-                    fn (array $match): string => '<span data-type="mergeTag" data-id="' . e($match[1]) . '"></span>',
+                    fn (array $match): string => static::tag($match[1]),
                     $part,
                 ) ?? $part;
             }
@@ -139,7 +170,7 @@ class MergeTags
             return $value;
         }
 
-        $value = (string) preg_replace('/{{\s*\$' . preg_quote($from, '/') . '\s*}}/', '{{ $' . $to . ' }}', $value);
+        $value = (string) preg_replace('/{{\s*\$' . preg_quote($from, '/') . '\s*}}/', static::placeholder($to), $value);
 
         return (string) preg_replace_callback(
             '/<span\b[^>]*\bdata-type="mergeTag"[^>]*>/',

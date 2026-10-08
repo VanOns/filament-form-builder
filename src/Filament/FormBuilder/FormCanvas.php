@@ -180,14 +180,6 @@ class FormCanvas extends Field
     }
 
     /**
-     * @return array<string, class-string<FormField>>
-     */
-    public function getFieldTypes(): array
-    {
-        return FieldTypeHelper::all();
-    }
-
-    /**
      * @return array<string, FormField>
      */
     public function getItems(): array
@@ -380,7 +372,7 @@ class FormCanvas extends Field
      */
     public function getWidthOptions(FormField $field): array
     {
-        return array_values(array_filter(FieldWidth::available(), fn (FieldWidth $width): bool => $width->value >= $field::minWidth()->value));
+        return FieldWidth::availableFrom($field::minWidth());
     }
 
     public function hasFixedFields(): bool
@@ -399,7 +391,7 @@ class FormCanvas extends Field
 
         $without = FilamentFormBuilderPlugin::get()->getWithoutFields();
 
-        foreach ($this->getFieldTypes() as $name => $class) {
+        foreach (FieldTypeHelper::all() as $name => $class) {
             if ($class::isAvailable() && !in_array($name, $without, true)) {
                 $groups[$class::paletteGroup()][$name] = $class;
             }
@@ -755,11 +747,7 @@ class FormCanvas extends Field
         $minimum = array_shift($minimums);
         $combinations = [];
 
-        foreach (FieldWidth::available() as $width) {
-            if ($width->value < $minimum) {
-                continue;
-            }
-
+        foreach (FieldWidth::availableFrom(FieldWidth::from($minimum)) as $width) {
             foreach ($this->spanCombinations($minimums, $room - $width->value) as $rest) {
                 $combinations[] = [$width->value, ...$rest];
             }

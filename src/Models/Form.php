@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\Honeypot;
+use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Classes\SubmitNotification;
 use VanOns\FilamentFormBuilder\Events\Form\FormCreated;
@@ -429,7 +430,7 @@ class Form extends Model
     public function getPlaceholderList(): array
     {
         return array_map(
-            fn (string $key): string => '{{ $' . $key . ' }}',
+            MergeTags::placeholder(...),
             [...array_keys($this->getSubmissionFields()), 'form_title'],
         );
     }

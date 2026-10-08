@@ -1,4 +1,4 @@
-export default function formCanvasComponent({ key, widths, minimums }) {
+export default function formCanvasComponent({ key, widths }) {
     return {
         isDragging: false,
 
@@ -107,7 +107,7 @@ export default function formCanvasComponent({ key, widths, minimums }) {
                 uuid: element.dataset.item ?? null,
                 // A hidden field shows at full width, so it never shares a row.
                 isHidden: element.classList.contains('ffb-canvas-item-hidden'),
-                minimum: element.dataset.type ? (minimums[element.dataset.type] ?? 3) : Number(element.dataset.minimum),
+                minimum: Number(element.dataset.minimum),
                 order: this.grid.toArray().join(),
                 snapshot: this.takeSnapshot(element),
                 pointer: null,

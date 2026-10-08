@@ -46,8 +46,9 @@ class SubmitNotifications extends Group
                 ->hiddenLabel(),
         ]);
 
+        // The cards hold their outcomes normalized already; only the one in place still needs it.
         $this->mutateDehydratedStateUsing(static fn (?array $state): array => [
-            ...array_map(SubmitNotification::normalize(...), array_values($state['rules'] ?? [])),
+            ...array_values($state['rules'] ?? []),
             [...SubmitNotification::normalize($state['default'] ?? []), 'conditions' => []],
         ]);
     }
@@ -64,12 +65,11 @@ class SubmitNotifications extends Group
         $rawState = $this->getRawState();
 
         if (is_array($rawState) && array_is_list($rawState)) {
-            $outcomes = array_map(SubmitNotification::normalize(...), array_filter($rawState, is_array(...)));
-            $default = array_pop($outcomes) ?? SubmitNotification::normalize([]);
+            $outcomes = array_values(array_filter($rawState, is_array(...)));
 
             $this->rawState([
-                'default' => $default,
-                'rules' => array_column($outcomes, null, 'id'),
+                'default' => SubmitNotification::normalize(array_pop($outcomes) ?? []),
+                'rules' => $outcomes,
             ]);
         }
 

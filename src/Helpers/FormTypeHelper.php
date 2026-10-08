@@ -5,24 +5,14 @@ namespace VanOns\FilamentFormBuilder\Helpers;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
 
-class FormTypeHelper
+class FormTypeHelper extends TypeHelper
 {
     /**
-     * The configured form types under the names a form stores.
-     *
      * @return array<string, class-string<FormType>>
      */
     public static function all(): array
     {
-        $types = [];
-
-        foreach ((array) config('filament-form-builder.types', []) as $name => $class) {
-            if (is_string($name) && is_string($class) && is_subclass_of($class, FormType::class)) {
-                $types[$name] = $class;
-            }
-        }
-
-        return $types;
+        return static::configured('types', FormType::class);
     }
 
     /**
