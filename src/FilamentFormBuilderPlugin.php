@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder;
 
+use BackedEnum;
 use Closure;
 use Filament\Contracts\Plugin;
 use Filament\Exceptions\NoDefaultPanelSetException;
@@ -20,12 +21,18 @@ use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\ViewForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class FilamentFormBuilderPlugin implements Plugin
 {
     protected static ?Closure $redirectSchemaUsing = null;
 
     protected static ?Closure $resolveRedirectUrlUsing = null;
+
+    /**
+     * @var array<string, array{label: string|Closure, value: Closure, icon: string|BackedEnum}>
+     */
+    protected static array $customMergeTags = [];
 
     protected string | bool | Closure | null $navigationGroup = null;
 
@@ -207,6 +214,32 @@ class FilamentFormBuilderPlugin implements Plugin
                 ->live(onBlur: true)
                 ->columnSpanFull(),
         ];
+    }
+
+    /**
+     * A merge tag of the project's own, such as the site's name or a number it
+     * gives a submission. Every editor offers it under "Other"; the closure gets
+     * the submission and gives the text the tag is filled in with. Registered
+     * for the whole app, as mails are filled in outside the panel.
+     *
+     * @param  Closure(FormSubmission): ?string  $value
+     */
+    public static function mergeTag(string $key, string | Closure $label, Closure $value, string | BackedEnum $icon = Heroicon::OutlinedTag): void
+    {
+        static::$customMergeTags[$key] = ['label' => $label, 'value' => $value, 'icon' => $icon];
+    }
+
+    /**
+     * @return array<string, array{label: string, value: Closure, icon: string|BackedEnum}>
+     */
+    public static function getCustomMergeTags(): array
+    {
+        return array_map(fn (array $tag): array => [...$tag, 'label' => (string) value($tag['label'])], static::$customMergeTags);
+    }
+
+    public static function forgetCustomMergeTags(): void
+    {
+        static::$customMergeTags = [];
     }
 
     public static function resolveRedirectUrl(mixed $stored, Form $form): ?string

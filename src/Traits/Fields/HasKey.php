@@ -7,6 +7,7 @@ use VanOns\FilamentFormBuilder\Classes\Honeypot;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\RecaptchaField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TurnstileField;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 
 trait HasKey
 {
@@ -29,7 +30,12 @@ trait HasKey
      */
     public static function reservedKeys(): array
     {
-        return [...static::$reservedKeys, ...array_keys(SubmissionPlaceholders::BUILT_IN), ...Honeypot::keys()];
+        return [
+            ...static::$reservedKeys,
+            ...array_keys(SubmissionPlaceholders::BUILT_IN),
+            ...array_keys(FilamentFormBuilderPlugin::getCustomMergeTags()),
+            ...Honeypot::keys(),
+        ];
     }
 
     public function key(string $key): static

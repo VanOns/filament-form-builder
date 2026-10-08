@@ -23,6 +23,7 @@ use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\ChoiceField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\StepField;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Forms\CustomFields;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
@@ -403,7 +404,8 @@ class Form extends Model
 
     /**
      * The tags a text about a submission of this form can hold, grouped as the
-     * picker shows them: every answer, then the form, then the submission.
+     * picker shows them: every answer, then the form, the submission and the
+     * project's own tags.
      *
      * @return list<array{label: string, tags: array<string, array{label: string, icon: string|BackedEnum}>}>
      */
@@ -428,6 +430,10 @@ class Form extends Model
             if (!in_array($key, $left, true)) {
                 $groups[$tag['group']][$key] = ['label' => __("filament-form-builder::general.merge_tags.{$key}"), 'icon' => $tag['icon']];
             }
+        }
+
+        foreach (FilamentFormBuilderPlugin::getCustomMergeTags() as $key => $tag) {
+            $groups['custom'][$key] = ['label' => $tag['label'], 'icon' => $tag['icon']];
         }
 
         return array_map(
@@ -510,7 +516,7 @@ class Form extends Model
     {
         return array_map(
             MergeTags::placeholder(...),
-            [...array_keys($this->getSubmissionFields()), 'form_title'],
+            [...array_keys($this->getSubmissionFields()), 'form_title', ...array_keys(FilamentFormBuilderPlugin::getCustomMergeTags())],
         );
     }
 

@@ -383,6 +383,7 @@ return [
             'fields' => 'Fields',
             'form' => 'Form',
             'submission' => 'Submission',
+            'custom' => 'Other',
         ],
         'search' => 'Search for a tag',
         'no_results' => 'No tags found',

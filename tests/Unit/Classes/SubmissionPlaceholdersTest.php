@@ -3,8 +3,12 @@
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
+
+afterEach(fn () => FilamentFormBuilderPlugin::forgetCustomMergeTags());
 
 function placeholderSubmission(array $data = []): FormSubmission
 {
@@ -139,4 +143,26 @@ it('fills in a key with a dash and placeholders spaced any way', function () {
 
     expect(SubmissionPlaceholders::make($submission)->replace('{{$e-mailadres}} / {{   $e-mailadres }}'))
         ->toBe('jan@example.com / jan@example.com');
+});
+
+it('fills in a merge tag of the project its own, offers it under Other and keeps fields off its key', function () {
+    FilamentFormBuilderPlugin::mergeTag('site_name', 'Site name', fn (FormSubmission $submission): string => 'Bronwerk #' . $submission->getKey());
+    $submission = placeholderSubmission(['naam' => 'Jan']);
+
+    $notification = new EmailNotification($submission, [
+        'subject' => '<p>Van <span data-type="mergeTag" data-id="site_name"></span></p>',
+        'content' => '<p>Hoi {{ $naam }}, dit komt van {{ $site_name }}.</p>',
+        'to' => ['hr@example.test'],
+    ]);
+    $groups = collect($submission->form->getMergeTagGroups())->pluck('tags', 'label');
+
+    expect($notification->subject)->toBe('Van Bronwerk #' . $submission->getKey())
+        ->and($notification->content)->toContain('dit komt van Bronwerk #' . $submission->getKey())
+        ->and($groups['Other'])->toHaveKey('site_name')
+        ->and($submission->form->getPlaceholderList())->toContain('{{ $site_name }}')
+        ->and(TextInputField::reservedKeys())->toContain('site_name');
+});
+
+it('offers no Other group without merge tags of the project its own', function () {
+    expect(collect(placeholderSubmission()->form->getMergeTagGroups())->pluck('label'))->not->toContain('Other');
 });

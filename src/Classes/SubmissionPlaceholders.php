@@ -5,6 +5,7 @@ namespace VanOns\FilamentFormBuilder\Classes;
 use Filament\Support\Icons\Heroicon;
 use Throwable;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class SubmissionPlaceholders
@@ -52,6 +53,7 @@ class SubmissionPlaceholders
             'submitted_at' => (string) $this->formSubmission->created_at?->translatedFormat('j F Y, H:i'),
             'submitted_from' => (string) $this->formSubmission->source_url,
             'submission_url' => $this->submissionUrl(),
+            ...array_map(fn (array $tag): string => (string) ($tag['value'])($this->formSubmission), FilamentFormBuilderPlugin::getCustomMergeTags()),
             ...static::fallbacks($this->formSubmission),
             ...$this->formSubmission->getFormattedData(),
         ];

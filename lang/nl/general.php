@@ -383,6 +383,7 @@ return [
             'fields' => 'Velden',
             'form' => 'Formulier',
             'submission' => 'Inzending',
+            'custom' => 'Overig',
         ],
         'search' => 'Zoek een tag',
         'no_results' => 'Geen tags gevonden',

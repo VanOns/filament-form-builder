@@ -334,6 +334,23 @@ tab warns about it.
 Content written before merge tags holds `{{ $key }}` as text. It is still read
 as the same tag, and the editor shows it as one once the form is opened.
 
+A project adds tags of its own, such as the site's name or a number it gives a
+submission, in a service provider's `boot()`. The editors offer them under
+"Other", in the mails, the thank-you message and the redirect query alike, and
+no field can take their key:
+
+```php
+FilamentFormBuilderPlugin::mergeTag(
+    'site_name',
+    label: 'Site name',
+    value: fn (FormSubmission $submission): string => config('app.name'),
+    icon: Heroicon::OutlinedGlobeAlt,
+);
+```
+
+The closure runs for every mail and thank-you message, so keep it cheap; it
+gives text, which is escaped like an answer.
+
 ## Conditional fields
 
 A custom field can depend on other answers: on its Conditions tab an editor adds
