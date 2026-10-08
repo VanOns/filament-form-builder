@@ -141,3 +141,143 @@
     background: #ecfdf5;
     color: #065f46;
 }
+
+/* A form in steps. Its own rules on display must not show a step the script hid. */
+:where(.ffb-form) [hidden] {
+    display: none !important;
+}
+
+:where(.ffb-steps) {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+:where(.ffb-step),
+:where(.ffb-step-end) {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1.25rem 1rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+:where(.ffb-step) > :not(.ffb-field),
+:where(.ffb-step-end) > :not(.ffb-field) {
+    grid-column: 1 / -1;
+}
+
+:where(.ffb-step-title) {
+    margin-bottom: 1.25rem;
+    padding: 0;
+    font-size: 1.25em;
+    font-weight: 600;
+}
+
+:where(.ffb-step-nav) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+:where(.ffb-step-next),
+:where(.ffb-step-submit) {
+    margin-left: auto;
+}
+
+:where(.ffb-step-button) {
+    padding: 0.625rem 1.25rem;
+    border: 1px solid var(--ffb-button);
+    border-radius: var(--ffb-radius);
+    background: var(--ffb-button);
+    color: var(--ffb-button-text);
+    font: inherit;
+    cursor: pointer;
+}
+
+:where(.ffb-step-previous) {
+    border-color: var(--ffb-border);
+    background: var(--ffb-background);
+    color: inherit;
+}
+
+:where(.ffb-progress-steps) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: ffb-step;
+}
+
+/* A skipped step is hidden, so the numbers count only the steps that show. */
+:where(.ffb-progress-step) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    counter-increment: ffb-step;
+    color: var(--ffb-muted);
+}
+
+:where(.ffb-progress-step)::before {
+    content: counter(ffb-step);
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--ffb-border);
+    border-radius: 9999px;
+    font-size: 0.875em;
+}
+
+:where(.ffb-progress-step[data-state="done"])::before {
+    border-color: var(--ffb-button);
+}
+
+:where(.ffb-progress-step[aria-current="step"]) {
+    color: inherit;
+    font-weight: 600;
+}
+
+:where(.ffb-progress-step[aria-current="step"])::before {
+    border-color: var(--ffb-button);
+    background: var(--ffb-button);
+    color: var(--ffb-button-text);
+}
+
+:where(.ffb-progress-label) {
+    margin: 0 0 0.5rem;
+    font-size: 0.875em;
+    color: var(--ffb-muted);
+}
+
+:where(.ffb-progress-track) {
+    height: 0.5rem;
+    overflow: hidden;
+    border-radius: 9999px;
+    background: var(--ffb-border);
+}
+
+:where(.ffb-progress-fill) {
+    width: var(--ffb-progress, 0%);
+    height: 100%;
+    background: var(--ffb-button);
+    transition: width 0.2s;
+}
+
+:where(.ffb-sr-only) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

@@ -1,9 +1,14 @@
 <?php
 
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\MessageBag;
 use Illuminate\Support\Str;
+use Illuminate\Support\ViewErrorBag;
 use Tests\Fixtures\ApplicationForm;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Models\Form;
+
+beforeEach(fn () => view()->share('errors', new ViewErrorBag()));
 
 function steppedForm(array $steps = [], array $fields = []): Form
 {
@@ -76,4 +81,43 @@ it('groups the answers per step on the detail page', function () {
 
     expect(array_map(fn (array $field): ?string => $field['title'], $snapshot))
         ->toBe(['naam' => 'Over jou', 'bericht' => 'Je aanvraag', 'privacy' => 'Afronden']);
+});
+
+it('renders the steps as fieldsets, with the buttons between them hidden until the script shows them', function () {
+    $html = Blade::render('<x-render-form :form="$form" />', ['form' => steppedForm(['title' => 'Over jou', 'next' => 'Verder'])]);
+
+    expect($html)
+        ->toContain('data-form-builder-steps')
+        ->toContain('<legend class="ffb-step-title" tabindex="-1">Je aanvraag</legend>')
+        ->toContain('class="ffb-progress ffb-progress-steps" data-form-builder-progress hidden')
+        ->toContain('data-form-builder-next hidden')
+        ->toContain('Verder')
+        ->toContain('data-step-of="Step :current of :total"')
+        ->and(substr_count($html, 'data-form-builder-step="'))->toBe(3)
+        ->and(strpos($html, 'class="ffb-submit"'))->toBeGreaterThan(strrpos($html, '</fieldset>'));
+});
+
+it('shows a bar or no progress at all, as the start block sets', function () {
+    $render = fn (string $progress): string => Blade::render('<x-render-form :form="$form" />', ['form' => steppedForm(['progress' => $progress])]);
+
+    expect($render('bar'))->toContain('role="progressbar"')->not->toContain('ffb-progress-steps')
+        ->and($render('none'))->not->toContain('data-form-builder-progress ');
+});
+
+it('renders a form without step fields as it always did', function () {
+    $html = Blade::render('<x-render-form :form="$form" />', ['form' => steppedForm(fields: [
+        ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
+        ['type' => 'submit', 'label' => 'Versturen'],
+    ])]);
+
+    expect($html)->not->toContain('data-form-builder-steps')->not->toContain('<fieldset')
+        ->toContain('class="ffb-submit"');
+});
+
+it('opens again on the step with an error, which the script finds by the error in it', function () {
+    view()->share('errors', (new ViewErrorBag())->put('default', new MessageBag(['bericht' => 'Vul een bericht in.'])));
+
+    $html = Blade::render('<x-render-form :form="$form" />', ['form' => steppedForm()]);
+
+    expect($html)->toMatch('/data-form-builder-input-wrapper="bericht"[^>]*>.*?class="ffb-error"/s');
 });

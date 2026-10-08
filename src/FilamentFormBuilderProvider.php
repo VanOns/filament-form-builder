@@ -100,6 +100,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
             Css::make('form-builder', __DIR__.'/../resources/css/form-builder.css')->loadedOnRequest(),
             Js::make('form-builder', __DIR__.'/../resources/js/form-builder.js')->loadedOnRequest(),
             Js::make('conditions', __DIR__.'/../resources/js/conditions.js')->loadedOnRequest(),
+            Js::make('steps', __DIR__.'/../resources/js/steps.js')->loadedOnRequest(),
         ], 'van-ons/filament-form-builder');
     }
 

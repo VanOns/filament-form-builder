@@ -17,7 +17,11 @@
     @endif
     @csrf
     <x-filament-form-builder::honeypot :form="$form" />
-    @foreach($form->getFields() as $field)
-        {!! $field->render() !!}
-    @endforeach
+    @if ($form->hasSteps())
+        <x-filament-form-builder::steps :form="$form" />
+    @else
+        @foreach($form->getFields() as $field)
+            {!! $field->render() !!}
+        @endforeach
+    @endif
 </form>
