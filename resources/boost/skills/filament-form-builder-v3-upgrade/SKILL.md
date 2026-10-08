@@ -109,6 +109,11 @@ whose files are missing.
   server answers 422 with an error on `ffb_token`. A project view for `<x-render-form>` adds
   `<x-filament-form-builder::honeypot :form="$form" />`. If the developer would rather not, `hasHoneypot()`
   returning false turns it off for a form type, and `honeypot.enabled` for all forms.
+- That front end only renders the field types it knows, while editors can pick every type in the palette,
+  including the ones v3 adds: `step` (forms in steps), `date`, `consent` and `turnstile`. List the types in
+  the `fields` config it does not render and ask the developer, per type, whether to support it or keep it
+  out of the palette with `withoutFields([...])` on the plugin (`without_fields` in the config) until someone
+  does. Suggest the latter, and do not build new features unasked. `<x-render-form>` renders them all.
 - Integrations run from `RunFormIntegrationsJob`: the app needs a queue worker unless the queue is `sync`.
 
 ## 7. Check
@@ -119,4 +124,7 @@ whose files are missing.
 - Run the project's tests.
 
 Tell the developer what was converted and what still needs a person: forms whose fields were dropped,
-notifications without recipients, and anything from the stop list above.
+notifications without recipients, and anything from the stop list above. Also name what v3 offers that the
+project did not use before, such as forms in steps, date and consent fields, Turnstile, conditions on fields,
+notifications and outcomes, and merge tags: with `<x-render-form>` they work once an editor uses them, a front
+end of its own needs work first (step 6).

@@ -51,6 +51,9 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
   has to send its two fields, or the server turns the form away; see
   [In a front end of your own](docs/usage.md#in-a-front-end-of-your-own). `honeypot.enabled` turns it off,
   and `hasHoneypot()` for one form type.
+* A front end of your own only renders the field types it knows, while editors can pick every type, also the
+  ones v3 adds: `step`, `date`, `consent` and `turnstile`. Keep those out of the palette with
+  `withoutFields()` on the plugin, or `without_fields` in the config, until it renders them.
 
 ### Config
 
