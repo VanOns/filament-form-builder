@@ -46,6 +46,8 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
   `label for` inside, errors sit inside that wrapper, and everything has an `ffb-*` class, see
   [Styling forms on the site](docs/usage.md#styling-forms-on-the-site).
 * Integrations run from `RunFormIntegrationsJob`, so they need a queue worker unless the queue is `sync`.
+* Let the queue run empty before v3 goes live: a notification mail v2 queued is shaped differently and
+  fails on v3.
 * Forms on the site set a honeypot, on by default. A view of your own for `<x-render-form>` adds
   `<x-filament-form-builder::honeypot :form="$form" />`, and a front end of your own (Inertia, React, Vue)
   has to send its two fields, or the server turns the form away; see
