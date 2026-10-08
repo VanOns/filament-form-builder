@@ -15,7 +15,6 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Icon;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -271,9 +270,7 @@ class NotificationList extends CardList
     public function getNotificationSchema(Livewire $livewire): array
     {
         $form = MergeTagEditor::form($livewire);
-        $group = fn (string $heading): Section => Section::make(__("filament-form-builder::general.notifications.{$heading}"))
-            ->contained(false)
-            ->extraAttributes(['class' => 'ffb-settings-group']);
+        $group = fn (string $heading): SettingsGroup => SettingsGroup::make(__("filament-form-builder::general.notifications.{$heading}"));
 
         return [
             $group('recipients')->schema([

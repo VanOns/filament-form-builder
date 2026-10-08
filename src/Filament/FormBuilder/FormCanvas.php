@@ -10,7 +10,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
@@ -843,9 +842,7 @@ class FormCanvas extends Field
                 ->helperText(__('filament-form-builder::fields.query_parameter_helper')),
         ]);
 
-        $group = fn (string $heading, array $components): Section => Section::make(__("filament-form-builder::fields.{$heading}"))
-            ->contained(false)
-            ->extraAttributes(['class' => 'ffb-settings-group'])
+        $group = fn (string $heading, array $components): SettingsGroup => SettingsGroup::make(__("filament-form-builder::fields.{$heading}"))
             ->schema(array_values($components));
 
         return array_filter([

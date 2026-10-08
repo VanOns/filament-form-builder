@@ -3,7 +3,6 @@
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 
 use Filament\Actions\Action;
-use Filament\Schemas\Components\Section;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Str;
 use Livewire\Component as Livewire;
@@ -54,18 +53,15 @@ class SubmitNotificationList extends CardList
             ->fillForm(fn (array $arguments, Livewire $livewire): array => ($this->getRawState() ?? [])[$arguments['item'] ?? '']
                 ?? ['type' => array_key_first(SubmitNotifications::getTypes(SubmitNotifications::getFormType($livewire)))])
             ->schema(fn (Livewire $livewire): array => [
-                Section::make(__('filament-form-builder::general.submit_rules.if'))
-                    ->contained(false)
-                    ->extraAttributes(['class' => 'ffb-settings-group'])
+                SettingsGroup::make(__('filament-form-builder::general.submit_rules.if'))
                     ->schema((new ConditionsEditor(
                         ConditionsEditor::fieldsOf(MergeTagEditor::form($livewire)),
                         'filament-form-builder::general.submit_rules.conditions_summary',
                         'filament-form-builder::general.submit_rules.condition_match',
                         isRequired: true,
                     ))->schema()),
-                Section::make(__('filament-form-builder::general.submit_rules.then'))
-                    ->contained(false)
-                    ->extraAttributes(['class' => 'ffb-settings-group ffb-mail-form-divided'])
+                SettingsGroup::make(__('filament-form-builder::general.submit_rules.then'))
+                    ->extraAttributes(['class' => 'ffb-mail-form-divided'], merge: true)
                     ->schema(SubmitNotifications::getOutcomeSchema()),
             ])
             ->action(function (array $arguments, array $data): void {
