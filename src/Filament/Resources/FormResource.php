@@ -142,7 +142,11 @@ class FormResource extends Resource
                         ->put(0, Str::ucfirst(static::describeRetention(null)))
                         ->all())
                     ->helperText(__('filament-form-builder::general.retention.helper')),
-                Group::make(fn (Get $get, ?FormModel $record): array => static::getFormType($get, $record)?->settings() ?? [])
+                Group::make(function (Get $get, ?FormModel $record): array {
+                    $type = static::getFormType($get, $record);
+
+                    return [...$type?->settings() ?? [], ...FilamentFormBuilderPlugin::get()->getFormSettings($type)];
+                })
                     ->statePath('settings')
                     ->columns()
                     ->columnSpanFull(),

@@ -1,6 +1,7 @@
 <?php
 
 use Filament\Actions\Testing\TestAction;
+use Filament\Forms\Components\TextInput;
 use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
 use Tests\Fixtures\ApplicationForm;
@@ -486,6 +487,22 @@ it('shows a change in the preview of the settings before they are saved', functi
         ->call('partiallyRenderSchemaComponent', 'mountedActionSchema0.preview');
 
     expect((string) $page->effects['partials']['schema-component::mountedActionSchema0.preview'])->toContain('Zoals op je paspoort');
+});
+
+it('gives every field the settings a project adds on the plugin, kept on the field', function () {
+    FilamentFormBuilderPlugin::get()->fieldSettings(fn (string $type): array => $type::isInput() ? [TextInput::make('css_class')->label('CSS class')] : []);
+    $form = canvasForm([['type' => 'text', 'label' => 'Naam', 'key' => 'naam'], ['type' => 'title', 'title' => 'Over jou']]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    [$naam, $title] = array_keys($page->get('data.custom.fields'));
+
+    $page->mountAction(onCanvas('edit', ['item' => $title]))
+        ->assertFormFieldDoesNotExist('settings.css_class', 'mountedActionSchema0')
+        ->callMountedAction()
+        ->callAction(onCanvas('edit', ['item' => $naam]), data: ['settings' => ['css_class' => 'ffb-wide']])
+        ->call('save');
+
+    expect(savedFields($form)[0]['settings'])->toBe(['css_class' => 'ffb-wide'])
+        ->and($form->fresh()->getFields()[0]->getSetting('css_class'))->toBe('ffb-wide');
 });
 
 it('opens a form in steps with a start block, which sets the first step and the progress', function () {

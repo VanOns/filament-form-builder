@@ -1,10 +1,15 @@
 <?php
 
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\CreateForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
+use VanOns\FilamentFormBuilder\Forms\ContactForm;
 use VanOns\FilamentFormBuilder\Forms\CustomForm;
+use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 beforeEach(function () {
@@ -51,4 +56,24 @@ it('leaves the type out where the canvas is the only one', function () {
         ->assertFormFieldDoesNotExist('fixed_type')
         ->assertFormFieldHidden('template')
         ->assertSchemaStateSet(['template' => 'custom']);
+});
+
+it('gives every form the settings a project adds on the plugin, or those of one type only', function () {
+    FilamentFormBuilderPlugin::get()->formSettings(fn (?FormType $type): array => [
+        Toggle::make('show_in_footer')->label('Show in the footer'),
+        ...$type instanceof ContactForm ? [TextInput::make('department')->label('Department')] : [],
+    ]);
+    $form = Form::create(['title' => 'Terugbellen', 'template' => 'custom', 'submit_notifications' => [['type' => 'content', 'content' => '<p>Bedankt!</p>']]]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSee('Show in the footer')
+        ->assertDontSee('Department')
+        ->fillForm(['settings.show_in_footer' => true])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($form->fresh()->settings)->toBe(['show_in_footer' => true]);
+
+    Livewire::test(EditForm::class, ['record' => Form::create(['title' => 'Contact', 'template' => 'contact', 'submit_notifications' => [['type' => 'content', 'content' => '<p>Bedankt!</p>']]])->getRouteKey()])
+        ->assertSee(['Show in the footer', 'Department']);
 });

@@ -835,6 +835,12 @@ class FormCanvas extends Field
      */
     protected function getItemSchema(string $type, ?string $except = null): array
     {
+        $settings = FilamentFormBuilderPlugin::get()->getFieldSettings($type);
+        $projectSettings = $settings === [] ? [] : [
+            SettingsGroup::make(__('filament-form-builder::fields.other_settings'))
+                ->statePath('settings')
+                ->schema($settings),
+        ];
         $fields = [
             Group::make($type::getFields())->columns(2),
             View::make('filament-form-builder::filament.partials.settings-preview')
@@ -842,15 +848,16 @@ class FormCanvas extends Field
                 ->viewData(fn (Get $get): array => ['field' => new $type((array) $get(''))]),
         ];
 
+        // A field without an advanced tab shows a project's own settings above its preview.
         if (! $type::isInput()) {
-            return $fields;
+            return [$fields[0], ...$projectSettings, $fields[1]];
         }
 
         $tabs = [
             Tabs\Tab::make(__('filament-form-builder::general.general'))
                 ->schema($fields),
             Tabs\Tab::make(__('filament-form-builder::fields.advanced'))
-                ->schema($this->getAdvancedSchema($type, $except)),
+                ->schema([...$this->getAdvancedSchema($type, $except), ...$projectSettings]),
         ];
 
         if ($type::hasConditionSettings()) {

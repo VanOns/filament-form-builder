@@ -12,11 +12,13 @@ use Filament\Schemas\Components\Component;
 use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\View\View;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\CreateForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\ViewForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
+use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 class FilamentFormBuilderPlugin implements Plugin
@@ -33,6 +35,16 @@ class FilamentFormBuilderPlugin implements Plugin
      * @var array<string>|Closure|null
      */
     protected array | Closure | null $withoutFields = null;
+
+    /**
+     * @var array<Component>|Closure|null
+     */
+    protected array | Closure | null $formSettings = null;
+
+    /**
+     * @var array<Component>|Closure|null
+     */
+    protected array | Closure | null $fieldSettings = null;
 
     public static function make(): static
     {
@@ -97,6 +109,50 @@ class FilamentFormBuilderPlugin implements Plugin
     public function getWithoutFields(): array
     {
         return (array) value($this->withoutFields ?? config('filament-form-builder.without_fields', []));
+    }
+
+    /**
+     * Settings every form in this panel gets next to those of its type, kept
+     * in the form's `settings` column. A closure receives the form type picked,
+     * or null while there is none.
+     *
+     * @param  array<Component>|Closure(?FormType): array<Component>|null  $schema
+     */
+    public function formSettings(array | Closure | null $schema): static
+    {
+        $this->formSettings = $schema;
+
+        return $this;
+    }
+
+    /**
+     * @return array<Component>
+     */
+    public function getFormSettings(?FormType $type): array
+    {
+        return (array) value($this->formSettings ?? [], $type);
+    }
+
+    /**
+     * Settings every field in this panel gets on its slide-over, kept in the
+     * field's `settings`. A closure receives the field type's class.
+     *
+     * @param  array<Component>|Closure(class-string<FormField>): array<Component>|null  $schema
+     */
+    public function fieldSettings(array | Closure | null $schema): static
+    {
+        $this->fieldSettings = $schema;
+
+        return $this;
+    }
+
+    /**
+     * @param  class-string<FormField>  $type
+     * @return array<Component>
+     */
+    public function getFieldSettings(string $type): array
+    {
+        return (array) value($this->fieldSettings ?? [], $type);
     }
 
     /**

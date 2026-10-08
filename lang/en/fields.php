@@ -11,6 +11,7 @@ return [
     'options' => 'Options',
     'rows' => 'Rows',
     'advanced' => 'Advanced',
+    'other_settings' => 'Other',
     'key_helper' => 'Leave empty to derive the key from the label. After that the key stays the same, even when the label changes.',
     'in_overviews' => 'In overviews',
     'on_the_site' => 'On the site',

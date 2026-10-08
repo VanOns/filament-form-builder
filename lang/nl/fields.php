@@ -11,6 +11,7 @@ return [
     'options' => 'Opties',
     'rows' => 'Rijen',
     'advanced' => 'Geavanceerd',
+    'other_settings' => 'Overig',
     'key_helper' => 'Laat leeg om de key uit het label te maken. Daarna blijft de key vast, ook als het label verandert.',
     'in_overviews' => 'In overzichten',
     'on_the_site' => 'Op de site',

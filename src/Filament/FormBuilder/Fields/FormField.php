@@ -40,6 +40,13 @@ abstract class FormField
     protected bool $newRow = false;
 
     /**
+     * What the plugin's fieldSettings() set on the field.
+     *
+     * @var array<string, mixed>|null
+     */
+    public ?array $settings = null;
+
+    /**
      * The wrapper carries where the field sits in the form's grid, so a project
      * can lay the form out from CSS alone without overriding any view.
      */
@@ -71,6 +78,21 @@ abstract class FormField
     public static function make(string $key): static
     {
         return new static(['key' => $key]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     */
+    public function settings(array $settings): static
+    {
+        $this->settings = $settings;
+
+        return $this;
+    }
+
+    public function getSetting(string $key, mixed $default = null): mixed
+    {
+        return data_get($this->settings ?? [], $key, $default);
     }
 
     public static function isInput(): bool

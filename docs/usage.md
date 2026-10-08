@@ -113,6 +113,20 @@ A type may also override `settings()` (extra fields in the form's settings,
 under the canvas, stored in its `settings` column), `messages()` (validation
 messages), and the admin toggles described below.
 
+Settings every form should have, whatever its type, go on the plugin. They show
+next to the type's own and are stored in the same `settings` column; the
+closure gets the type picked, so a setting can also be for one type only:
+
+```php
+FilamentFormBuilderPlugin::make()
+    ->formSettings(fn (?FormType $type): array => [
+        Toggle::make('show_in_footer')->label('Show in the footer'),
+        ...$type instanceof VacancyForm ? [TextInput::make('department')->label('Department')] : [],
+    ]);
+```
+
+Read them as `$form->settings['show_in_footer']`.
+
 ## Field types
 
 The `fields` config maps the name a form stores to the class behind it:
@@ -142,6 +156,21 @@ A field type that returns false from `isAvailable()` stays out of the palette,
 while a field of that type already on a form stays there. reCAPTCHA and
 Turnstile do so until they are enabled with a key and a secret, see
 [Spam](#spam).
+
+Settings every field should have, such as a CSS class for a project's own
+views, go on the plugin too. They show under "Other" on the Advanced tab of a
+field's slide-over, or above the preview for a field without one, and are kept
+on the field. The closure gets the field type's class:
+
+```php
+FilamentFormBuilderPlugin::make()
+    ->fieldSettings(fn (string $type): array => $type::isInput()
+        ? [TextInput::make('css_class')->label('CSS class')]
+        : []);
+```
+
+Read them as `$field->getSetting('css_class')`; a field in code sets them with
+`->settings(['css_class' => 'wide'])`.
 
 A field type that stores more than one value, such as a branch picker that
 also keeps the branch's name and e-mail address, lists them all in
