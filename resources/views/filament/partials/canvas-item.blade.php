@@ -15,7 +15,8 @@
     @if ($isEditable)
         wire:key="{{ $livewireKey }}.items.{{ $uuid }}"
         data-item="{{ $uuid }}"
-        x-bind:class="{ 'ffb-canvas-item-selected': editing === @js($uuid) }"
+        {{-- Through $data, like the palette: Sortable drags a copy of the field outside the component. --}}
+        x-bind:class="{ 'ffb-canvas-item-selected': $data.editing === @js($uuid) }"
     @endif
     data-span="{{ $width->value }}"
     data-minimum="{{ $field::minWidth()->value }}"

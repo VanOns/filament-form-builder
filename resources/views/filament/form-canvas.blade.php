@@ -138,12 +138,13 @@
 
                         <div class="ffb-canvas-palette" data-palette>
                             @foreach ($types as $type => $class)
+                                {{-- Through $data: the copy Sortable drags hangs from the body, where a bare search does not exist. --}}
                                 <button
                                     type="button"
                                     data-type="{{ $type }}"
                                     data-minimum="{{ $class::minWidth()->value }}"
                                     x-on:click="add(@js($type))"
-                                    x-show="! search || @js(mb_strtolower($class::getTypeLabel())).includes(search.toLowerCase())"
+                                    x-show="! $data.search || @js(mb_strtolower($class::getTypeLabel())).includes($data.search.toLowerCase())"
                                     class="ffb-canvas-palette-item"
                                 >
                                     <x-filament::icon :icon="$class::icon()" class="ffb-canvas-palette-icon" />

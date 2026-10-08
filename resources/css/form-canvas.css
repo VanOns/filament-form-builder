@@ -1,11 +1,15 @@
-.ffb-canvas {
+/* The field being dragged hangs from the body, outside the canvas, so it needs the colours too. */
+.ffb-canvas,
+.ffb-canvas-drag {
     --ffb-ring: color-mix(in oklab, var(--gray-950) 8%, transparent);
     --ffb-input-ring: var(--gray-200);
     --ffb-surface: #fff;
     --ffb-muted-surface: var(--gray-50);
     --ffb-primary-soft: color-mix(in oklab, var(--primary-500) 8%, transparent);
     --ffb-primary-ring: color-mix(in oklab, var(--primary-500) 35%, transparent);
+}
 
+.ffb-canvas {
     display: grid;
     gap: 1.5rem;
     grid-template-columns: minmax(0, 1fr);
@@ -14,14 +18,17 @@
     color: var(--gray-950);
 }
 
-.dark .ffb-canvas {
+.dark .ffb-canvas,
+.dark .ffb-canvas-drag {
     --ffb-ring: rgb(255 255 255 / 0.1);
     --ffb-input-ring: rgb(255 255 255 / 0.1);
     --ffb-surface: var(--gray-900);
     --ffb-muted-surface: rgb(255 255 255 / 0.03);
     --ffb-primary-soft: color-mix(in oklab, var(--primary-400) 12%, transparent);
     --ffb-primary-ring: color-mix(in oklab, var(--primary-400) 40%, transparent);
+}
 
+.dark .ffb-canvas {
     color: #fff;
 }
 
@@ -566,6 +573,12 @@
 
 .ffb-canvas-palette-item:hover .ffb-canvas-palette-icon {
     color: var(--primary-600);
+}
+
+.ffb-canvas-drag,
+.ffb-canvas-drag:hover {
+    box-shadow: 0 0 0 1px var(--ffb-primary-ring), 0 8px 20px rgb(0 0 0 / 0.12);
+    cursor: grabbing;
 }
 
 .ffb-canvas-palette-hint {

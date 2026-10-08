@@ -12,7 +12,7 @@ export default function formCanvasComponent({ key, widths }) {
         init() {
             const group = `ffb-canvas-${key}`
             // Mouse-driven dragging behaves the same in every browser, unlike native drag and drop.
-            const dragOptions = { forceFallback: true, fallbackOnBody: true, animation: 150 }
+            const dragOptions = { forceFallback: true, fallbackOnBody: true, fallbackClass: 'ffb-canvas-drag', animation: 150 }
 
             this.palettes = [...this.$root.querySelectorAll('[data-palette]')].map((palette) => window.Sortable.create(palette, {
                 group: { name: group, pull: 'clone', put: false },
