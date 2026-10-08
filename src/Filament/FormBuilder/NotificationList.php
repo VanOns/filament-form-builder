@@ -305,7 +305,7 @@ class NotificationList extends CardList
                     ->multiple(false),
             ]),
             $group('message')
-                ->extraAttributes(['class' => 'ffb-mail-form-divided'], merge: true)
+                ->extraAttributes(['class' => 'ffb-settings-divided'], merge: true)
                 ->schema([
                     MergeTagEditor::line('subject')
                         ->label(__('filament-form-builder::general.notifications.subject'))
@@ -315,7 +315,7 @@ class NotificationList extends CardList
                         ->required(),
                 ]),
             $group('when')
-                ->extraAttributes(['class' => 'ffb-mail-form-divided'], merge: true)
+                ->extraAttributes(['class' => 'ffb-settings-divided'], merge: true)
                 ->schema([
                     ToggleButtons::make('when')
                         ->label(__('filament-form-builder::general.notifications.when'))
@@ -335,7 +335,7 @@ class NotificationList extends CardList
                         ->visible(fn (Get $get): bool => $get('when') === 'conditions'),
                 ]),
             $group('attachments')
-                ->extraAttributes(['class' => 'ffb-mail-form-divided'], merge: true)
+                ->extraAttributes(['class' => 'ffb-settings-divided'], merge: true)
                 ->visible($this->hasUploads($form))
                 ->schema([
                     Toggle::make('attach_files')
@@ -383,7 +383,7 @@ class NotificationList extends CardList
                 ])->grow(false),
             ])
                 ->verticallyAlignCenter()
-                ->extraAttributes(['class' => 'ffb-mail-sender-line ffb-mail-form-divided']),
+                ->extraAttributes(['class' => 'ffb-mail-sender-line ffb-settings-divided']),
             Group::make([
                 Callout::make(__('filament-form-builder::general.notifications.sender_callout'))
                     ->warning()
@@ -492,7 +492,7 @@ class NotificationList extends CardList
         foreach ($form->getMergeTagGroups() as $group) {
             foreach ($group['tags'] as $id => $tag) {
                 $icon = generate_icon_html($tag['icon'])?->toHtml() ?? '';
-                $tags[$id] = new HtmlString('<span class="ffb-mail-card-tag"><span class="ffb-mail-card-tag-icon">' . $icon . '</span>' . e($tag['label']) . '</span>');
+                $tags[$id] = new HtmlString('<span class="ffb-card-tag"><span class="ffb-card-tag-icon">' . $icon . '</span>' . e($tag['label']) . '</span>');
             }
         }
 

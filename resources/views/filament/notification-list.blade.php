@@ -15,10 +15,10 @@
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">
-    <div class="ffb-mails">
+    <div class="ffb-cards">
         @if ($missing !== [])
-            <div class="ffb-mails-warning">
-                <x-filament::icon :icon="Heroicon::OutlinedExclamationTriangle" class="ffb-mails-warning-icon" />
+            <div class="ffb-cards-warning">
+                <x-filament::icon :icon="Heroicon::OutlinedExclamationTriangle" class="ffb-cards-warning-icon" />
                 <span>{{ trans_choice('filament-form-builder::general.merge_tags.unknown_warning', count($missing), ['tags' => implode(', ', $missing)]) }}</span>
             </div>
         @endif
@@ -30,10 +30,10 @@
 
             <article
                 wire:key="{{ $this->getId() }}.{{ $key }}.{{ $id }}"
-                @class(['ffb-mail-card', 'ffb-mail-card-off' => ! $card['enabled']])
+                @class(['ffb-card', 'ffb-card-off' => ! $card['enabled']])
             >
-                <header class="ffb-mail-card-header">
-                    <span class="ffb-mail-card-icon">
+                <header class="ffb-card-header">
+                    <span class="ffb-card-icon">
                         <x-filament::icon :icon="Heroicon::OutlinedEnvelope" />
                     </span>
 
@@ -41,7 +41,7 @@
                         type="button"
                         @if (! $isDisabled) wire:click="{{ $mount('edit', ['item' => $id]) }}" @endif
                         @disabled($isDisabled)
-                        class="ffb-mail-card-subject"
+                        class="ffb-card-subject"
                     >
                         {{ $card['subject'] }}
                     </button>
@@ -54,7 +54,7 @@
                             aria-label="{{ __('filament-form-builder::general.notifications.enabled') }}"
                             title="{{ __('filament-form-builder::general.notifications.enabled') }}"
                             wire:click="{{ $mount('toggle', ['item' => $id]) }}"
-                            class="ffb-mail-switch"
+                            class="ffb-card-switch"
                         >
                             <span></span>
                         </button>
@@ -85,22 +85,22 @@
                     @endunless
                 </header>
 
-                <dl class="ffb-mail-card-rows">
+                <dl class="ffb-card-rows">
                     @foreach ($card['rows'] as $row)
-                        <div class="ffb-mail-card-row">
+                        <div class="ffb-card-row">
                             <dt>{{ $row['label'] }}</dt>
                             <dd>
                                 @forelse ($row['recipients'] as $recipient)
                                     @include('filament-form-builder::filament.partials.recipient', ['recipient' => $recipient])
                                 @empty
-                                    <span class="ffb-mail-card-muted">{{ __('filament-form-builder::general.notifications.no_recipients') }}</span>
+                                    <span class="ffb-card-muted">{{ __('filament-form-builder::general.notifications.no_recipients') }}</span>
                                 @endforelse
                             </dd>
                         </div>
                     @endforeach
                 </dl>
 
-                <footer class="ffb-mail-card-footer">
+                <footer class="ffb-card-footer">
                     @if ($card['conditions'] !== null)
                         <x-filament::badge :icon="Heroicon::OutlinedFunnel" size="sm">{{ $card['conditions'] }}</x-filament::badge>
                     @else
@@ -108,11 +108,11 @@
                     @endif
 
                     @if (! $card['enabled'])
-                        <span class="ffb-mail-card-meta">{{ __('filament-form-builder::general.notifications.disabled') }}</span>
+                        <span class="ffb-card-meta">{{ __('filament-form-builder::general.notifications.disabled') }}</span>
                     @endif
 
                     {{-- Only counted when the page loads; later renders leave these as they are. --}}
-                    <span class="ffb-mail-card-stats" wire:ignore>
+                    <span class="ffb-card-stats" wire:ignore>
                         @if (($stat['failed'] ?? 0) > 0)
                             <x-filament::badge color="danger" :icon="Heroicon::OutlinedExclamationTriangle" size="sm">
                                 {{ trans_choice('filament-form-builder::general.notifications.failed_recently', $stat['failed'], ['count' => $stat['failed']]) }}
@@ -120,11 +120,11 @@
                         @endif
 
                         @if ($stat['last_sent_at'] ?? null)
-                            <span class="ffb-mail-card-meta">
+                            <span class="ffb-card-meta">
                                 <x-filament::icon :icon="Heroicon::OutlinedClock" />
                                 {{ __('filament-form-builder::general.notifications.last_sent', ['date' => $stat['last_sent_at']->translatedFormat('j M, H:i')]) }}
                             </span>
-                            <span class="ffb-mail-card-meta">
+                            <span class="ffb-card-meta">
                                 <x-filament::icon :icon="Heroicon::OutlinedPaperAirplane" />
                                 {{ trans_choice('filament-form-builder::general.notifications.sent_count', $stat['sent'], ['count' => $stat['sent']]) }}
                             </span>
@@ -132,7 +132,7 @@
                     </span>
 
                     @if ($card['attachFiles'])
-                        <span class="ffb-mail-card-meta">
+                        <span class="ffb-card-meta">
                             <x-filament::icon :icon="Heroicon::OutlinedPaperClip" />
                             {{ __('filament-form-builder::general.notifications.with_attachments') }}
                         </span>
@@ -142,18 +142,18 @@
         @endforeach
 
         @unless ($isDisabled)
-            <div class="ffb-mail-add">
-                <span class="ffb-mail-add-title">
+            <div class="ffb-card-add">
+                <span class="ffb-card-add-title">
                     <x-filament::icon :icon="Heroicon::OutlinedPlus" />
                     {{ __('filament-form-builder::general.notifications.add') }}
                 </span>
 
-                <div class="ffb-mail-presets">
+                <div class="ffb-card-choices">
                     @foreach ($presets as $preset => $icon)
-                        <button type="button" wire:click="{{ $mount('add', ['preset' => $preset]) }}" class="ffb-mail-preset">
-                            <x-filament::icon :icon="$icon" class="ffb-mail-preset-icon" />
-                            <span class="ffb-mail-preset-title">{{ __("filament-form-builder::general.notifications.presets.{$preset}") }}</span>
-                            <span class="ffb-mail-preset-description">{{ __("filament-form-builder::general.notifications.presets.{$preset}_description") }}</span>
+                        <button type="button" wire:click="{{ $mount('add', ['preset' => $preset]) }}" class="ffb-card-choice">
+                            <x-filament::icon :icon="$icon" class="ffb-card-choice-icon" />
+                            <span class="ffb-card-choice-title">{{ __("filament-form-builder::general.notifications.presets.{$preset}") }}</span>
+                            <span class="ffb-card-choice-description">{{ __("filament-form-builder::general.notifications.presets.{$preset}_description") }}</span>
                         </button>
                     @endforeach
                 </div>

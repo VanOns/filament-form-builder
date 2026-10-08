@@ -19,11 +19,11 @@
             </div>
         @endunless
     @else
-        <div class="ffb-mails ffb-outcomes ffb-outcomes-divided">
+        <div class="ffb-cards ffb-outcomes ffb-outcomes-divided">
             <p class="ffb-outcomes-intro">{{ __('filament-form-builder::general.submit_rules.intro') }}</p>
 
             @foreach ($cards as $id => $card)
-                <article wire:key="{{ $this->getId() }}.{{ $key }}.{{ $id }}" class="ffb-mail-card ffb-outcome">
+                <article wire:key="{{ $this->getId() }}.{{ $key }}.{{ $id }}" class="ffb-card ffb-outcome">
                     <x-filament::badge :icon="Heroicon::OutlinedFunnel" size="sm" class="ffb-outcome-when">
                         {{ $card['when'] ?? __('filament-form-builder::general.submit_rules.no_conditions') }}
                     </x-filament::badge>

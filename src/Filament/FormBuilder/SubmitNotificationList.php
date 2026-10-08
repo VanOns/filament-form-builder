@@ -61,7 +61,7 @@ class SubmitNotificationList extends CardList
                         isRequired: true,
                     ))->schema()),
                 SettingsGroup::make(__('filament-form-builder::general.submit_rules.then'))
-                    ->extraAttributes(['class' => 'ffb-mail-form-divided', 'data-ffb-outcome' => ''], merge: true)
+                    ->extraAttributes(['class' => 'ffb-settings-divided', 'data-ffb-outcome' => ''], merge: true)
                     ->schema(SubmitNotifications::getOutcomeSchema()),
             ])
             ->action(function (array $arguments, array $data): void {

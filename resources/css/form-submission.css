@@ -607,7 +607,7 @@
     color: var(--ffb-muted-text);
 }
 
-.ffb-mails,
+.ffb-cards,
 .ffb-recipients {
     --ffb-ring: color-mix(in oklab, var(--gray-950) 8%, transparent);
     --ffb-divider: var(--gray-100);
@@ -622,7 +622,7 @@
     --ffb-broken-text: var(--danger-700);
 }
 
-.ffb-mails {
+.ffb-cards {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -630,7 +630,7 @@
     line-height: 1.25rem;
 }
 
-.dark .ffb-mails,
+.dark .ffb-cards,
 .dark .ffb-recipients {
     --ffb-ring: rgb(255 255 255 / 0.1);
     --ffb-divider: rgb(255 255 255 / 0.05);
@@ -641,7 +641,7 @@
     --ffb-broken-text: var(--danger-300);
 }
 
-.ffb-mails-warning {
+.ffb-cards-warning {
     display: flex;
     align-items: flex-start;
     gap: 0.625rem;
@@ -652,17 +652,17 @@
     color: var(--warning-700);
 }
 
-.dark .ffb-mails-warning {
+.dark .ffb-cards-warning {
     color: var(--warning-300);
 }
 
-.ffb-mails-warning-icon {
+.ffb-cards-warning-icon {
     flex-shrink: 0;
     width: 1.125rem;
     height: 1.125rem;
 }
 
-.ffb-mail-card {
+.ffb-card {
     position: relative;
     border-radius: 0.75rem;
     background: #fff;
@@ -670,40 +670,40 @@
 }
 
 /* The subject's button stretches over the whole card, so a click anywhere opens it; the switch and the menu lie above it. */
-.ffb-mail-card-subject:not(:disabled)::after {
+.ffb-card-subject:not(:disabled)::after {
     content: '';
     position: absolute;
     inset: 0;
     border-radius: 0.75rem;
 }
 
-.ffb-mail-card .ffb-mail-switch,
-.ffb-mail-card .fi-dropdown {
+.ffb-card .ffb-card-switch,
+.ffb-card .fi-dropdown {
     z-index: 1;
 }
 
-.ffb-mail-card .fi-dropdown {
+.ffb-card .fi-dropdown {
     position: relative;
 }
 
-.ffb-mail-card:has(.ffb-mail-card-subject:not(:disabled)):hover {
+.ffb-card:has(.ffb-card-subject:not(:disabled)):hover {
     box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary-500) 35%, transparent), 0 1px 2px rgb(0 0 0 / 0.05);
 }
 
-.ffb-mail-card:has(.ffb-mail-card-subject:focus-visible) {
+.ffb-card:has(.ffb-card-subject:focus-visible) {
     outline: 2px solid var(--primary-600);
     outline-offset: 2px;
 }
 
-.ffb-mail-card-subject:focus-visible {
+.ffb-card-subject:focus-visible {
     outline: none;
 }
 
-.dark .ffb-mail-card {
+.dark .ffb-card {
     background: var(--gray-900);
 }
 
-.ffb-mail-card-header {
+.ffb-card-header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -711,7 +711,7 @@
     border-bottom: 1px solid var(--ffb-divider);
 }
 
-.ffb-mail-card-icon {
+.ffb-card-icon {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -723,12 +723,12 @@
     color: var(--ffb-tag-text);
 }
 
-.ffb-mail-card-icon svg {
+.ffb-card-icon svg {
     width: 1.125rem;
     height: 1.125rem;
 }
 
-.ffb-mail-card-subject {
+.ffb-card-subject {
     flex: 1;
     min-width: 0;
     padding: 0;
@@ -742,16 +742,16 @@
     cursor: pointer;
 }
 
-.ffb-mail-card-subject:disabled {
+.ffb-card-subject:disabled {
     cursor: default;
 }
 
-.ffb-mail-card-tag-icon svg {
+.ffb-card-tag-icon svg {
     width: 0.75rem;
     height: 0.75rem;
 }
 
-.ffb-mail-card-tag {
+.ffb-card-tag {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
@@ -766,7 +766,7 @@
     vertical-align: middle;
 }
 
-.ffb-mail-switch {
+.ffb-card-switch {
     position: relative;
     flex-shrink: 0;
     width: 2.25rem;
@@ -779,11 +779,11 @@
     transition: background 150ms;
 }
 
-.dark .ffb-mail-switch {
+.dark .ffb-card-switch {
     background: var(--gray-700);
 }
 
-.ffb-mail-switch span {
+.ffb-card-switch span {
     position: absolute;
     top: 0.125rem;
     left: 0.125rem;
@@ -795,19 +795,19 @@
     transition: left 150ms;
 }
 
-.ffb-mail-switch[aria-checked='true'] {
+.ffb-card-switch[aria-checked='true'] {
     background: var(--primary-600);
 }
 
-.ffb-mail-switch[aria-checked='true'] span {
+.ffb-card-switch[aria-checked='true'] span {
     left: 1.125rem;
 }
 
-.ffb-mail-card-off :is(.ffb-mail-card-icon, .ffb-mail-card-subject, .ffb-mail-card-rows) {
+.ffb-card-off :is(.ffb-card-icon, .ffb-card-subject, .ffb-card-rows) {
     opacity: 0.55;
 }
 
-.ffb-mail-card-rows {
+.ffb-card-rows {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -815,19 +815,19 @@
     padding: 0.75rem 1rem;
 }
 
-.ffb-mail-card-row {
+.ffb-card-row {
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
 
-.ffb-mail-card-row dt {
+.ffb-card-row dt {
     flex-shrink: 0;
     width: 7rem;
     color: var(--ffb-muted-text);
 }
 
-.ffb-mail-card-row dd {
+.ffb-card-row dd {
     display: flex;
     flex-wrap: wrap;
     gap: 0.375rem;
@@ -997,11 +997,11 @@
     color: var(--ffb-muted-text);
 }
 
-.ffb-mail-card-muted {
+.ffb-card-muted {
     color: var(--ffb-muted-text);
 }
 
-.ffb-mail-card-footer {
+.ffb-card-footer {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -1015,22 +1015,22 @@
     color: var(--ffb-muted-text);
 }
 
-.ffb-mail-card-stats {
+.ffb-card-stats {
     display: contents;
 }
 
-.ffb-mail-card-meta {
+.ffb-card-meta {
     display: inline-flex;
     align-items: center;
     gap: 0.3125rem;
 }
 
-.ffb-mail-card-meta svg {
+.ffb-card-meta svg {
     width: 0.875rem;
     height: 0.875rem;
 }
 
-.ffb-mail-add {
+.ffb-card-add {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -1039,29 +1039,29 @@
     border-radius: 0.75rem;
 }
 
-.dark .ffb-mail-add {
+.dark .ffb-card-add {
     border-color: rgb(255 255 255 / 0.15);
 }
 
-.ffb-mail-add-title {
+.ffb-card-add-title {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     font-weight: 600;
 }
 
-.ffb-mail-add-title svg {
+.ffb-card-add-title svg {
     width: 1.125rem;
     height: 1.125rem;
 }
 
-.ffb-mail-presets {
+.ffb-card-choices {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
     gap: 0.625rem;
 }
 
-.ffb-mail-preset {
+.ffb-card-choice {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
@@ -1076,25 +1076,25 @@
     cursor: pointer;
 }
 
-.ffb-mail-preset:hover {
+.ffb-card-choice:hover {
     box-shadow: 0 0 0 1px var(--primary-500);
 }
 
-.dark .ffb-mail-preset {
+.dark .ffb-card-choice {
     background: var(--gray-900);
 }
 
-.ffb-mail-preset-icon {
+.ffb-card-choice-icon {
     width: 1.125rem;
     height: 1.125rem;
     color: var(--ffb-muted-text);
 }
 
-.ffb-mail-preset-title {
+.ffb-card-choice-title {
     font-weight: 600;
 }
 
-.ffb-mail-preset-description {
+.ffb-card-choice-description {
     font-size: 0.75rem;
     line-height: 1rem;
     color: var(--ffb-muted-text);
@@ -1109,12 +1109,12 @@
     text-transform: uppercase;
 }
 
-.ffb-mail-form-divided {
+.ffb-settings-divided {
     padding-top: 1.5rem;
     border-top: 1px solid var(--gray-100);
 }
 
-.dark .ffb-mail-form-divided {
+.dark .ffb-settings-divided {
     border-color: rgb(255 255 255 / 0.05);
 }
 
