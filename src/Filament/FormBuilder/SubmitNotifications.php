@@ -178,7 +178,7 @@ class SubmitNotifications extends Group
             return [
                 TextInput::make('query')
                     ->label(__('filament-form-builder::general.submit_notification_query'))
-                    ->helperText(__('filament-form-builder::general.submit_notification_query_explanation'))
+                    ->belowLabel(__('filament-form-builder::general.submit_notification_query_explanation'))
                     ->placeholder('name={{ $name }}&form={{ $form_title }}')
                     ->live(onBlur: true),
                 TextEntry::make('placeholders')
@@ -212,7 +212,7 @@ class SubmitNotifications extends Group
                 ->visible(fn (Get $get): bool => !$isShown($get)),
             QueryParameters::make('query')
                 ->label(__('filament-form-builder::general.submit_notification_query'))
-                ->helperText(__('filament-form-builder::general.submit_notification_query_helper'))
+                ->belowLabel(__('filament-form-builder::general.submit_notification_query_helper'))
                 ->visible($isShown),
             static::getRedirectExample(),
         ];
