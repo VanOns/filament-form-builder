@@ -118,10 +118,11 @@ class FormSubmissionController
 
     /**
      * Files live apart from the answers, so a visitor cannot pass off a typed
-     * value as a stored file.
+     * value as a stored file. Their size and type are kept, so showing them
+     * needs no trip to the disk.
      *
      * @param array<string, mixed> $uploads
-     * @return array<string, list<array{path: string, name: string}>>
+     * @return array<string, list<array{path: string, name: string, size: int, mime_type: ?string}>>
      */
     protected function storeFiles(array $uploads): array
     {
@@ -131,7 +132,12 @@ class FormSubmissionController
         foreach ($uploads as $key => $upload) {
             foreach (Arr::flatten(Arr::wrap($upload)) as $file) {
                 if ($file instanceof UploadedFile && ($path = $file->store('form_uploads', $disk)) !== false) {
-                    $files[$key][] = ['path' => $path, 'name' => $file->getClientOriginalName()];
+                    $files[$key][] = [
+                        'path' => $path,
+                        'name' => $file->getClientOriginalName(),
+                        'size' => (int) $file->getSize(),
+                        'mime_type' => $file->getMimeType(),
+                    ];
                 }
             }
         }

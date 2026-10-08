@@ -48,6 +48,15 @@ it('keeps every file of a multiple upload, posted as the browser names them', fu
         ->and($field->getInputName())->toBe('cv[]');
 });
 
+it('keeps the size and type of an upload, so showing it needs no trip to the disk', function () {
+    $submission = uploadSubmission(['cv' => pdf()]);
+    Storage::disk('local')->put($submission->files['cv'][0]['path'], 'changed');
+    $file = $submission->getFiles()['cv'][0];
+
+    expect($file->size())->toBe(10 * 1024)
+        ->and($file->mimeType())->toBe('application/pdf');
+});
+
 it('serves an upload to whoever holds its signed link', function () {
     $submission = uploadSubmission(['cv' => pdf()]);
 

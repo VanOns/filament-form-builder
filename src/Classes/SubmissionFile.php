@@ -17,14 +17,12 @@ class SubmissionFile implements Stringable
         public readonly int $index,
         public readonly string $path,
         public readonly string $name,
+        protected ?int $size = null,
+        protected ?string $mimeType = null,
     ) {
     }
 
     protected ?bool $exists = null;
-
-    protected ?int $size = null;
-
-    protected ?string $mimeType = null;
 
     /**
      * Whoever holds the link may download the file until it expires, so it can
@@ -69,13 +67,13 @@ class SubmissionFile implements Stringable
 
     public function mimeType(): ?string
     {
-        $disk = $this->disk();
-
-        if (!$disk instanceof FilesystemAdapter || !$this->exists()) {
-            return null;
+        if ($this->mimeType !== null || !$this->exists()) {
+            return $this->mimeType;
         }
 
-        return $this->mimeType ??= ($disk->mimeType($this->path) ?: null);
+        $disk = $this->disk();
+
+        return $this->mimeType = $disk instanceof FilesystemAdapter ? ($disk->mimeType($this->path) ?: null) : null;
     }
 
     public function isImage(): bool

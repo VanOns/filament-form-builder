@@ -32,7 +32,7 @@ use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
  * @property int $id
  * @property int $form_id
  * @property array<string, mixed> $data
- * @property array<string, list<array{path: string, name: string}>>|null $files
+ * @property array<string, list<array{path: string, name: string, size?: int, mime_type?: ?string}>>|null $files
  * @property array<string, array{label: string, type: ?string, columns: array<string, string>, options: array<string, string>, title?: ?string, span?: int, new_row?: bool}>|null $field_snapshot
  * @property string|null $source_url
  * @property array{user_agent?: string, locale?: string, user?: array{id?: mixed, name?: string}, campaign?: array<string, string>, ip?: string}|null $meta
@@ -144,7 +144,15 @@ class FormSubmission extends Model
 
         foreach ($this->files ?? [] as $key => $stored) {
             foreach ($stored as $index => $file) {
-                $files[$key][] = new SubmissionFile($this, (string) $key, $index, $file['path'], $file['name']);
+                $files[$key][] = new SubmissionFile(
+                    $this,
+                    (string) $key,
+                    $index,
+                    $file['path'],
+                    $file['name'],
+                    isset($file['size']) ? (int) $file['size'] : null,
+                    $file['mime_type'] ?? null,
+                );
             }
         }
 
