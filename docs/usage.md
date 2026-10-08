@@ -283,6 +283,12 @@ sends the e-mail notifications and queues a `RunFormIntegrationsJob` for the
 form's integrations. A submission created in code, by a seeder or an import,
 triggers neither.
 
+To react to every form a visitor sends, whatever its type, listen for
+`VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmitted`. It fires after
+`afterSubmission()`, with the stored submission as `$event->formSubmission`.
+`FormSubmissionCreated` fires for every stored submission, also one made in
+code.
+
 ### E-mail notifications
 
 The Notifications tab shows a form's e-mails as cards, under what the visitor

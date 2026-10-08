@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Foundation\Auth\User;
+use Illuminate\Support\Facades\Event;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
+use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmitted;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -124,3 +126,14 @@ it('keeps where a submission came from as far as the config allows', function (m
     'with part of it' => ['anonymized', '127.0.0.0'],
     'with all of it' => ['full', '127.0.0.1'],
 ]);
+
+it('tells the app a visitor sent a form, but not about a submission made in code', function () {
+    Event::fake([FormSubmitted::class]);
+    $form = Form::create(['title' => 'Terugbellen', 'template' => 'custom', 'custom' => ['fields' => [['type' => 'text', 'label' => 'Naam', 'key' => 'naam']]]]);
+
+    $submission = submit($form, ['naam' => 'Jan']);
+    FormSubmission::create(['form_id' => $form->id, 'data' => ['naam' => 'Import']]);
+
+    Event::assertDispatchedTimes(FormSubmitted::class, 1);
+    Event::assertDispatched(FormSubmitted::class, fn (FormSubmitted $event): bool => $event->formSubmission->is($submission));
+});

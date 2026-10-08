@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
+use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmitted;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -74,6 +75,7 @@ class FormSubmissionController
         }
 
         $type->afterSubmission($submission);
+        FormSubmitted::dispatch($submission);
 
         return $type->response($submission) ?? $this->respond($type, $submission);
     }
