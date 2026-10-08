@@ -14,8 +14,10 @@ classes and the stored canvas data all changed, and forms stored with v2 need co
 **Let an AI agent do it.** v3 ships a [Laravel Boost](https://github.com/laravel/boost) skill,
 `filament-form-builder-v3-upgrade`, that walks an agent through this guide and converts the forms,
 notifications and submissions v2 stored. After `composer require van-ons/filament-form-builder:^3.0`, run
-`php artisan boost:update` (or `boost:install`) and ask the agent to upgrade the form builder. Its conversion
-migration is
+`php artisan boost:update` (or `boost:install`) and ask the agent to upgrade the form builder. Boost only adds
+a package it has not seen before when you pick it from the question it asks, so choose
+`van-ons/filament-form-builder` there; where nobody can answer, such as an agent running the command, add it
+to `packages` in `boost.json` first. Its conversion migration is
 `vendor/van-ons/filament-form-builder/resources/boost/skills/filament-form-builder-v3-upgrade/references/convert-v2-forms.php`.
 Take a database backup first: it rewrites stored data and cannot be rolled back.
 
