@@ -100,7 +100,15 @@ class SubmissionPlaceholders
         }
 
         // Unfilled tags leave their parameter empty rather than the raw placeholder.
-        $query = trim($this->replace($query, rawurlencode(...), removeUnknown: true), "?& \t\n\r\0\x0B");
+        return static::joinQuery($url, $this->replace($query, rawurlencode(...), removeUnknown: true));
+    }
+
+    /**
+     * The URL with a filled-in query added, before any fragment.
+     */
+    public static function joinQuery(string $url, string $query): string
+    {
+        $query = trim($query, "?& \t\n\r\0\x0B");
 
         if ($query === '') {
             return $url;

@@ -37,11 +37,9 @@ class QueryParameters extends Repeater
                 ->required()
                 ->regex(static::NAME_PATTERN)
                 ->validationMessages(['regex' => __('filament-form-builder::general.query_parameter_invalid')])
-                ->extraInputAttributes(['class' => 'ffb-mono-input'])
-                ->live(onBlur: true),
+                ->extraInputAttributes(['class' => 'ffb-mono-input']),
             MergeTagEditor::line('value', withSubmissionLink: false)
-                ->label(__('filament-form-builder::general.query_value'))
-                ->live(onBlur: true),
+                ->label(__('filament-form-builder::general.query_value')),
         ]);
 
         $this->mutateDehydratedStateUsing(static fn (QueryParameters $component, ?array $state): ?string => static::build($component->dehydrateItems($state)));

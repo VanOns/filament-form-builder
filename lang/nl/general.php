@@ -42,6 +42,7 @@ return [
     'query_add' => 'Parameter toevoegen',
     'redirect_page' => 'Pagina',
     'redirect_example' => 'Zo komt de bezoeker uit, met inzending #:number',
+    'redirect_example_labels' => 'Zo komt de bezoeker uit, met de labels in plaats van de antwoorden',
     'submit_notification_types' => [
         'url' => 'Doorsturen naar een pagina',
         'content' => 'Bedankbericht tonen',

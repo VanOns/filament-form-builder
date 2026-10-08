@@ -211,7 +211,6 @@ class FilamentFormBuilderPlugin implements Plugin
                 ->required()
                 ->placeholder(__('filament-form-builder::general.form_redirect_example', ['url' => 'https://example.com/form-confirmation']))
                 ->prefixIcon(Heroicon::OutlinedLink)
-                ->live(onBlur: true)
                 ->columnSpanFull(),
         ];
     }

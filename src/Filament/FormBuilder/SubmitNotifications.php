@@ -10,14 +10,15 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
-use Filament\Schemas\Components\Html;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\View;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Livewire\Component as Livewire;
+use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Classes\SubmitNotification;
 use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
@@ -40,7 +41,9 @@ class SubmitNotifications extends Group
         $this->statePath('submit_notifications');
 
         $this->schema([
-            Group::make(static::getOutcomeSchema())->statePath('default'),
+            Group::make(static::getOutcomeSchema())
+                ->statePath('default')
+                ->extraAttributes(['data-ffb-outcome' => '']),
             SubmitNotificationList::make('rules')
                 ->label(__('filament-form-builder::general.submit_rules.label'))
                 ->hiddenLabel(),
@@ -217,35 +220,61 @@ class SubmitNotifications extends Group
 
     /**
      * Where the latest submission would have sent its visitor, so the rows
-     * read as the URL they make.
+     * read as the URL they make; without one, with the labels standing in.
+     * It renders itself again as the outcome changes, so it stays in the page
+     * while there is nothing to show yet.
      */
-    public static function getRedirectExample(): Html
+    public static function getRedirectExample(): View
     {
-        $example = function (Get $get, ?Form $record): ?HtmlString {
-            $submission = $record?->submissions()->latest('id')->first()?->setRelation('form', $record);
-            $url = $record === null ? null : FilamentFormBuilderPlugin::resolveRedirectUrl($get('url'), $record);
-            $query = $get('query');
+        return View::make('filament-form-builder::filament.partials.redirect-example')
+            ->key('redirect_example')
+            ->viewData(fn (Get $get, Livewire $livewire, ?Form $record): array => ['example' => static::buildRedirectExample($get, $livewire, $record)]);
+    }
 
-            if ($submission === null || blank($url)) {
-                return null;
-            }
+    protected static function buildRedirectExample(Get $get, Livewire $livewire, ?Form $record): ?HtmlString
+    {
+        $form = MergeTagEditor::form($livewire);
+        $url = FilamentFormBuilderPlugin::resolveRedirectUrl($get('url'), $record ?? $form);
+        $query = $get('query');
+        $query = (string) (is_array($query) ? QueryParameters::build($query) : $query);
 
-            $filled = (string) SubmissionPlaceholders::make($submission)->appendQuery($url, is_array($query) ? QueryParameters::build($query) : $query);
+        if (blank($url)) {
+            return null;
+        }
 
-            if ($filled === $url) {
-                return null;
-            }
+        $submission = $record?->submissions()->latest('id')->first()?->setRelation('form', $record);
+        $filled = $submission === null
+            ? SubmissionPlaceholders::joinQuery($url, static::fillWithLabels($query, $form, (string) data_get($livewire, 'data.title')))
+            : (string) SubmissionPlaceholders::make($submission)->appendQuery($url, $query);
 
-            $address = str_starts_with($filled, $url)
-                ? e($url) . '<span class="ffb-redirect-example-query">' . e(substr($filled, strlen($url))) . '</span>'
-                : e($filled);
+        if ($filled === $url) {
+            return null;
+        }
 
-            return new HtmlString('<div class="ffb-redirect-example"><span class="ffb-redirect-example-title">'
-                . e(__('filament-form-builder::general.redirect_example', ['number' => $submission->getKey()]))
-                . '</span><code class="ffb-redirect-example-url">' . $address . '</code></div>');
-        };
+        $address = str_starts_with($filled, $url)
+            ? e($url) . '<span class="ffb-redirect-example-query">' . e(substr($filled, strlen($url))) . '</span>'
+            : e($filled);
+        $title = $submission === null
+            ? __('filament-form-builder::general.redirect_example_labels')
+            : __('filament-form-builder::general.redirect_example', ['number' => $submission->getKey()]);
 
-        return Html::make($example)
-            ->visible(fn (Get $get, ?Form $record): bool => $example($get, $record) !== null);
+        return new HtmlString('<div class="ffb-redirect-example"><span class="ffb-redirect-example-title">'
+            . e($title)
+            . '</span><code class="ffb-redirect-example-url">' . $address . '</code></div>');
+    }
+
+    /**
+     * The query with every tag as its label between brackets, but the form's
+     * own title as itself.
+     */
+    protected static function fillWithLabels(string $query, Form $form, string $title): string
+    {
+        $labels = $form->getMergeTags(withAllFields: false);
+
+        return (string) preg_replace_callback(MergeTags::LEGACY, fn (array $match): string => match (true) {
+            $match[1] === 'form_title' && $title !== '' => rawurlencode($title),
+            isset($labels[$match[1]]) => '[' . $labels[$match[1]] . ']',
+            default => '',
+        }, $query);
     }
 }

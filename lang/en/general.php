@@ -42,6 +42,7 @@ return [
     'query_add' => 'Add parameter',
     'redirect_page' => 'Page',
     'redirect_example' => 'Where the visitor lands, with submission #:number',
+    'redirect_example_labels' => 'Where the visitor lands, with the labels standing in for the answers',
     'submit_notification_types' => [
         'url' => 'Send to a page',
         'content' => 'Show a thank-you message',

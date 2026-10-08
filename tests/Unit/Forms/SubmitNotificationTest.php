@@ -1,6 +1,7 @@
 <?php
 
 use Filament\Actions\Testing\TestAction;
+use Filament\Schemas\Components\View;
 use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\CardList;
@@ -137,6 +138,33 @@ it('shows where the latest submission would have sent its visitor', function () 
     Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
         ->assertSee("Where the visitor lands, with submission #{$submission->id}")
         ->assertSeeHtml('https://example.test/bedankt<span class="ffb-redirect-example-query">?naam=Jan%20de%20Vries</span>');
+});
+
+it('shows the labels in the example while the form has no submissions yet', function () {
+    test()->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+
+    $form = thankingForm(['type' => 'url', 'url' => 'https://example.test/bedankt', 'query' => 'naam={{ $naam }}&formulier={{ $form_title }}&bron=website']);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSee('Where the visitor lands, with the labels standing in for the answers')
+        ->assertSeeHtml('https://example.test/bedankt<span class="ffb-redirect-example-query">?naam=[Naam]&amp;formulier=' . rawurlencode($form->title) . '&amp;bron=website</span>');
+});
+
+it('shows the example for a URL being typed, before anyone saves it', function () {
+    test()->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+
+    $form = thankingForm(['type' => 'url', 'url' => 'https://example.test/bedankt', 'query' => 'naam={{ $naam }}']);
+    FormSubmission::create(['form_id' => $form->id, 'data' => ['naam' => 'Jan']]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    $key = collect($page->instance()->getSchema('form')->getFlatComponents(withHidden: true))
+        ->first(fn ($component): bool => $component instanceof View && str_ends_with((string) $component->getKey(), 'redirect_example'))
+        ->getKey();
+
+    $page->set('data.submit_notifications.default.url', 'https://example.test/welkom')
+        ->call('partiallyRenderSchemaComponent', $key);
+
+    expect((string) $page->effects['partials']["schema-component::{$key}"])
+        ->toContain('https://example.test/welkom<span class="ffb-redirect-example-query">?naam=Jan</span>');
 });
 
 it('takes the first outcome whose conditions the answers meet, and the last one otherwise', function () {
