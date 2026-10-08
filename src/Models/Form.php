@@ -548,6 +548,7 @@ class Form extends Model
             'class' => 'ffb-form',
             'enctype' => 'multipart/form-data',
             'data-form-builder-form' => $this->id,
+            ...($this->hasSteps() && $this->getType()->validatesSteps() ? ['data-form-builder-check-steps' => ''] : []),
         ]);
     }
 }

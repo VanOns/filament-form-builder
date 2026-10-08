@@ -639,6 +639,38 @@ public function stepSettings(): array
 }
 ```
 
+### Checking a step on the server
+
+The browser checks what an editor can set: required, an e-mail address, a
+length. A rule only the server knows, such as `unique` or `exists`, is checked
+when the form is sent, and the form then opens again on that step. A form type
+can have the server check each step before the visitor moves on:
+
+```php
+public function fields(): array
+{
+    return [
+        EmailField::make('email')->label('E-mail')->required()->rules(['unique:users,email']),
+        StepField::make('profiel')->title('Your profile'),
+        // ...
+    ];
+}
+
+public function validatesSteps(): bool
+{
+    return true;
+}
+```
+
+The next button then posts the answers so far to the form's own route with
+[Laravel Precognition](https://laravel.com/docs/precognition), which checks the
+step's fields only and stores nothing. A message shows under its field and the
+visitor stays on the step. Uploads only go along with the form itself, and
+when the server cannot be reached the visitor moves on: the form is checked in
+full once it is sent anyway. These checks have a limit of their own, 60 a
+minute per visitor, apart from `rate_limit_per_hour`, and the spam traps wait
+for the form itself.
+
 The steps render through `components/steps`, the progress through
 `components/steps/progress-steps` or `progress-bar`; the classes are under
 [Styling forms on the site](#styling-forms-on-the-site). A `components/form` of
@@ -664,6 +696,7 @@ the fields:
 | `firstStepWithError(steps, errorKeys)`     | The step to open after the server turned the form away                |
 | `progress(steps, hidden, current)`         | `{ number, total, percent }` among the steps that show               |
 | `reportStep(element)`                      | Shows why a step's fields cannot be left yet; true when they can      |
+| `validateOnly(keys)`                       | The `Precognition-Validate-Only` header for checking a step's keys    |
 
 Keep every step mounted and hide the others with `hidden`: `<Form>` posts what
 is in the form element, so a step that is not rendered loses its answers. Keep a
@@ -711,6 +744,32 @@ export default function ApplicationForm({ form, errors }) {
                 : <button type="button" onClick={() => reportStep(fieldsets.current[current]) && setCurrent(following)}>Next</button>}
         </Form>
     )
+}
+```
+
+When the form type checks its steps on the server
+(`$form->getType()->validatesSteps()`), post the answers so far before moving
+on, without the uploads. A 204 means the step is fine, a 422 has the errors:
+
+```ts
+import { validateOnly } from '@form-builder/steps'
+
+async function checkStep(form: HTMLFormElement, keys: string[]): Promise<Record<string, string[]>> {
+    const body = new FormData(form)
+
+    for (const [name, value] of [...body]) {
+        if (value instanceof File) {
+            body.delete(name)
+        }
+    }
+
+    const response = await fetch(form.action, {
+        method: 'POST',
+        body,
+        headers: { Accept: 'application/json', Precognition: 'true', 'Precognition-Validate-Only': validateOnly(keys) },
+    })
+
+    return response.status === 422 ? (await response.json()).errors : {}
 }
 ```
 

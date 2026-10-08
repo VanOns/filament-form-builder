@@ -1,7 +1,7 @@
 // The version query of this file, so an update never pairs it with cached older modules.
 const version = new URL(import.meta.url).search
 const { hiddenKeys, readValues } = await import(`./conditions.js${version}`)
-const { visibleSteps, nextStep, previousStep, firstStepWithError, progress, firstInvalid, reportStep } = await import(`./steps.js${version}`)
+const { visibleSteps, nextStep, previousStep, firstStepWithError, progress, firstInvalid, reportStep, validateOnly } = await import(`./steps.js${version}`)
 
 function readConditions(form) {
     const conditions = {}
@@ -127,13 +127,42 @@ function paginate(form, conditions) {
         render(true)
     }
 
-    next.addEventListener('click', () => {
-        const following = nextStep(steps, hidden(), current)
+    const checksOnServer = form.hasAttribute('data-form-builder-check-steps')
+    let isChecking = false
 
-        if (following !== null && reportStep(fieldsets[current])) {
-            go(following)
+    const advance = async () => {
+        const hiddenNow = hidden()
+        const following = nextStep(steps, hiddenNow, current)
+
+        if (following === null || isChecking || !reportStep(fieldsets[current])) {
+            return
         }
-    })
+
+        // An upload only goes along with the form itself.
+        const keys = steps[current].keys.filter((key) => !hiddenNow.has(key)
+            && !fieldsets[current].querySelector(`input[type="file"][data-form-builder-input="${CSS.escape(key)}"]`))
+
+        if (checksOnServer && keys.length > 0) {
+            const from = current
+
+            isChecking = true
+            next.setAttribute('aria-busy', 'true')
+
+            const passes = await checkStep(form, fieldsets[from], keys)
+
+            isChecking = false
+            next.removeAttribute('aria-busy')
+
+            // The visitor went back while the server checked.
+            if (!passes || current !== from) {
+                return
+            }
+        }
+
+        go(following)
+    }
+
+    next.addEventListener('click', advance)
 
     previous.addEventListener('click', () => {
         const before = previousStep(steps, hidden(), current)
@@ -153,7 +182,7 @@ function paginate(form, conditions) {
         // Enter in a field of an earlier step moves on instead of sending.
         if (following !== null) {
             event.preventDefault()
-            reportStep(fieldsets[current]) && go(following)
+            advance()
 
             return
         }
@@ -186,6 +215,80 @@ function paginate(form, conditions) {
     }
 
     render()
+}
+
+/**
+ * Has the server check the answers of one step, for rules only it knows, with
+ * Laravel Precognition. True when it has nothing against them, and also when
+ * it cannot be reached: the whole form is checked once it is sent anyway.
+ */
+async function checkStep(form, fieldset, keys) {
+    const body = new FormData(form)
+
+    for (const [name, value] of [...body]) {
+        if (value instanceof File) {
+            body.delete(name)
+        }
+    }
+
+    let response
+
+    try {
+        response = await fetch(form.action, {
+            method: 'POST',
+            body,
+            headers: { Accept: 'application/json', Precognition: 'true', 'Precognition-Validate-Only': validateOnly(keys) },
+        })
+    } catch {
+        return true
+    }
+
+    if (response.status !== 204 && response.status !== 422) {
+        return true
+    }
+
+    clearErrors(fieldset)
+
+    if (response.status === 204) {
+        return true
+    }
+
+    const { errors = {} } = await response.json().catch(() => ({}))
+
+    showErrors(fieldset, errors)
+
+    return Object.keys(errors).length === 0
+}
+
+function clearErrors(fieldset) {
+    fieldset.querySelectorAll('.ffb-error').forEach((error) => error.remove())
+    fieldset.querySelectorAll('[aria-invalid]').forEach((input) => input.removeAttribute('aria-invalid'))
+}
+
+/**
+ * Puts each message where the server would have rendered it, under its field,
+ * and moves the focus to the first field with one.
+ */
+function showErrors(fieldset, errors) {
+    let first = null
+
+    for (const [key, messages] of Object.entries(errors)) {
+        const wrapper = fieldset.querySelector(`[data-form-builder-input-wrapper="${CSS.escape(key.split('.')[0])}"]`)
+
+        if (!wrapper || wrapper.querySelector('.ffb-error')) {
+            continue
+        }
+
+        const error = document.createElement('p')
+        error.className = 'ffb-error'
+        error.textContent = [messages].flat()[0]
+        wrapper.append(error)
+
+        wrapper.querySelectorAll('[data-form-builder-input]').forEach((input) => input.setAttribute('aria-invalid', 'true'))
+        first ??= wrapper.querySelector('[data-form-builder-input]:not(:disabled)')
+    }
+
+    first?.focus()
 }
 
 /**

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
 use Illuminate\Routing\Middleware\ValidateSignature;
 use Illuminate\Support\Facades\Route;
 use VanOns\FilamentFormBuilder\Http\Controllers\FormSubmissionController;
@@ -11,6 +12,8 @@ Route::name('filament-form-builder.')
             ->middleware(
                 [
                     'throttle:filament-form-builder-submissions',
+                    // Without it, a check of one step would be stored as a submission.
+                    HandlePrecognitiveRequests::class,
                     ...config('filament-form-builder.form_middleware', []),
                 ]
             )

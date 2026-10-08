@@ -3,6 +3,7 @@
 namespace VanOns\FilamentFormBuilder\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Symfony\Component\HttpFoundation\Response;
 use VanOns\FilamentFormBuilder\Classes\Honeypot;
 use VanOns\FilamentFormBuilder\Models\Form;
 
@@ -25,6 +26,14 @@ class CreateFormSubmission extends FormRequest
     // A bot gets no validation errors to learn from; the controller answers it as if it got through.
     public function validateResolved(): void
     {
+        // Checking a step stores nothing, so the spam traps wait for the form itself.
+        if ($this->isPrecognitive()) {
+            abort_unless($this->getForm()->getType()->validatesSteps(), Response::HTTP_FORBIDDEN);
+            parent::validateResolved();
+
+            return;
+        }
+
         $this->caught = Honeypot::caught($this, $this->getForm());
 
         if (! $this->caught) {

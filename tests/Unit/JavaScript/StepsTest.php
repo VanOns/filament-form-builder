@@ -68,3 +68,9 @@ it('counts the progress among the steps that show', function () {
         ['number' => 2, 'total' => 2, 'percent' => 100],
     ]);
 });
+
+it('asks the server to check the keys of a step, and each item of a list', function () {
+    expect(inStepsScript([
+        ['validateOnly', [['naam', 'cv[]', 'interesses.0', 'naam']]],
+    ]))->toBe(['naam,naam.*,cv,cv.*,interesses,interesses.*']);
+});

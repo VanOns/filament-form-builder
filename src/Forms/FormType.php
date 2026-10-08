@@ -162,6 +162,15 @@ class FormType
     }
 
     /**
+     * Whether "Next" in a form in steps first has the server check the step,
+     * for rules the browser cannot check itself, such as unique or exists.
+     */
+    public function validatesSteps(): bool
+    {
+        return false;
+    }
+
+    /**
      * Replaces the response to a submission; null keeps the redirect or message
      * the form is set up with.
      */

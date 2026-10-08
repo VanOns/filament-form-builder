@@ -25,3 +25,5 @@ export function progress(steps: Step[], hidden: ReadonlySet<string>, current: nu
 export function firstInvalid(element: ParentNode): HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null
 
 export function reportStep(element: ParentNode): boolean
+
+export function validateOnly(keys: Iterable<string>): string

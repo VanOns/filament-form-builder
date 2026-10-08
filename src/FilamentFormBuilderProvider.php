@@ -117,10 +117,15 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
         RateLimiter::for(
             'filament-form-builder-submissions',
             function (Request $request) {
-                $limit = config('filament-form-builder.rate_limit_per_hour', 60);
+                $visitor = $request->user()?->id ?: $request->ip();
 
-                return Limit::perHour($limit)
-                    ->by($request->user()?->id ?: $request->ip());
+                // Checking a step is no submission, so it does not use up the hour's.
+                if ($request->isAttemptingPrecognition()) {
+                    return Limit::perMinute(60)->by("step-check|{$visitor}");
+                }
+
+                return Limit::perHour(config('filament-form-builder.rate_limit_per_hour', 60))
+                    ->by($visitor);
             }
         );
     }

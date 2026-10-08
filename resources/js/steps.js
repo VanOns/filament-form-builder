@@ -69,3 +69,11 @@ export function reportStep(element) {
 
     return control === null
 }
+
+/**
+ * The `Precognition-Validate-Only` header that has the server check just these
+ * keys, including each item of a field that posts a list.
+ */
+export function validateOnly(keys) {
+    return [...new Set([...keys].map(baseKey))].flatMap((key) => [key, `${key}.*`]).join(',')
+}
