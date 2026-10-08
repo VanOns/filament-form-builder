@@ -5,6 +5,7 @@ use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\Fixtures\ApplicationForm;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages\ViewFormSubmission;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -108,7 +109,8 @@ it('lays the answers out as the form does, under its titles and at its widths', 
     $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['voornaam' => 'Jan', 'achternaam' => 'de Vries', 'vacature' => 'Adviseur']]);
 
     Livewire::test(ViewFormSubmission::class, ['record' => $submission->getKey()])
-        ->assertSee('Offerte · ' . $submission->created_at->translatedFormat('j F Y, H:i'))
+        ->assertSeeHtml('href="' . FormResource::getUrl('edit', ['record' => $form]) . '"')
+        ->assertSeeInOrder(['Offerte', ' · ' . $submission->created_at->translatedFormat('j F Y, H:i')])
         ->assertSeeInOrder(['Over jou', 'Voornaam', 'Jan', 'Achternaam', 'De opdracht', 'Vacature', 'hidden field', 'Adviseur', 'Toelichting', '—'])
         ->assertSeeHtml('--ffb-span: 6');
 });

@@ -1402,3 +1402,17 @@
 .ffb-form-follow-up-none {
     color: var(--gray-400);
 }
+
+.ffb-subheading-link {
+    color: var(--primary-600);
+    font-weight: 500;
+}
+
+.dark .ffb-subheading-link {
+    color: var(--primary-400);
+}
+
+.ffb-subheading-link:hover,
+.ffb-subheading-link:focus-visible {
+    text-decoration: underline;
+}

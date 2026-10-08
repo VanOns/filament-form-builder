@@ -17,7 +17,9 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\HtmlString;
 use Livewire\Attributes\Session;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
@@ -41,12 +43,20 @@ class ViewFormSubmission extends ViewRecord
         return __('filament-form-builder::general.submission.title', ['id' => $this->getRecord()->getKey()]);
     }
 
-    public function getSubheading(): ?string
+    public function getSubheading(): Htmlable
     {
         /** @var FormSubmission $submission */
         $submission = $this->getRecord();
+        $form = $submission->form;
 
-        return collect([$submission->form?->title, $submission->created_at?->translatedFormat('j F Y, H:i')])->filter()->implode(' · ');
+        $title = match (true) {
+            $form === null => null,
+            // Filament's link stops at text-sm, the subheading is larger.
+            FormResource::canView($form) => '<a href="' . e(FormResource::recordUrl($form)) . '" class="ffb-subheading-link">' . e($form->title) . '</a>',
+            default => e($form->title),
+        };
+
+        return new HtmlString(collect([$title, e((string) $submission->created_at?->translatedFormat('j F Y, H:i'))])->filter()->implode(' · '));
     }
 
     public function mount(int | string $record): void
