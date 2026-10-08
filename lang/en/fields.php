@@ -66,6 +66,7 @@ return [
     'types' => [
         'title_field' => 'Title',
         'text_field' => 'Text block',
+        'step_field' => 'New step',
         'text_input_field' => 'Text',
         'text_area_field' => 'Text area',
         'email_field' => 'Email',
@@ -93,6 +94,7 @@ return [
     'type_descriptions' => [
         'title_field' => 'A heading above part of the form.',
         'text_field' => 'A piece of text, such as an explanation.',
+        'step_field' => 'Starts a step: the form shows one step at a time.',
         'text_input_field' => 'One line of text, such as a name or place.',
         'text_area_field' => 'Several lines of text, such as a message.',
         'email_field' => 'An email address, checked for its form.',

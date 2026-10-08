@@ -21,7 +21,7 @@ use VanOns\FilamentFormBuilder\Events\Form\FormForceDeleted;
 use VanOns\FilamentFormBuilder\Events\Form\FormRestored;
 use VanOns\FilamentFormBuilder\Events\Form\FormUpdated;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\StepField;
 use VanOns\FilamentFormBuilder\Forms\CustomFields;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
@@ -212,6 +212,77 @@ class Form extends Model
         return $fields;
     }
 
+    public function hasSteps(): bool
+    {
+        foreach ($this->getFields() as $field) {
+            if ($field instanceof StepField) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{title: ?string, progress: string, previous: ?string, next: ?string}
+     */
+    public function getStepSettings(): array
+    {
+        return $this->getType()->stepSettings();
+    }
+
+    /**
+     * The form in steps: one starts at every step field, and the fields before
+     * the first make one under the title of the canvas's start block. The
+     * fields that render at the end are left for getEndFields().
+     *
+     * @return list<array{title: ?string, fields: list<FormField>}>
+     */
+    public function getSteps(): array
+    {
+        $steps = [['title' => $this->getStepSettings()['title'], 'fields' => []]];
+
+        foreach ($this->getFields() as $field) {
+            if ($field instanceof StepField) {
+                $steps[] = ['title' => $field->title, 'fields' => []];
+            } elseif (! $field::rendersAtEnd()) {
+                $steps[array_key_last($steps)]['fields'][] = $field;
+            }
+        }
+
+        // A step field at the very top, or two in a row, would leave a step without fields.
+        return array_values(array_filter($steps, fn (array $step): bool => $step['fields'] !== []));
+    }
+
+    /**
+     * @return list<FormField>
+     */
+    public function getEndFields(): array
+    {
+        return array_values(array_filter($this->getFields(), fn (FormField $field): bool => $field::rendersAtEnd()));
+    }
+
+    /**
+     * The steps as a front end of your own hands them to resources/js/steps.js:
+     * per step its title and the keys its fields post.
+     *
+     * @return list<array{title: ?string, keys: list<string>}>
+     */
+    public function getStepKeys(): array
+    {
+        return array_map(function (array $step): array {
+            $keys = [];
+
+            foreach ($step['fields'] as $field) {
+                if ($field::isInput()) {
+                    $keys = [...$keys, ...$field->getInputKeys()];
+                }
+            }
+
+            return ['title' => $step['title'], 'keys' => array_values(array_unique($keys))];
+        }, $this->getSteps());
+    }
+
     /**
      * The conditions of the fields that have any, by key: what a front end of
      * your own hands to resources/js/conditions.js.
@@ -298,11 +369,11 @@ class Form extends Model
         $snapshot = [];
         $names = array_flip(FieldTypeHelper::all());
 
-        $title = null;
+        $title = $this->hasSteps() ? $this->getStepSettings()['title'] : null;
 
         foreach ($this->getFields() as $field) {
-            if ($field instanceof TitleField) {
-                $title = $field->title;
+            if ($field::startsGroup()) {
+                $title = $field->getGroupTitle();
 
                 continue;
             }

@@ -70,7 +70,7 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
 |                                              | `uploads.attach_max_size`: how many kilobytes of uploads a notification attaches      |
 | `add_nav_group`                              | `navigation_group`, or `->navigationGroup()` on the plugin per panel                  |
 |                                              | `without_fields`, or `->withoutFields()` on the plugin per panel: types out of the palette |
-|                                              | `fields` gains `date` and `consent`                                                   |
+|                                              | `fields` gains `date`, `consent` and `step`                                           |
 |                                              | `styles`: the minimal stylesheet forms on the site load                               |
 |                                              | `submission_meta`: what a submission keeps about where it came from                   |
 |                                              | `retention_months`: how long submissions are kept                                     |

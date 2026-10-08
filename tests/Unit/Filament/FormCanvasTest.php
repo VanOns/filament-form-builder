@@ -477,6 +477,28 @@ it('groups the palette and shows a hidden field by its default value', function 
         ->assertSee('Default value: website');
 });
 
+it('opens a form in steps with a start block, which sets the first step and the progress', function () {
+    $form = canvasForm([
+        ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
+        ['type' => 'step', 'title' => 'Je aanvraag'],
+        ['type' => 'textarea', 'label' => 'Bericht', 'key' => 'bericht'],
+    ]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->assertSee(['Start of the form', 'Je aanvraag'])
+        ->callAction(onCanvas('stepSettings'), data: ['title' => 'Over jou', 'progress' => 'bar', 'next' => 'Verder'])
+        ->assertSee('Over jou')
+        ->call('save');
+
+    expect($form->fresh()->getStepSettings())->toBe(['title' => 'Over jou', 'progress' => 'bar', 'previous' => null, 'next' => 'Verder'])
+        ->and(collect(FormCanvas::make('custom')->getPaletteGroups()['layout'])->has('step'))->toBeTrue();
+});
+
+it('shows no start block on a form without step fields', function () {
+    Livewire::test(EditForm::class, ['record' => canvasForm([['type' => 'text', 'label' => 'Naam', 'key' => 'naam']])->getRouteKey()])
+        ->assertDontSee('Start of the form');
+});
+
 it('offers reCAPTCHA in the palette only once it is set up', function () {
     $offered = fn (): bool => collect(FormCanvas::make('custom')->getPaletteGroups())->contains(fn (array $group): bool => isset($group['recaptcha']));
 

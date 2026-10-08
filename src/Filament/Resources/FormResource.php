@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Filament\Resources;
 
 use BackedEnum;
 use Filament\Actions;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -34,6 +35,7 @@ use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\FieldConditions;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
+use VanOns\FilamentFormBuilder\Classes\StepSettings;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\MergeTagEditor;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\NotificationList;
@@ -199,8 +201,14 @@ class FormResource extends Resource
                 FormCanvas::make('custom.fields')
                     ->hiddenLabel()
                     ->formType(static::getFormType(...))
+                    ->stepSettings('custom.steps')
                     ->afterKeyRenamed(static::renameKeyInNotifications(...))
                     ->keyUsagesUsing(static::findKeyUsages(...)),
+                // What the canvas's start block sets; the canvas draws it.
+                Field::make('custom.steps')
+                    ->hidden()
+                    ->dehydratedWhenHidden()
+                    ->formatStateUsing(fn (mixed $state): array => StepSettings::normalize(is_array($state) ? $state : [])),
             ])->columnSpanFull();
     }
 

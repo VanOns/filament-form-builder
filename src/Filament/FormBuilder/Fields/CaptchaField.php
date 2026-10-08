@@ -17,6 +17,15 @@ abstract class CaptchaField extends FormField
         return static::isAvailable() ? ['required', 'string', static::rule()] : [];
     }
 
+    /**
+     * A widget in a step that is not shown yet may not load, and its answer
+     * may expire before the form is sent.
+     */
+    public static function rendersAtEnd(): bool
+    {
+        return true;
+    }
+
     public static function paletteGroup(): string
     {
         return 'layout';

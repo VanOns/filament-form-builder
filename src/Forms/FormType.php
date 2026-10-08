@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Forms;
 
 use Filament\Schemas\Components\Component;
 use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Classes\StepSettings;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Jobs\RunFormIntegrationsJob;
 use VanOns\FilamentFormBuilder\Models\Form;
@@ -80,6 +81,17 @@ class FormType
         }
 
         return $keys;
+    }
+
+    /**
+     * The title of the first step, the progress and the button labels of a
+     * form in steps; by default as set on the canvas's start block.
+     *
+     * @return array{title: ?string, progress: string, previous: ?string, next: ?string}
+     */
+    public function stepSettings(): array
+    {
+        return StepSettings::normalize((array) ($this->form->custom['steps'] ?? []));
     }
 
     /**

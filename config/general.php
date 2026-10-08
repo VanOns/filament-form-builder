@@ -11,6 +11,7 @@ return [
     'fields' => [
         'title' => Fields\TitleField::class,
         'text_block' => Fields\TextField::class,
+        'step' => Fields\StepField::class,
         'text' => Fields\TextInputField::class,
         'textarea' => Fields\TextAreaField::class,
         'email' => Fields\EmailField::class,

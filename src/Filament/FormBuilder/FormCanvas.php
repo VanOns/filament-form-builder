@@ -6,6 +6,7 @@ use BackedEnum;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
@@ -19,8 +20,11 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use VanOns\FilamentFormBuilder\Classes\FieldConditions;
+use VanOns\FilamentFormBuilder\Classes\StepSettings;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
+use VanOns\FilamentFormBuilder\Enums\StepProgress;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\StepField;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Forms\CustomFields;
 use VanOns\FilamentFormBuilder\Forms\FormType;
@@ -31,6 +35,8 @@ class FormCanvas extends Field
     protected string $view = 'filament-form-builder::filament.form-canvas';
 
     protected FormType | Closure | null $formType = null;
+
+    protected ?string $stepSettings = null;
 
     protected ?Closure $afterKeyRenamed = null;
 
@@ -59,6 +65,7 @@ class FormCanvas extends Field
             fn (FormCanvas $component): Action => $component->getDeleteAction(),
             fn (FormCanvas $component): Action => $component->getReorderAction(),
             fn (FormCanvas $component): Action => $component->getResizeAction(),
+            fn (FormCanvas $component): Action => $component->getStepSettingsAction(),
         ]);
     }
 
@@ -85,6 +92,38 @@ class FormCanvas extends Field
     public function getTypeKeys(): array
     {
         return $this->getFormType()?->keys() ?? [];
+    }
+
+    /**
+     * Where the form keeps what its start block sets, such as `custom.steps`;
+     * a field there that renders nothing saves it with the form.
+     */
+    public function stepSettings(?string $statePath): static
+    {
+        $this->stepSettings = $statePath;
+
+        return $this;
+    }
+
+    /**
+     * @return array{title: ?string, progress: string, previous: ?string, next: ?string}
+     */
+    public function getStepSettings(): array
+    {
+        $settings = $this->stepSettings === null ? null : $this->makeGetUtility()($this->stepSettings);
+
+        return StepSettings::normalize(is_array($settings) ? $settings : []);
+    }
+
+    public function hasSteps(): bool
+    {
+        foreach ([...array_merge(...$this->getFixedFields()), ...$this->getItems()] as $field) {
+            if ($field instanceof StepField) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -305,6 +344,41 @@ class FormCanvas extends Field
 
                 $component->rawState($items);
                 $component->resizeItems($spans);
+            });
+    }
+
+    public function getStepSettingsAction(): Action
+    {
+        return Action::make('stepSettings')
+            ->modalHeading(__('filament-form-builder::general.steps.start_heading'))
+            ->modalDescription(__('filament-form-builder::general.steps.start_description'))
+            ->modalIcon(Heroicon::OutlinedForward)
+            ->modalSubmitActionLabel(__('filament-form-builder::general.save'))
+            ->slideOver()
+            ->visible(fn (FormCanvas $component): bool => $component->stepSettings !== null)
+            ->fillForm(fn (FormCanvas $component): array => $component->getStepSettings())
+            ->schema([
+                TextInput::make('title')
+                    ->label(__('filament-form-builder::general.steps.first_title')),
+                Radio::make('progress')
+                    ->label(__('filament-form-builder::general.steps.progress'))
+                    ->options(StepProgress::class)
+                    ->descriptions(array_combine(
+                        array_column(StepProgress::cases(), 'value'),
+                        array_map(fn (StepProgress $progress): string => __("filament-form-builder::general.steps.progress_descriptions.{$progress->value}"), StepProgress::cases()),
+                    ))
+                    ->required(),
+                Group::make([
+                    TextInput::make('previous')
+                        ->label(__('filament-form-builder::general.steps.previous_label'))
+                        ->placeholder(__('filament-form-builder::general.steps.previous')),
+                    TextInput::make('next')
+                        ->label(__('filament-form-builder::general.steps.next_label'))
+                        ->placeholder(__('filament-form-builder::general.steps.next')),
+                ])->columns(2),
+            ])
+            ->action(function (array $data, FormCanvas $component): void {
+                $component->makeSetUtility()($component->stepSettings, StepSettings::normalize($data));
             });
     }
 

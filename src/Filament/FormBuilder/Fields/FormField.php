@@ -87,6 +87,29 @@ abstract class FormField
     }
 
     /**
+     * Whether the answers after this field group under its title, such as
+     * after a heading or at the start of a step.
+     */
+    public static function startsGroup(): bool
+    {
+        return false;
+    }
+
+    public function getGroupTitle(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Whether a form in steps shows the field after the last step instead of
+     * in its own, such as the submit button.
+     */
+    public static function rendersAtEnd(): bool
+    {
+        return false;
+    }
+
+    /**
      * Whether the builder's palette offers this field type. A field already on
      * a form stays there either way.
      */

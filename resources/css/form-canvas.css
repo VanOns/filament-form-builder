@@ -817,3 +817,40 @@
     width: 1rem;
     height: 1rem;
 }
+
+/* Steps: the start block is step 1 and every step field counts on from there. */
+.ffb-canvas-board {
+    counter-reset: ffb-step;
+}
+
+.ffb-canvas-start-editable,
+.ffb-canvas-start-editable:hover {
+    cursor: pointer;
+}
+
+.ffb-canvas-start-editable:hover {
+    box-shadow: 0 0 0 1px var(--ffb-primary-ring);
+}
+
+.ffb-preview-step {
+    counter-increment: ffb-step;
+    gap: 0.125rem;
+    padding-left: 0.75rem;
+    border-left: 3px solid var(--primary-500);
+}
+
+.ffb-preview-step-number {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--primary-600);
+}
+
+.ffb-preview-step-number::before {
+    content: attr(data-label) " " counter(ffb-step);
+}
+
+.dark .ffb-preview-step-number {
+    color: var(--primary-400);
+}

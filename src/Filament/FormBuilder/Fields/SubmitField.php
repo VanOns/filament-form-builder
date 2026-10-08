@@ -17,6 +17,11 @@ class SubmitField extends FormField
         return [];
     }
 
+    public static function rendersAtEnd(): bool
+    {
+        return true;
+    }
+
     public static function paletteGroup(): string
     {
         return 'layout';

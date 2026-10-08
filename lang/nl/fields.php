@@ -66,6 +66,7 @@ return [
     'types' => [
         'title_field' => 'Titel',
         'text_field' => 'Tekstblok',
+        'step_field' => 'Nieuwe stap',
         'text_input_field' => 'Tekst',
         'text_area_field' => 'Tekstvak',
         'email_field' => 'E-mail',
@@ -93,6 +94,7 @@ return [
     'type_descriptions' => [
         'title_field' => 'Een kop boven een deel van het formulier.',
         'text_field' => 'Een stuk tekst, zoals een uitleg.',
+        'step_field' => 'Begint een stap: het formulier toont één stap tegelijk.',
         'text_input_field' => 'Eén regel tekst, zoals een naam of plaats.',
         'text_area_field' => 'Meerdere regels tekst, zoals een bericht of motivatie.',
         'email_field' => 'Een e-mailadres, gecontroleerd op de vorm.',
