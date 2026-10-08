@@ -147,6 +147,11 @@
     display: none !important;
 }
 
+:where(.ffb-form) [data-form-builder-waiting] {
+    position: absolute !important;
+    visibility: hidden !important;
+}
+
 :where(.ffb-steps) {
     display: flex;
     flex-direction: column;

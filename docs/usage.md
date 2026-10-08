@@ -481,7 +481,9 @@ the fields:
 | `reportStep(element)`                      | Shows why a step's fields cannot be left yet; true when they can      |
 
 Keep every step mounted and hide the others with `hidden`: `<Form>` posts what
-is in the form element, so a step that is not rendered loses its answers. Give
+is in the form element, so a step that is not rendered loses its answers. Keep a
+captcha laid out until the last step, with `visibility: hidden` rather than
+`hidden`: Turnstile does not draw itself in an element that is not displayed. Give
 the form `noValidate`, or the browser stops at a required field in a step the
 visitor has not seen yet, and check the step with `reportStep()` instead:
 

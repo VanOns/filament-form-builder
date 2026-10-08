@@ -89,9 +89,8 @@ function paginate(form, conditions) {
         })
         previous.hidden = previousStep(steps, hiddenNow, current) === null
         next.hidden = isLast
-        ends.forEach((end) => {
-            end.hidden = !isLast
-        })
+        // Out of sight rather than hidden: a captcha does not draw itself in an element that is not displayed.
+        ends.forEach((end) => end.toggleAttribute('data-form-builder-waiting', !isLast))
 
         for (const item of container.querySelectorAll('[data-form-builder-progress-step]')) {
             const index = Number(item.dataset.formBuilderProgressStep)
