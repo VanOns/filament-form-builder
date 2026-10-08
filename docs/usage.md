@@ -279,9 +279,9 @@ public function getFilterConstraints(): array
 ## After a submission
 
 Once a visitor's submission is stored, the form type's `afterSubmission()`
-sends the e-mail notifications and queues a `RunFormIntegrationsJob` for the
-form's integrations. A submission created in code, by a seeder or an import,
-triggers neither.
+sends the e-mail notifications and queues the form's
+[integrations](#integrations). A submission created in code, by a seeder or an
+import, triggers neither.
 
 To react to every form a visitor sends, whatever its type, listen for
 `VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmitted`. It fires after
@@ -350,6 +350,138 @@ FilamentFormBuilderPlugin::mergeTag(
 
 The closure runs for every mail and thank-you message, so keep it cheap; it
 gives text, which is escaped like an answer.
+
+### Integrations
+
+The Integrations tab passes every submission on to another system. Each
+integration is a card that shows what it sends, when it runs, and how often it
+succeeded or failed lately. **Add integration** has a tile for every type in
+the `integrations` config, so an editor picks the type straight away. Its
+slide-over holds the integration's own settings, the fields it asks of the
+form, and when it runs: always, or only when the answers meet conditions. A
+switch turns one off without deleting it, and on a form that already exists
+every change is stored straight away.
+
+Each integration that is on gets a `RunFormIntegrationJob` of its own once a
+visitor sends the form, so the app needs a queue worker unless the queue is
+`sync`. One whose conditions leave it out is logged as skipped. When an
+integration throws, the job tries again after ten seconds and after a minute;
+when it calls `fail()`, it stops at once. The submission's page shows how each
+integration went, what came back, and **Run again**.
+
+#### The webhook
+
+`WebhookIntegration` posts every submission as JSON to a URL, such as one of
+n8n or Zapier:
+
+```php
+'integrations' => [
+    VanOns\FilamentFormBuilder\Integrations\WebhookIntegration::class,
+],
+```
+
+It can sign in with a bearer token, a username and password, or a header of
+your own, stored encrypted. Its slide-over shows the JSON the latest
+submission would send:
+
+```json
+{
+    "form": {"id": 4, "title": "Contact"},
+    "submission": {
+        "id": 214,
+        "submitted_at": "2026-10-07T15:58:12+02:00",
+        "source_url": "https://example.com/contact",
+        "url": "https://example.com/admin/form-submissions/214"
+    },
+    "data": {"voornaam": "Jan", "email": "jan@example.com"},
+    "labels": {"voornaam": "Voornaam", "email": "E-mailadres"}
+}
+```
+
+An answer in the 400s fails for good; one in the 500s, or none at all, is tried
+again. **Send test** posts the latest submission once, without logging it.
+
+#### Writing an integration
+
+An integration extends `VanOns\FilamentFormBuilder\Classes\Integration` and
+is added to the `integrations` config:
+
+```php
+use BackedEnum;
+use Filament\Forms\Components\Select;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Http;
+use VanOns\FilamentFormBuilder\Classes\Integration;
+use VanOns\FilamentFormBuilder\Classes\MappedField;
+
+class NewsletterIntegration extends Integration
+{
+    public static function label(): string
+    {
+        return 'Newsletter';
+    }
+
+    public static function description(): ?string
+    {
+        return 'Puts the person who sent the form on a mailing list.';
+    }
+
+    public static function icon(): string|BackedEnum
+    {
+        return Heroicon::OutlinedNewspaper;
+    }
+
+    public static function schema(): array
+    {
+        return [
+            Select::make('list')->options(['customers' => 'Customers'])->required(),
+            static::secretInput('api_key')->required(),
+        ];
+    }
+
+    public static function fields(): array
+    {
+        return [
+            MappedField::make('email', 'E-mail')->email()->required(),
+            MappedField::make('first_name', 'First name'),
+            MappedField::make('note', 'Note')->text(),
+        ];
+    }
+
+    public static function summary(array $integration): ?string
+    {
+        return 'List ' . ($integration['list'] ?? '');
+    }
+
+    public function handle(): void
+    {
+        $response = Http::withToken($this->secret('api_key'))
+            ->post("https://api.example.com/lists/{$this->setting('list')}/members", $this->mapped());
+
+        if ($response->serverError()) {
+            $response->throw();
+        }
+
+        if ($response->failed()) {
+            $this->fail($response->json('message', 'Not subscribed.'), $response->json());
+
+            return;
+        }
+
+        $this->setResponse($response->json());
+    }
+}
+```
+
+| Method                                 | What it is for                                                                                                                                                                                                                                                                                       |
+|----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `label()`, `description()`, `icon()`   | Its tile and its card                                                                                                                                                                                                                                                                                |
+| `schema()`                             | Its own settings, stored on the form; `setting()` reads one. `secretInput()` stores what is typed encrypted and `secret()` reads it back. A `SettingsGroup` in it gets a heading of its own. A setting cannot be named `id`, `class`, `enabled`, `mapping`, `conditions` or `conditionMatch`. |
+| `fields()`                             | What it asks of the form. A `MappedField` is a select of the form's fields, filled in by name for a new integration; `email()` offers the fields with an e-mail address only, `text()` makes it a line of text with merge tags. `mapped()` gives the answers as the export shows them, `mapped(raw: true)` as stored. |
+| `summary()`                            | A line under its name on the card                                                                                                                                                                                                                                                                    |
+| `hasConditions()`                      | `false` leaves out when it runs, for one that must always run                                                                                                                                                                                                                                       |
+| `isTestable()`                         | `true` adds **Send test**; only for one that does no harm when it runs once more                                                                                                                                                                                                                    |
+| `handle()`                             | Sends the submission on, in `$this->formSubmission`. `setResponse()` keeps what came back for the submission's page; `fail()` ends the run as failed without trying again; an exception is tried again.                                                                                          |
 
 ## Conditional fields
 

@@ -6,7 +6,6 @@ use Filament\Schemas\Components\Component;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Classes\StepSettings;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
-use VanOns\FilamentFormBuilder\Jobs\RunFormIntegrationsJob;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Traits\Forms\HasIntegrations;
@@ -150,9 +149,7 @@ class FormType
     {
         $this->triggerNotifications($submission);
 
-        if ($this->hasIntegrations() && filled($this->form->integrations)) {
-            RunFormIntegrationsJob::dispatch($submission);
-        }
+        $this->triggerIntegrations($submission);
     }
 
     /**

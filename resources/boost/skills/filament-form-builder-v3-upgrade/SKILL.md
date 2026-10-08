@@ -114,7 +114,14 @@ whose files are missing.
   the `fields` config it does not render and ask the developer, per type, whether to support it or keep it
   out of the palette with `withoutFields([...])` on the plugin (`without_fields` in the config) until someone
   does. Suggest the latter, and do not build new features unasked. `<x-render-form>` renders them all.
-- Integrations run from `RunFormIntegrationsJob`: the app needs a queue worker unless the queue is `sync`.
+- Integrations run from a `RunFormIntegrationJob` each: the app needs a queue worker unless the queue is `sync`.
+- In each of the project's `Integration` classes: an exception in `handle()` is now tried again by the queue,
+  so a caught error stored with `setResponse(...)->setSuccess(false)` becomes `$this->fail('Message')`. Remove
+  calls to `responseData()` and `Integration::getOptionList()`. A form type that overrides `getIntegrations()`,
+  `triggerIntegration()` or `saveIntegrationResponses()`: those no longer run, so ask the developer what the
+  override did. An integration that only posts the answers to
+  a URL can make way for the package's `WebhookIntegration`: suggest it, and leave the swap to the developer,
+  since the forms that use it have to be set up again.
 
 ## 7. Check
 

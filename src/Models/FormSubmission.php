@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use VanOns\FilamentFormBuilder\Casts\FieldSnapshot;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
-use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
 use VanOns\FilamentFormBuilder\Classes\SubmissionFile;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionCreated;
@@ -35,6 +34,7 @@ use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
  * @property array<string, list<array{path: string, name: string, size?: int, mime_type?: ?string}>>|null $files
  * @property array<string, array{label: string, type: ?string, columns: array<string, string>, options: array<string, string>, title?: ?string, span?: int, new_row?: bool}>|null $field_snapshot
  * @property string|null $source_url
+ * @property array<int, array<string, mixed>>|null $integrations What the integrations did before v3; since then FormSubmissionIntegrationLog
  * @property array{user_agent?: string, locale?: string, user?: array{id?: mixed, name?: string}, campaign?: array<string, string>, ip?: string}|null $meta
  * @property Carbon|null $read_at
  * @property Carbon|null $created_at
@@ -133,6 +133,14 @@ class FormSubmission extends Model
     public function notificationLogs(): HasMany
     {
         return $this->hasMany(FormSubmissionNotificationLog::class);
+    }
+
+    /**
+     * @return HasMany<FormSubmissionIntegrationLog, $this>
+     */
+    public function integrationLogs(): HasMany
+    {
+        return $this->hasMany(FormSubmissionIntegrationLog::class);
     }
 
     /**
@@ -464,17 +472,6 @@ class FormSubmission extends Model
                 notification: $notification
             ),
             $this->form->notifications ?? [],
-        );
-    }
-
-    /**
-     * @return array<Integration>
- */
-    public function getIntegrations(): array
-    {
-        return array_map(
-            fn (array $integration) => Integration::fromArray($this, $integration),
-            $this->form->integrations ?? [],
         );
     }
 

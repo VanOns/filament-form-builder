@@ -11,6 +11,7 @@ it('brings the tables of a v2 install to the v3 schema, and back', function () {
         'forms' => Schema::getColumnListing('forms'),
         'form_submissions' => Schema::getColumnListing('form_submissions'),
         'form_submission_notification_logs' => Schema::getColumnListing('form_submission_notification_logs'),
+        'form_submission_integration_logs' => Schema::getColumnListing('form_submission_integration_logs'),
     ];
     $v3 = $columns();
 
@@ -18,11 +19,13 @@ it('brings the tables of a v2 install to the v3 schema, and back', function () {
 
     expect(Schema::hasColumns('forms', ['submit_notification_type', 'submit_notification_url', 'submit_notification_query']))->toBeTrue()
         ->and(Schema::hasColumn('form_submissions', 'submitter_email'))->toBeTrue()
-        ->and(Schema::hasColumn('form_submissions', 'read_at'))->toBeFalse();
+        ->and(Schema::hasColumn('form_submissions', 'read_at'))->toBeFalse()
+        ->and(Schema::hasTable('form_submission_integration_logs'))->toBeFalse();
 
     $old = fn (string $title, array $columns): int => DB::table('forms')->insertGetId(['title' => $title, 'template' => 'custom', 'created_at' => now(), 'updated_at' => now(), ...$columns]);
     $old('Bericht', ['submit_notification_type' => 'content', 'submit_notification_content' => '<p>Bedankt!</p>']);
     $page = $old('Pagina', ['submit_notification_type' => 'url', 'submit_notification_url' => '{"page":3}', 'submit_notification_query' => 'naam={{ $naam }}']);
+    $old('Koppeling', ['integrations' => json_encode([['class' => 'App\\Integrations\\Hook', 'endpoint' => 'https://example.test/hook'], ['id' => 'kept', 'class' => 'App\\Integrations\\Hook']])]);
     DB::table('form_submissions')->insert(['form_id' => $page, 'submitter_email' => 'jan@example.com', 'data' => '{"naam":"Jan"}', 'created_at' => '2026-01-02 03:04:05', 'updated_at' => now()]);
 
     $migration->up();
@@ -33,7 +36,11 @@ it('brings the tables of a v2 install to the v3 schema, and back', function () {
         )
         ->and(Form::firstWhere('title', 'Pagina')->getSubmitNotifications()[0])
         ->toMatchArray(['type' => 'url', 'url' => ['page' => 3], 'query' => 'naam={{ $naam }}'])
-        ->and(FormSubmission::sole()->read_at?->toDateTimeString())->toBe('2026-01-02 03:04:05');
+        ->and(FormSubmission::sole()->read_at?->toDateTimeString())->toBe('2026-01-02 03:04:05')
+        ->and(Form::firstWhere('title', 'Koppeling')->integrations)->sequence(
+            fn ($integration) => $integration->id->toBeString()->not->toBeEmpty()->endpoint->toBe('https://example.test/hook'),
+            fn ($integration) => $integration->id->toBe('kept'),
+        );
 
     $migration->down();
 

@@ -5,12 +5,10 @@ namespace VanOns\FilamentFormBuilder\Filament\Resources;
 use BackedEnum;
 use Filament\Actions;
 use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
@@ -18,7 +16,6 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -34,9 +31,11 @@ use Livewire\Component as LivewireComponent;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\FieldConditions;
 use VanOns\FilamentFormBuilder\Classes\Integration;
+use VanOns\FilamentFormBuilder\Classes\MappedField;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\StepSettings;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\IntegrationList;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\MergeTagEditor;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\NotificationList;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\SubmitNotifications;
@@ -102,7 +101,7 @@ class FormResource extends Resource
                                     ->visible(static::hasSubmitNotifications(...)),
                                 static::getEmailNotificationSection(),
                             ]),
-                        Tabs\Tab::make(__('filament-form-builder::general.integrations'))
+                        Tabs\Tab::make(__('filament-form-builder::general.integrations.label'))
                             ->id('integrations')
                             ->key('integrations-tab', isInheritable: false)
                             ->icon('heroicon-o-server-stack')
@@ -206,7 +205,7 @@ class FormResource extends Resource
                     ->hiddenLabel()
                     ->formType(static::getFormType(...))
                     ->stepSettings('custom.steps')
-                    ->afterKeyRenamed(static::renameKeyInNotifications(...))
+                    ->afterKeyRenamed(static::renameKeyWhereUsed(...))
                     ->keyUsagesUsing(static::findKeyUsages(...)),
                 // What the canvas's start block sets; the canvas draws it.
                 Field::make('custom.steps')
@@ -217,7 +216,7 @@ class FormResource extends Resource
     }
 
     /**
-     * The notifications and outcomes that still name one of a field's keys.
+     * The notifications, outcomes and integrations that still name one of a field's keys.
      *
      * @param  list<string>  $keys
      * @return list<string>
@@ -254,10 +253,19 @@ class FormResource extends Resource
             }
         }
 
+        foreach ($get('integrations') ?? [] as $integration) {
+            $class = Integration::resolve($integration['class'] ?? null);
+            $mapping = is_array($integration['mapping'] ?? null) ? $integration['mapping'] : [];
+
+            if ($class !== null && ($conditions($integration) || array_intersect($mapping, $keys) !== [] || $names(array_values($mapping)))) {
+                $usages[] = __('filament-form-builder::general.canvas.usage_integration', ['label' => $class::label()]);
+            }
+        }
+
         return $usages;
     }
 
-    public static function renameKeyInNotifications(string $from, string $to, Get $get, Set $set): void
+    public static function renameKeyWhereUsed(string $from, string $to, Get $get, Set $set): void
     {
         $outcome = fn (array $outcome): array => [
             ...$outcome,
@@ -288,6 +296,22 @@ class FormResource extends Resource
         }
 
         $set('notifications', $notifications);
+
+        $integrations = [];
+
+        foreach ($get('integrations') ?? [] as $id => $integration) {
+            $class = Integration::resolve($integration['class'] ?? null);
+            $texts = array_map(fn (MappedField $field): string => $field->key, array_filter($class === null ? [] : $class::fields(), fn (MappedField $field): bool => $field->isText()));
+
+            foreach (is_array($integration['mapping'] ?? null) ? $integration['mapping'] : [] as $field => $source) {
+                $integration['mapping'][$field] = in_array($field, $texts, true) ? MergeTags::rename($source, $from, $to) : ($source === $from ? $to : $source);
+            }
+
+            $integration['conditions'] = FieldConditions::renameKey($integration['conditions'] ?? [], $from, $to);
+            $integrations[$id] = $integration;
+        }
+
+        $set('integrations', $integrations);
     }
 
     public static function getSubmitNotificationSection(): Section
@@ -314,34 +338,13 @@ class FormResource extends Resource
 
     public static function getIntegrationsSection(): Section
     {
-        $options = fn () => Integration::getOptionList();
-        return Section::make(__('filament-form-builder::general.integrations'))
-            ->description(__('filament-form-builder::general.integrations_explanation'))
+        return Section::make(__('filament-form-builder::general.integrations.label'))
+            ->description(__('filament-form-builder::general.integrations.description'))
             ->icon('heroicon-o-server-stack')
-            ->iconSize(IconSize::ExtraLarge)
             ->schema([
-                Repeater::make('integrations')
-                    ->label(__('filament-form-builder::general.integrations'))
-                    ->hiddenLabel()
-                    ->itemLabel(fn (array $state) => isset($state['class']) ? ($options()[$state['class']] ?? $state['class']) : __('filament-form-builder::general.integration'))
-                    ->columnSpanFull()
-                    ->columns()
-                    ->collapsed()
-                    ->reactive()
-                    ->default([])
-                    ->schema([
-                        Select::make('class')
-                            ->label(__('filament-form-builder::general.integration'))
-                            ->hiddenLabel()
-                            ->required()
-                            ->reactive()
-                            ->options($options),
-
-                        Group::make(self::getIntegrationSchema(...))
-                            ->columns()
-                            ->columnSpanFull(),
-                    ]),
-            ])->columns();
+                IntegrationList::make('integrations')
+                    ->hiddenLabel(),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -500,22 +503,6 @@ class FormResource extends Resource
     public static function hasIntegrationsEnabled(Get $get): bool
     {
         return static::getFormType($get)?->hasIntegrations() ?? false;
-    }
-
-    /**
-     * @param array<string, mixed> $state
-     * @return array<int, Component>
-     */
-    public static function getIntegrationSchema(array $state): array
-    {
-        $integration = $state['class'] ?? null;
-        if (isset($integration) && is_subclass_of($integration, Integration::class)) {
-            $schema = $integration::schema();
-        }
-
-        return [
-            ...$schema ?? [],
-        ];
     }
 
     public static function describeRetention(mixed $months): string

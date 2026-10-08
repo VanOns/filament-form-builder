@@ -5,7 +5,13 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
+
+use function Filament\Support\generate_icon_html;
+
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 /**
  * Items shown as cards, each edited in a slide-over. Stored as a list; while
@@ -115,5 +121,31 @@ abstract class CardList extends Field
             $item['id'] => $item,
             ...array_slice($items, $position, preserve_keys: true),
         ];
+    }
+
+    public function getLatestSubmission(): ?FormSubmission
+    {
+        $record = $this->getRecord();
+
+        return $record instanceof Form ? $record->submissions()->latest('id')->first()?->setRelation('form', $record) : null;
+    }
+
+    /**
+     * Each merge tag of the form as the chip a card shows it as.
+     *
+     * @return array<string, HtmlString>
+     */
+    public static function getTagChips(Form $form): array
+    {
+        $tags = [];
+
+        foreach ($form->getMergeTagGroups() as $group) {
+            foreach ($group['tags'] as $id => $tag) {
+                $icon = generate_icon_html($tag['icon'])?->toHtml() ?? '';
+                $tags[$id] = new HtmlString('<span class="ffb-card-tag"><span class="ffb-card-tag-icon">' . $icon . '</span>' . e($tag['label']) . '</span>');
+            }
+        }
+
+        return $tags;
     }
 }

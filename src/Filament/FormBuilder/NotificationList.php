@@ -18,9 +18,6 @@ use Filament\Schemas\Components\Icon;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
-
-use function Filament\Support\generate_icon_html;
-
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
@@ -439,13 +436,6 @@ class NotificationList extends CardList
         }
     }
 
-    public function getLatestSubmission(): ?FormSubmission
-    {
-        $record = $this->getRecord();
-
-        return $record instanceof Form ? $record->submissions()->latest('id')->first()?->setRelation('form', $record) : null;
-    }
-
     /**
      * What each notification sent so far, by its id: how often, when last, and
      * how often it failed this week. Counted when the page loads only, not for
@@ -487,14 +477,7 @@ class NotificationList extends CardList
     public function getCards(): array
     {
         $form = MergeTagEditor::form($this->getLivewire());
-        $tags = [];
-
-        foreach ($form->getMergeTagGroups() as $group) {
-            foreach ($group['tags'] as $id => $tag) {
-                $icon = generate_icon_html($tag['icon'])?->toHtml() ?? '';
-                $tags[$id] = new HtmlString('<span class="ffb-card-tag"><span class="ffb-card-tag-icon">' . $icon . '</span>' . e($tag['label']) . '</span>');
-            }
-        }
+        $tags = static::getTagChips($form);
 
         $conditions = new ConditionsEditor(ConditionsEditor::fieldsOf($form));
         $fields = $form->getEmailRecipients();

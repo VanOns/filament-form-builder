@@ -30,10 +30,11 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
   `form_submissions.source_url` (the page a form was sent from), `form_submissions.meta` (browser,
   language, signed-in user, campaign), `form_submissions.read_at`
   (existing submissions start out read), `form_submission_notification_logs.notification_id`,
-  `forms.retention_months` (how long a form keeps its submissions), drops `form_submissions.submitter_email`, and
-  moves what a form does after a submission into a list, see below. The regular migrations are now
-  three create migrations with the whole v3 schema, for new installs: your published copies of them
-  are already run.
+  `forms.retention_months` (how long a form keeps its submissions), the `form_submission_integration_logs`
+  table, drops `form_submissions.submitter_email`, and moves what a form does after a submission into a
+  list, see below. The regular migrations are now four create migrations with the whole v3 schema, for new
+  installs: your published copies of them are already run, and the upgrade migration creates the one table
+  that is new.
 * `forms.template` now holds the name a form type is registered under instead of a template class: set
   it to `custom`, `contact` or the name of your own type.
 * Republish the config, or compare yours with [`config/general.php`](config/general.php).
@@ -45,7 +46,8 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
   are new. The field views changed: a `div` wraps each field (a `fieldset` for choices) with a
   `label for` inside, errors sit inside that wrapper, and everything has an `ffb-*` class, see
   [Styling forms on the site](docs/usage.md#styling-forms-on-the-site).
-* Integrations run from `RunFormIntegrationsJob`, so they need a queue worker unless the queue is `sync`.
+* Integrations run from a `RunFormIntegrationJob` each, so they need a queue worker unless the queue is
+  `sync`. See [Integrations](#integrations).
 * Let the queue run empty before v3 goes live: a notification mail v2 queued is shaped differently and
   fails on v3.
 * Forms on the site set a honeypot, on by default. A view of your own for `<x-render-form>` adds
@@ -154,6 +156,28 @@ code. See [Form types](docs/usage.md#form-types).
   Read the outcomes with `$form->getSubmitNotifications()`. A custom redirect field
   (`redirectSchemaUsing()`) now binds to `url` instead of `submit_notification_url`, and the
   `RedirectUrl` cast is gone: a structured URL is stored in the list as it is.
+
+### Integrations
+
+An integration is a card now, added by its type, with its own fields to map and conditions for when it
+runs; see [Integrations](docs/usage.md#integrations). A v2 integration keeps working, but:
+
+* An integration no longer runs during the visitor's request: each gets a `RunFormIntegrationJob` of its
+  own, which only carries the id of its log.
+* An exception in `handle()` is no longer stored as the response: the queue tries the job again, three
+  times, and then logs it as failed. Call `$this->fail('Message')` instead for a failure that should not
+  be tried again. `setSuccess(true)` may stay, but a run that does not fail succeeds anyway.
+* `responseData()`, `Integration::getOptionList()` and `FormSubmission::getIntegrations()` are gone, and so are
+  `getIntegrations()`, `triggerIntegration()` and `saveIntegrationResponses()` on the form type: an override of
+  one of them no longer runs. `Form::getIntegrations()` gives the stored integrations by id.
+* Its settings stay where they were, so `$this->integration['endpoint']` still reads one; `$this->setting('endpoint')`
+  does the same. A stored integration gets `id`, `enabled`, `mapping`, `conditions` and `conditionMatch`
+  beside them, so a setting cannot take one of those names. The upgrade migration gives each one its id.
+* What an integration did is stored in `form_submission_integration_logs`, one row per integration, instead
+  of `form_submissions.integrations`. The submission's page still shows that column for older submissions.
+* `VanOns\FilamentFormBuilder\Integrations\WebhookIntegration` posts a submission as JSON to a URL, with a
+  token, a username and password or a header of your own. Add it to `integrations` in place of a webhook
+  integration of your own.
 
 ### Stored forms and submissions
 

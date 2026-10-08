@@ -35,12 +35,20 @@ return new class () extends Migration {
             $table->unsignedSmallInteger('retention_months')->nullable()->after('settings');
         });
 
+        // Unless its create migration was published along and ran first.
+        if (!Schema::hasTable('form_submission_integration_logs')) {
+            $this->createIntegrationLogs();
+        }
+
         $this->moveSubmitNotificationsIntoList();
+        $this->giveIntegrationsAnId();
     }
 
     public function down(): void
     {
         $this->moveSubmitNotificationsOutOfList();
+
+        Schema::dropIfExists('form_submission_integration_logs');
 
         Schema::table('forms', function (Blueprint $table) {
             $table->dropColumn('retention_months');
@@ -115,6 +123,41 @@ return new class () extends Migration {
 
         Schema::table('forms', function (Blueprint $table) {
             $table->dropColumn('submit_notifications');
+        });
+    }
+
+    /**
+     * The id an integration's runs are logged under; v2 stored none.
+     */
+    private function giveIntegrationsAnId(): void
+    {
+        DB::table('forms')->whereNotNull('integrations')->orderBy('id')->each(function (object $form): void {
+            $integrations = json_decode((string) $form->integrations, true);
+
+            if (!is_array($integrations)) {
+                return;
+            }
+
+            DB::table('forms')->where('id', $form->id)->update(['integrations' => json_encode(array_map(
+                fn (mixed $integration): mixed => is_array($integration) ? ['id' => (string) Str::uuid(), ...$integration] : $integration,
+                array_values($integrations),
+            ))]);
+        });
+    }
+
+    private function createIntegrationLogs(): void
+    {
+        Schema::create('form_submission_integration_logs', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('form_submission_id')->constrained('form_submissions')->cascadeOnDelete();
+            $table->string('integration_id')->index();
+            $table->string('integration');
+            $table->string('status')->default('queued');
+            $table->json('response')->nullable();
+            $table->text('error')->nullable();
+            $table->unsignedSmallInteger('attempts')->default(0);
+            $table->timestamp('ran_at')->nullable();
+            $table->timestamps();
         });
     }
 };

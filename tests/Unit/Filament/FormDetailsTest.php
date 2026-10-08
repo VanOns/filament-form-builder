@@ -1,11 +1,9 @@
 <?php
 
-use Filament\Actions\Testing\TestAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Illuminate\Foundation\Auth\User;
 use Livewire\Livewire;
-use Tests\Fixtures\PingIntegration;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\CreateForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
@@ -78,20 +76,4 @@ it('gives every form the settings a project adds on the plugin, or those of one 
 
     Livewire::test(EditForm::class, ['record' => Form::create(['title' => 'Contact', 'template' => 'contact', 'submit_notifications' => [['type' => 'content', 'content' => '<p>Bedankt!</p>']]])->getRouteKey()])
         ->assertSee(['Show in the footer', 'Department']);
-});
-
-it('adds an integration to a form and keeps what it is set to', function () {
-    config(['filament-form-builder.integrations' => [PingIntegration::class]]);
-    $form = Form::create(['title' => 'Contact', 'template' => 'custom', 'submit_notifications' => [['type' => 'content', 'content' => '<p>Bedankt!</p>']]]);
-    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
-
-    $page->callAction(TestAction::make('add')->schemaComponent('integrations', schema: 'form'));
-    $uuid = array_key_first($page->get('data.integrations'));
-
-    $page->set("data.integrations.{$uuid}.class", PingIntegration::class)
-        ->set("data.integrations.{$uuid}.endpoint", 'https://example.test/hook')
-        ->call('save')
-        ->assertHasNoFormErrors();
-
-    expect($form->fresh()->integrations)->toBe([['class' => PingIntegration::class, 'endpoint' => 'https://example.test/hook']]);
 });

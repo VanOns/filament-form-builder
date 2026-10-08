@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\Honeypot;
+use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Classes\SubmitNotification;
@@ -36,7 +37,7 @@ use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
  * @property string|null $template
  * @property array<string, mixed> $custom
  * @property array<int, mixed> $notifications
- * @property array<int, array<string, mixed>>|null $integrations
+ * @property array<int, mixed>|null $integrations
  * @property array<string, mixed> $settings
  * @property int|null $retention_months 0 keeps the submissions, null follows the config
  * @property array<int, array<string, mixed>>|null $submit_notifications
@@ -125,6 +126,27 @@ class Form extends Model
             SubmitNotification::normalize(...),
             array_filter($this->submit_notifications ?? [], is_array(...)),
         ));
+    }
+
+    /**
+     * The integrations by their id. One saved before it had an id goes by its
+     * place in the list, until the form is saved again.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function getIntegrations(): array
+    {
+        $integrations = [];
+
+        foreach ($this->integrations ?? [] as $index => $integration) {
+            if (is_array($integration)) {
+                $integration = Integration::normalize($integration);
+                $integration['id'] ??= (string) $index;
+                $integrations[$integration['id']] = $integration;
+            }
+        }
+
+        return $integrations;
     }
 
     /**

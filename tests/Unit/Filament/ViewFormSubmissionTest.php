@@ -5,6 +5,8 @@ use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\Fixtures\ApplicationForm;
+use Tests\Fixtures\NewsletterIntegration;
+use VanOns\FilamentFormBuilder\Enums\IntegrationStatus;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource\Pages\ViewFormSubmission;
 use VanOns\FilamentFormBuilder\Models\Form;
@@ -157,17 +159,51 @@ it('links to the page the form was sent from', function () {
         ->assertSeeHtml('href="https://example.test/werken-bij"');
 });
 
-it('shows when an integration ran', function () {
+it('shows what the integrations did before v3', function () {
     $submission = viewedSubmission();
     $submission->update(['integrations' => [[
-        'integration' => 'App\\Integrations\\Recruitee',
+        'integration' => 'App\\Integrations\\RecruiteeIntegration',
         'response' => ['response' => ['candidate_id' => '48213'], 'success' => true],
         'ran_at' => '2026-10-07T14:33:05+00:00',
     ]]]);
 
     Livewire::test(ViewFormSubmission::class, ['record' => $submission->getKey()])
-        ->assertSee('Ran at')
-        ->assertSee('7 Oct 2026, 14:33:05');
+        ->assertSee(['RecruiteeIntegration', 'Succeeded', '7 Oct, 14:33'])
+        ->mountAction(TestAction::make('integrationResponse')->schemaComponent('integration-runs', schema: 'infolist')->arguments(['row' => 'legacy-0']))
+        ->assertMountedActionModalSee(['Response from RecruiteeIntegration', 'candidate_id', '48213']);
+});
+
+it('shows how each integration went, and why one did not run', function () {
+    config(['filament-form-builder.integrations' => [NewsletterIntegration::class]]);
+    $submission = viewedSubmission();
+    $submission->form->update(['integrations' => [['id' => 'news', 'class' => NewsletterIntegration::class, 'list' => 'Klanten']]]);
+    $log = fn (array $attributes) => $submission->integrationLogs()->create(['integration_id' => 'news', 'integration' => NewsletterIntegration::class, ...$attributes]);
+
+    $log(['status' => 'succeeded', 'ran_at' => now(), 'response' => ['subscribed' => 'jan@example.test']]);
+    $log(['status' => 'failed', 'ran_at' => now(), 'attempts' => 3, 'error' => 'Already on the list.']);
+    $log(['status' => 'skipped']);
+
+    Livewire::test(ViewFormSubmission::class, ['record' => $submission->getKey()])
+        ->assertSee(['1 of 2 succeeded', 'Newsletter', 'List Klanten', 'Succeeded', 'Failed', 'Already on the list.', '3 attempts', 'Skipped', 'The answers did not meet the conditions.', 'Run again']);
+});
+
+it('runs an integration again', function () {
+    config(['filament-form-builder.integrations' => [NewsletterIntegration::class]]);
+    NewsletterIntegration::$sent = [];
+    $submission = viewedSubmission();
+    $submission->form->update(['integrations' => [['id' => 'news', 'class' => NewsletterIntegration::class, 'list' => 'Klanten', 'mapping' => ['email' => 'email']]]]);
+    $log = $submission->integrationLogs()->create(['integration_id' => 'news', 'integration' => NewsletterIntegration::class, 'status' => 'failed', 'attempts' => 3, 'error' => 'Timed out']);
+
+    Livewire::test(ViewFormSubmission::class, ['record' => $submission->getKey()])
+        ->callAction(TestAction::make('rerunIntegration')->schemaComponent('integration-runs', schema: 'infolist')->arguments(['row' => "log-{$log->id}"]))
+        ->assertNotified('Newsletter: Succeeded')
+        ->assertDontSee('Timed out');
+
+    expect($log->fresh())
+        ->status->toBe(IntegrationStatus::Succeeded)
+        ->error->toBeNull()
+        ->attempts->toBe(1)
+        ->and(NewsletterIntegration::$sent[0]['email'])->toBe('jan@example.test');
 });
 
 it('lists where a submission came from with the details', function () {

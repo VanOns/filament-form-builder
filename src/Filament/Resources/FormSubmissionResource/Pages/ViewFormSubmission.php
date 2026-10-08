@@ -8,6 +8,7 @@ use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
@@ -19,15 +20,19 @@ use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\Session;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
 use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
+use VanOns\FilamentFormBuilder\Enums\IntegrationStatus;
 use VanOns\FilamentFormBuilder\Enums\NotificationStatus;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
+use VanOns\FilamentFormBuilder\Models\FormSubmissionIntegrationLog;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
 
 class ViewFormSubmission extends ViewRecord
@@ -37,6 +42,11 @@ class ViewFormSubmission extends ViewRecord
     // Kept for the session, so the next submission opens the way the last one was read.
     #[Session]
     public string $answersLayout = 'form';
+
+    /**
+     * @var array<string, array{label: string, summary: ?string, status: IntegrationStatus, error: ?string, ranAt: ?Carbon, attempts: int, response: array<mixed>, log: ?int}>|null
+     */
+    protected ?array $integrationRows = null;
 
     public function getTitle(): string
     {
@@ -139,8 +149,8 @@ class ViewFormSubmission extends ViewRecord
                         ])->columnSpan(['lg' => 2]),
                         Group::make([
                             $this->getNotificationsSection($logs),
-                            $this->getDetailsSection($record),
                             $this->getIntegrationsSection($record),
+                            $this->getDetailsSection($record),
                         ]),
                     ]),
             ]);
@@ -273,74 +283,156 @@ class ViewFormSubmission extends ViewRecord
             ]);
     }
 
-    public function getIntegrationsSection(FormSubmission $record): Section
+    protected function getIntegrationsSection(FormSubmission $record): Section
     {
-        $integrationResponses = $record->integrations ?? [];
+        $counted = fn (): array => array_filter($this->getIntegrationRows($record), fn (array $row): bool => $row['status'] !== IntegrationStatus::Skipped);
 
-        if (empty($integrationResponses)) {
-            return Section::make(__('filament-form-builder::general.integration_responses'))
-                ->hidden(empty(Integration::getIntegrations()))
-                ->icon(Heroicon::OutlinedServerStack)
-                ->description(__('filament-form-builder::general.no_integrations'));
-        }
-
-        $entries = [];
-
-        foreach ($integrationResponses as $index => $integrationData) {
-            $integrationClass = $integrationData['integration'] ?? 'Unknown';
-
-            $label = class_exists($integrationClass) && is_subclass_of($integrationClass, Integration::class)
-                ? $integrationClass::label()
-                : class_basename($integrationClass);
-
-            $success = $integrationData['response']['success'] ?? null;
-
-            $color = match ($success) {
-                true => 'success',
-                false => 'danger',
-                default => 'gray',
-            };
-
-            $entries[] = Section::make($label)
-                ->description($integrationClass)
-                ->collapsed()
-                ->compact()
-                ->icon(match ($success) {
-                    true => Heroicon::OutlinedCheckCircle,
-                    false => Heroicon::OutlinedXCircle,
-                    default => Heroicon::OutlinedQuestionMarkCircle,
-                })
-                ->iconColor($color)
-                ->schema([
-                    TextEntry::make("integrations.{$index}.response.success")
-                        ->label(__('filament-form-builder::general.status'))
-                        ->badge()
-                        ->color($color)
-                        ->formatStateUsing(fn ($state) => match ($state) {
-                            true => __('filament-form-builder::general.success'),
-                            false => __('filament-form-builder::general.failed'),
-                            default => __('filament-form-builder::general.unknown'),
-                        }),
-                    TextEntry::make("integrations.{$index}.ran_at")
-                        ->label(__('filament-form-builder::general.submission.ran_at'))
-                        ->icon(Heroicon::OutlinedClock)
-                        ->dateTime('j M Y, H:i:s')
-                        ->placeholder('—'),
-                    KeyValueEntry::make("integrations.{$index}.response.response")
-                        ->label(__('filament-form-builder::general.response'))
-                        ->keyLabel(__('filament-form-builder::general.key'))
-                        ->valueLabel(__('filament-form-builder::general.value')),
-                ])
-                ->collapsible();
-        }
-
-        return Section::make(__('filament-form-builder::general.integration_responses'))
+        return Section::make(__('filament-form-builder::general.integrations.label'))
             ->icon(Heroicon::OutlinedServerStack)
-            ->description(__('filament-form-builder::general.integration_responses_description'))
-            ->afterHeader([$this->getCount(count($entries))])
-            ->collapsible()
-            ->collapsed()
-            ->schema($entries);
+            ->description(fn (): ?string => $counted() === [] ? null : __('filament-form-builder::general.integrations.runs_summary', [
+                'succeeded' => count(array_filter($counted(), fn (array $row): bool => $row['status'] === IntegrationStatus::Succeeded)),
+                'total' => count($counted()),
+            ]))
+            ->afterHeader([Text::make(fn (): string => (string) count($this->getIntegrationRows($record)))->color('gray')])
+            ->hidden(fn (): bool => $this->getIntegrationRows($record) === [] && Integration::getIntegrations() === [])
+            ->schema([
+                View::make('filament-form-builder::filament.submission.integrations')
+                    ->key('integration-runs')
+                    ->viewData(fn (): array => ['rows' => $this->getIntegrationRows($record)])
+                    ->registerActions([
+                        $this->getRerunIntegrationAction($record),
+                        $this->getIntegrationResponseAction($record),
+                    ]),
+            ]);
+    }
+
+    /**
+     * Each integration that ran for the submission, or that its conditions
+     * left out. A submission from before v3 shows what was kept back then.
+     *
+     * @return array<string, array{label: string, summary: ?string, status: IntegrationStatus, error: ?string, ranAt: ?Carbon, attempts: int, response: array<mixed>, log: ?int}>
+     */
+    protected function getIntegrationRows(FormSubmission $record): array
+    {
+        return $this->integrationRows ??= $this->findIntegrationRows($record);
+    }
+
+    /**
+     * @return array<string, array{label: string, summary: ?string, status: IntegrationStatus, error: ?string, ranAt: ?Carbon, attempts: int, response: array<mixed>, log: ?int}>
+     */
+    protected function findIntegrationRows(FormSubmission $record): array
+    {
+        $integrations = $record->form?->getIntegrations() ?? [];
+        $rows = [];
+
+        foreach ($record->integrationLogs()->orderBy('id')->get() as $log) {
+            $class = Integration::resolve($log->integration);
+            $settings = $integrations[$log->integration_id] ?? null;
+
+            $rows["log-{$log->id}"] = [
+                'label' => $class === null ? class_basename($log->integration) : $class::label(),
+                'summary' => $class === null || $settings === null ? null : $class::summary($settings),
+                'status' => $log->status,
+                'error' => $log->status === IntegrationStatus::Skipped ? __('filament-form-builder::general.integrations.skipped_reason') : $log->error,
+                'ranAt' => $log->ran_at,
+                'attempts' => $log->attempts,
+                'response' => $log->response ?? [],
+                'log' => $log->id,
+            ];
+        }
+
+        if ($rows !== []) {
+            return $rows;
+        }
+
+        foreach ($record->integrations ?? [] as $index => $result) {
+            $class = Integration::resolve($result['integration'] ?? null);
+            $success = $result['response']['success'] ?? null;
+
+            $rows["legacy-{$index}"] = [
+                'label' => $class === null ? class_basename((string) ($result['integration'] ?? '')) : $class::label(),
+                'summary' => null,
+                'status' => $success === false ? IntegrationStatus::Failed : IntegrationStatus::Succeeded,
+                'error' => null,
+                'ranAt' => filled($result['ran_at'] ?? null) ? Carbon::parse($result['ran_at']) : null,
+                'attempts' => 1,
+                'response' => is_array($result['response']['response'] ?? null) ? $result['response']['response'] : [],
+                'log' => null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    protected function getRerunIntegrationAction(FormSubmission $record): Action
+    {
+        $row = fn (array $arguments): ?array => $this->getIntegrationRows($record)[$arguments['row'] ?? ''] ?? null;
+        $label = fn (array $arguments): string => $row($arguments)['label'] ?? '';
+
+        return Action::make('rerunIntegration')
+            ->label(__('filament-form-builder::general.integrations.rerun'))
+            ->icon(Heroicon::OutlinedArrowPath)
+            ->link()
+            ->size(Size::Small)
+            ->requiresConfirmation()
+            ->modalIcon(Heroicon::OutlinedArrowPath)
+            ->modalHeading(fn (array $arguments): string => __('filament-form-builder::general.integrations.rerun_heading', ['label' => $label($arguments)]))
+            ->modalDescription(fn (array $arguments): string => __('filament-form-builder::general.integrations.rerun_description', ['label' => $label($arguments)]))
+            ->modalSubmitActionLabel(__('filament-form-builder::general.integrations.rerun'))
+            ->visible(fn (): bool => FormSubmissionResource::canEdit($this->getRecord()))
+            ->action(function (array $arguments) use ($record, $row, $label): void {
+                $log = $record->integrationLogs()->find($row($arguments)['log'] ?? null);
+
+                if (!$log instanceof FormSubmissionIntegrationLog || $log->status === IntegrationStatus::Queued) {
+                    return;
+                }
+
+                $log->update(['status' => IntegrationStatus::Queued, 'response' => null, 'error' => null, 'attempts' => 0, 'ran_at' => null]);
+                $record->form?->getType()->runIntegration($log->id);
+                $log->refresh();
+                $this->integrationRows = null;
+
+                Notification::make()
+                    ->status(match ($log->status) {
+                        IntegrationStatus::Succeeded => 'success',
+                        IntegrationStatus::Failed => 'danger',
+                        default => 'info',
+                    })
+                    ->title($log->status === IntegrationStatus::Queued
+                        ? __('filament-form-builder::general.integrations.rerun_queued', ['label' => $label($arguments)])
+                        : $label($arguments) . ': ' . $log->status->getLabel())
+                    ->body($log->error)
+                    ->send();
+            });
+    }
+
+    protected function getIntegrationResponseAction(FormSubmission $record): Action
+    {
+        $row = fn (array $arguments): ?array => $this->getIntegrationRows($record)[$arguments['row'] ?? ''] ?? null;
+
+        return Action::make('integrationResponse')
+            ->label(__('filament-form-builder::general.integrations.response'))
+            ->icon(Heroicon::OutlinedEye)
+            ->link()
+            ->color('gray')
+            ->size(Size::Small)
+            ->modalHeading(fn (array $arguments): string => __('filament-form-builder::general.integrations.response_heading', ['label' => $row($arguments)['label'] ?? '']))
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel(__('filament-form-builder::general.integrations.close'))
+            ->schema(fn (array $arguments): array => [
+                KeyValueEntry::make('response')
+                    ->hiddenLabel()
+                    ->state(array_map(
+                        fn (mixed $value): string => match (true) {
+                            is_bool($value) => $value ? 'true' : 'false',
+                            is_scalar($value) => (string) $value,
+                            $value === null => '',
+                            default => (string) json_encode($value),
+                        },
+                        Arr::dot($row($arguments)['response'] ?? []),
+                    ))
+                    ->placeholder(__('filament-form-builder::general.integrations.no_response')),
+            ]);
     }
 
     protected function getCount(int $count): Text
