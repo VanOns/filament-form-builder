@@ -104,7 +104,7 @@ class FormResource extends Resource
                             ]),
                         Tabs\Tab::make(__('filament-form-builder::general.integrations'))
                             ->id('integrations')
-                            ->key('integrations', isInheritable: false)
+                            ->key('integrations-tab', isInheritable: false)
                             ->icon('heroicon-o-server-stack')
                             ->visible(self::hasIntegrationsEnabled(...))
                             ->schema([
