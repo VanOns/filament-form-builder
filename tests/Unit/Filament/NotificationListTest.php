@@ -2,6 +2,7 @@
 
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Auth\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
@@ -209,6 +210,15 @@ it('shows on a card how often its notification went out', function () {
     editNotifications($form)
         ->assertSee('Sent 2 times')
         ->assertSee('Failed 1 time this week');
+});
+
+it('counts what went out only when the page loads, not for every change made on it', function () {
+    $page = editNotifications(notifiedForm([['id' => 'team', 'subject' => 'Nieuw', 'content' => '<p>Hoi</p>', 'to' => ['hr@example.test']]]));
+
+    DB::enableQueryLog();
+    $page->callAction(onNotifications('toggle', ['item' => 'team']));
+
+    expect(collect(DB::getQueryLog())->pluck('query')->filter(fn (string $query): bool => str_contains($query, 'form_submission_notification_logs')))->toBeEmpty();
 });
 
 it('builds the form on the page once for all its editors, and again when its fields change', function () {

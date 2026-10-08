@@ -984,6 +984,10 @@
     color: var(--ffb-muted-text);
 }
 
+.ffb-mail-card-stats {
+    display: contents;
+}
+
 .ffb-mail-card-meta {
     display: inline-flex;
     align-items: center;

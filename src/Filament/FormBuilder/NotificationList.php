@@ -31,6 +31,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 use Livewire\Component as Livewire;
+use Livewire\Livewire as LivewireFacade;
 use stdClass;
 use Throwable;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
@@ -452,7 +453,8 @@ class NotificationList extends CardList
 
     /**
      * What each notification sent so far, by its id: how often, when last, and
-     * how often it failed this week.
+     * how often it failed this week. Counted when the page loads only, not for
+     * every change made on it.
      *
      * @return array<string, array{sent: int, last_sent_at: ?Carbon, failed: int}>
      */
@@ -460,7 +462,7 @@ class NotificationList extends CardList
     {
         $record = $this->getRecord();
 
-        if (!$record instanceof Form || !$record->exists) {
+        if (!$record instanceof Form || !$record->exists || LivewireFacade::isLivewireRequest()) {
             return [];
         }
 

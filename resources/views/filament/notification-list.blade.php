@@ -111,22 +111,25 @@
                         <span class="ffb-mail-card-meta">{{ __('filament-form-builder::general.notifications.disabled') }}</span>
                     @endif
 
-                    @if (($stat['failed'] ?? 0) > 0)
-                        <x-filament::badge color="danger" :icon="Heroicon::OutlinedExclamationTriangle" size="sm">
-                            {{ trans_choice('filament-form-builder::general.notifications.failed_recently', $stat['failed'], ['count' => $stat['failed']]) }}
-                        </x-filament::badge>
-                    @endif
+                    {{-- Only counted when the page loads; later renders leave these as they are. --}}
+                    <span class="ffb-mail-card-stats" wire:ignore>
+                        @if (($stat['failed'] ?? 0) > 0)
+                            <x-filament::badge color="danger" :icon="Heroicon::OutlinedExclamationTriangle" size="sm">
+                                {{ trans_choice('filament-form-builder::general.notifications.failed_recently', $stat['failed'], ['count' => $stat['failed']]) }}
+                            </x-filament::badge>
+                        @endif
 
-                    @if ($stat['last_sent_at'] ?? null)
-                        <span class="ffb-mail-card-meta">
-                            <x-filament::icon :icon="Heroicon::OutlinedClock" />
-                            {{ __('filament-form-builder::general.notifications.last_sent', ['date' => $stat['last_sent_at']->translatedFormat('j M, H:i')]) }}
-                        </span>
-                        <span class="ffb-mail-card-meta">
-                            <x-filament::icon :icon="Heroicon::OutlinedPaperAirplane" />
-                            {{ trans_choice('filament-form-builder::general.notifications.sent_count', $stat['sent'], ['count' => $stat['sent']]) }}
-                        </span>
-                    @endif
+                        @if ($stat['last_sent_at'] ?? null)
+                            <span class="ffb-mail-card-meta">
+                                <x-filament::icon :icon="Heroicon::OutlinedClock" />
+                                {{ __('filament-form-builder::general.notifications.last_sent', ['date' => $stat['last_sent_at']->translatedFormat('j M, H:i')]) }}
+                            </span>
+                            <span class="ffb-mail-card-meta">
+                                <x-filament::icon :icon="Heroicon::OutlinedPaperAirplane" />
+                                {{ trans_choice('filament-form-builder::general.notifications.sent_count', $stat['sent'], ['count' => $stat['sent']]) }}
+                            </span>
+                        @endif
+                    </span>
 
                     @if ($card['attachFiles'])
                         <span class="ffb-mail-card-meta">
