@@ -2,7 +2,6 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder;
 
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
@@ -14,9 +13,7 @@ use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\DateField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\NumberField;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 /**
@@ -60,9 +57,7 @@ class ConditionsEditor
     public function schema(): array
     {
         $needsValue = fn (Get $get): bool => ConditionOperator::tryFrom((string) $get('operator'))?->needsValue() ?? false;
-        $choices = fn (Get $get): array => ($this->fields[$get('key')] ?? null)?->getFilterOptions() ?? [];
         $operators = fn (Get $get): array => $this->operators($this->fields[$get('key')] ?? null);
-        $isDate = fn (Get $get): bool => ($this->fields[$get('key')] ?? null) instanceof DateField;
 
         return [
             ToggleButtons::make('conditionMatch')
@@ -109,22 +104,12 @@ class ConditionsEditor
                         ->selectablePlaceholder(false)
                         ->required()
                         ->live(),
-                    // One cell for the value: a choice field's own options, a date, or text.
-                    Group::make([
-                        Select::make('value')
-                            ->label(__('filament-form-builder::fields.value'))
-                            ->options($choices)
-                            ->required($needsValue)
-                            ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) !== []),
-                        DatePicker::make('value')
+                    // One cell for the value, in the input the chosen field asks for.
+                    Group::make(fn (Get $get): array => [
+                        (($this->fields[$get('key')] ?? null)?->getConditionValueComponent() ?? TextInput::make('value'))
                             ->label(__('filament-form-builder::fields.value'))
                             ->required($needsValue)
-                            ->visible(fn (Get $get): bool => $needsValue($get) && $isDate($get)),
-                        TextInput::make('value')
-                            ->label(__('filament-form-builder::fields.value'))
-                            ->numeric(fn (Get $get): bool => ($this->fields[$get('key')] ?? null) instanceof NumberField)
-                            ->required($needsValue)
-                            ->visible(fn (Get $get): bool => $needsValue($get) && $choices($get) === [] && !$isDate($get)),
+                            ->visible($needsValue),
                     ]),
                 ]),
             Text::make(fn (Get $get): ?string => $this->describe($get('conditions') ?? [], $get('conditionMatch')))

@@ -3,6 +3,8 @@
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
 use BackedEnum;
+use Filament\Forms\Components\Field;
+use Filament\Forms\Components\TextInput;
 use Filament\Support\Icons\Heroicon;
 use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
@@ -17,6 +19,11 @@ class NumberField extends InputField
     public function getConditionOperators(): array
     {
         return ConditionOperator::options(ConditionOperator::numeric());
+    }
+
+    public function getConditionValueComponent(): Field
+    {
+        return TextInput::make('value')->numeric();
     }
 
     public function getFilterConstraints(): array

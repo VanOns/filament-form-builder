@@ -2,6 +2,9 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
+use Filament\Forms\Components\Field;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\QueryBuilder\Constraints\Constraint;
 use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
 use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
@@ -44,6 +47,16 @@ trait HasSubmissionColumns
     public function getConditionOperators(): array
     {
         return ConditionOperator::options(ConditionOperator::basic());
+    }
+
+    /**
+     * Where a condition on this field takes its value: one of its choices, or text.
+     */
+    public function getConditionValueComponent(): Field
+    {
+        $options = $this->getFilterOptions();
+
+        return $options === [] ? TextInput::make('value') : Select::make('value')->options($options);
     }
 
     /**

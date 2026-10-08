@@ -548,6 +548,21 @@ it('stores the conditions of a field with how they combine', function () {
         ]);
 });
 
+it('asks a condition on a number for a number', function () {
+    $form = canvasForm([
+        ['type' => 'number', 'label' => 'Leeftijd', 'key' => 'leeftijd'],
+        ['type' => 'text', 'label' => 'Rijbewijs', 'key' => 'rijbewijs'],
+    ]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    $uuid = array_keys($page->get('data.custom.fields'))[1];
+    $condition = fn (string $value): array => ['conditions' => [['key' => 'leeftijd', 'operator' => 'at_least', 'value' => $value]]];
+
+    $page->callAction(onCanvas('edit', ['item' => $uuid]), data: $condition('volwassen'))
+        ->assertHasActionErrors()
+        ->callAction(onCanvas('edit', ['item' => $uuid]), data: $condition('18'))
+        ->assertHasNoActionErrors();
+});
+
 it('shows the fields of the form type around the canvas and keeps their keys free', function () {
     config(['filament-form-builder.types.application' => ApplicationForm::class]);
 

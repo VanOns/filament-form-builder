@@ -37,7 +37,6 @@ use Throwable;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
 use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Enums\NotificationStatus;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FileUploadField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
@@ -553,7 +552,7 @@ class NotificationList extends CardList
     protected function hasUploads(Form $form): bool
     {
         foreach ($form->getFields(inputsOnly: true) as $field) {
-            if ($field instanceof FileUploadField) {
+            if ($field::storesFiles()) {
                 return true;
             }
         }

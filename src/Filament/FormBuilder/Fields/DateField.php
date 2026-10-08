@@ -4,6 +4,8 @@ namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
 use BackedEnum;
 use Carbon\Exceptions\InvalidFormatException;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Select;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
@@ -76,6 +78,11 @@ class DateField extends InputField
     public function getConditionPhrase(ConditionOperator $operator): string
     {
         return $operator->needsValue() ? "date_{$operator->value}" : $operator->value;
+    }
+
+    public function getConditionValueComponent(): Field
+    {
+        return DatePicker::make('value');
     }
 
     public function getFilterConstraints(): array

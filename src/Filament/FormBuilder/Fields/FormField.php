@@ -79,6 +79,14 @@ abstract class FormField
     }
 
     /**
+     * Whether the answer is an upload, kept in the submission's `files`.
+     */
+    public static function storesFiles(): bool
+    {
+        return false;
+    }
+
+    /**
      * Whether the builder's palette offers this field type. A field already on
      * a form stays there either way.
      */

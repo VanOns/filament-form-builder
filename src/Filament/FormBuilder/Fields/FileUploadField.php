@@ -23,6 +23,11 @@ class FileUploadField extends FormField
         return $this;
     }
 
+    public static function storesFiles(): bool
+    {
+        return true;
+    }
+
     public function getSubmissionColumns(): array
     {
         return [$this->getKey() => $this->getColumnLabel()];
