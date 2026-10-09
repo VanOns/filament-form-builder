@@ -109,23 +109,21 @@ Turned on without the columns, the forms page says which commands to run.
 - `<x-render-form :form="$form" />` shows the copy for the site the page is on,
   and the form itself while that site has none. A front end of your own does
   the same with `$form->inCurrentSite()`.
-- A page copied to another site still holds the id of the original's form.
-  To put the copy's id in, map it in the page model's `modifyClonedAttributes()`
-  with `Form::idInSite($id, $site)`, which gives the id of the form's copy on
-  that site, or the id itself when there is none:
+- Pick a form with `FormSelect` in the block or field that shows one. It
+  offers the forms as the site of the record it is on has them: that site's
+  copy of a form, or the original while there is none. A page copied to
+  another site still holds the id of the original's form; the select turns it
+  into the copy's when the page opens, and saving the page stores that. No
+  code on the page model is needed:
 
 ```php
-public function modifyClonedAttributes(array $attributes, Multisitable $origin, string $site): array
-{
-    foreach ($attributes['content'] ?? [] as $index => $block) {
-        if (($block['type'] ?? null) === 'form') {
-            $attributes['content'][$index]['data']['form_id'] = Form::idInSite($block['data']['form_id'] ?? null, $site);
-        }
-    }
+use VanOns\FilamentFormBuilder\Filament\Forms\Components\FormSelect;
 
-    return $attributes;
-}
+FormSelect::make('form_id')->required()
 ```
+
+  `Form::idInSite($id, $site)` gives the id of a form's copy on a site, or the
+  id itself when there is none, for anywhere else an id is kept.
 
 A copy is never made on its own, so a page can be copied before its form is:
 until the form has a copy on that site, the page shows the original.

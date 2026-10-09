@@ -6,7 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Str;
 use Illuminate\Support\ViewErrorBag;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
+use Tests\Fixtures\PickFormPage;
+use VanOns\FilamentFormBuilder\Filament\Forms\Components\FormSelect;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\ListForms;
 use VanOns\FilamentFormBuilder\Models\Form;
@@ -37,6 +40,11 @@ function sitedForm(string $title = 'Contact'): Form
         'custom' => ['fields' => [['type' => 'text', 'label' => 'Naam', 'key' => 'naam']]],
         'submit_notifications' => [['type' => 'content', 'content' => '<p>Bedankt!</p>']],
     ]);
+}
+
+function formSelect(Testable $page): FormSelect
+{
+    return collect($page->instance()->form->getFlatComponents())->first(fn ($component): bool => $component instanceof FormSelect);
 }
 
 function onPage(string $url): void
@@ -120,6 +128,33 @@ it('offers the sites in the panel and keeps what follows the origin from changin
     Livewire::test(EditForm::class, ['record' => $en->getRouteKey()])
         ->assertFormFieldIsDisabled('retention_months')
         ->assertFormFieldIsEnabled('title');
+});
+
+it('picks the forms of the site a page is on, also for a page copied from another site', function () {
+    config(['filament-form-builder.multisite' => true]);
+    migrateSites();
+    $nl = sitedForm();
+    $other = sitedForm('Nieuwsbrief');
+    $en = $nl->findOrCreateInSite('en');
+    $page = $other->findOrCreateInSite('en');
+
+    $copied = Livewire::test(PickFormPage::class, ['record' => $page, 'picked' => $nl->id])
+        ->assertSet('data.form_id', $en->id);
+
+    expect(array_keys(formSelect($copied)->getFormOptions()))->toEqualCanonicalizing([$en->id, $page->id]);
+
+    Livewire::test(PickFormPage::class, ['record' => $nl, 'picked' => $en->id])
+        ->assertSet('data.form_id', $nl->id);
+});
+
+it('picks any form without forms per site', function () {
+    $nl = sitedForm();
+    $other = sitedForm('Nieuwsbrief');
+
+    $page = Livewire::test(PickFormPage::class, ['record' => $other, 'picked' => $nl->id])
+        ->assertSet('data.form_id', $nl->id);
+
+    expect(array_keys(formSelect($page)->getFormOptions()))->toEqualCanonicalizing([$nl->id, $other->id]);
 });
 
 it('says how to add the columns when multisite is on without them', function () {

@@ -77,6 +77,12 @@ it adds it with `php artisan make:queue-batches-table`. To leave the export out
 of a panel, call `->exportAction(false)` on the plugin; `export_action` in the
 config sets it for every panel.
 
+### Showing a form
+
+`<x-render-form :form="$form" />` shows a form on a page. An editor picks one,
+for instance in a page block, with `FormSelect::make('form_id')` from
+`VanOns\FilamentFormBuilder\Filament\Forms\Components`.
+
 ### A front end in React, Vue or Inertia
 
 `<x-render-form>` shows a form with its conditional fields working. A front end
