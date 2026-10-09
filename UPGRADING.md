@@ -58,6 +58,9 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
 * A front end of your own only renders the field types it knows, while editors can pick every type, also the
   ones v3 adds: `step`, `date`, `consent` and `turnstile`. Keep those out of the palette with
   `withoutFields()` on the plugin, or `without_fields` in the config, until it renders them.
+* A title or text block keeps the conditions it had in v2 and shows only while they hold. They are not in
+  `$form->getFieldConditions()`, which goes by key: a front end of your own hands such a field its own
+  `$field->getConditions()->toArray()` and checks it with `isShown()` from `resources/js/conditions.js`.
 
 ### Config
 

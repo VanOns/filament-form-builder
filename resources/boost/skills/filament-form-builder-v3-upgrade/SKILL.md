@@ -103,7 +103,9 @@ whose files are missing.
   `components/custom-form-renderer` is `components/form`, field wrappers carry `ffb-*` classes.
 - `php artisan filament:assets`, and remove the project's own script tag for `form-builder.js`.
 - A front end of its own (Inertia, React, Vue) reads conditions with `resources/js/conditions.js` and
-  `$form->getFieldConditions()` instead of `data-visible-when-*` attributes.
+  `$form->getFieldConditions()` instead of `data-visible-when-*` attributes. A title or text block has no key,
+  so its conditions are not in there: pass `$field->getConditions()->toArray()` with the field and check it
+  with `isShown(conditions, values, hidden)`.
 - That front end also has to send the honeypot: pass `$form->getHoneypot()` to the page and render its two
   fields with `resources/js/honeypot.js` (see "In a front end of your own" in the docs). Without them the
   server answers 422 with an error on `ffb_token`. A project view for `<x-render-form>` adds
