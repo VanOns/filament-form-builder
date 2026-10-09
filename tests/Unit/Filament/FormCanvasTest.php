@@ -598,6 +598,14 @@ it('stores the conditions of a field with how they combine', function () {
         ]);
 });
 
+it('previews a text block while its text is being edited', function () {
+    $form = canvasForm([['type' => 'text_block', 'text' => '<p>Bel ons gerust.</p>']]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+
+    $page->mountAction(onCanvas('edit', ['item' => array_key_first($page->get('data.custom.fields'))]))
+        ->assertMountedActionModalSee('Bel ons gerust.');
+});
+
 it('keeps the order the options of a choice field were dragged into', function () {
     $form = canvasForm([['type' => 'radio', 'label' => 'Kleur', 'key' => 'kleur', 'options' => [
         ['value' => 'rood', 'label' => 'Rood'],

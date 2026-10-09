@@ -10,6 +10,7 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\ConsentField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\EmailField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\RadioField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\SubmitField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
 use VanOns\FilamentFormBuilder\Forms\FormType;
@@ -27,6 +28,14 @@ class QuoteRequestForm extends FormType
             (new ConsentField(['key' => 'voorwaarden', 'text' => '<p>Ik ga akkoord met de voorwaarden.</p>']))->required()->editable(false),
             SubmitField::make('verstuur')->label('Versturen'),
         ];
+    }
+}
+
+class WelcomeForm extends FormType
+{
+    public function fields(): array
+    {
+        return [new TextField(['key' => 'intro', 'text' => '<p>Welkom bij ons kantoor.</p>'])];
     }
 }
 
@@ -148,4 +157,14 @@ it('offers no texts of a field that may not change', function () {
     expect($opens('naam'))->toBeTrue()
         ->and($opens('verstuur'))->toBeTrue()
         ->and($opens('voorwaarden'))->toBeFalse();
+});
+
+it('previews the text of a text block from code while it is being changed', function () {
+    config(['filament-form-builder.types.welcome' => WelcomeForm::class]);
+    $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+    $form = Form::create(['title' => 'Welkom', 'template' => 'welcome', 'submit_notifications' => [['type' => 'content', 'content' => '<p>Bedankt!</p>']]]);
+
+    Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
+        ->mountAction(TestAction::make('editCodeField')->schemaComponent('custom.fields', schema: 'form')->arguments(['key' => 'intro']))
+        ->assertMountedActionModalSee('Welkom bij ons kantoor.');
 });

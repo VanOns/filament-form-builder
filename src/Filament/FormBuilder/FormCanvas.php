@@ -7,6 +7,7 @@ use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
@@ -455,7 +456,7 @@ class FormCanvas extends Field
                     Group::make($code::getEditableFields($code->getEditableSettings()))->columns(2),
                     View::make('filament-form-builder::filament.partials.settings-preview')
                         ->key('preview')
-                        ->viewData(fn (Get $get): array => ['field' => (clone $code)->applyChanges($code->getChanges((array) $get('')))]),
+                        ->viewData(fn (Get $get): array => ['field' => (clone $code)->applyChanges($code->getChanges(self::getPreviewState($get)))]),
                 ];
             })
             ->modalFooterActions(fn (Action $action, array $arguments, FormCanvas $component): array => [
@@ -948,7 +949,7 @@ class FormCanvas extends Field
             Group::make($type::getFields())->columns(2),
             View::make('filament-form-builder::filament.partials.settings-preview')
                 ->key('preview')
-                ->viewData(fn (Get $get): array => ['field' => new $type((array) $get(''))]),
+                ->viewData(fn (Get $get): array => ['field' => new $type(self::getPreviewState($get))]),
         ];
 
         // A field without an advanced tab shows a project's own settings above its preview.
@@ -973,6 +974,20 @@ class FormCanvas extends Field
                 ->contained(false)
                 ->tabs($tabs),
         ];
+    }
+
+    /**
+     * A rich editor holds its text as a document while the slide-over is open;
+     * a field takes it as HTML.
+     *
+     * @return array<string, mixed>
+     */
+    protected static function getPreviewState(Get $get): array
+    {
+        return array_map(
+            fn (mixed $value): mixed => is_array($value) && ($value['type'] ?? null) === 'doc' ? RichContentRenderer::make($value)->toHtml() : $value,
+            (array) $get(''),
+        );
     }
 
     /**
