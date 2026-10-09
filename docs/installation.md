@@ -54,7 +54,41 @@ keeps it, on the canvas and on the site.
 Everything else, such as the form types, the uploads and the spam checks, is also
 used outside the panel, where a visitor sends a form or a job sends its mails,
 so it stays in the config. Publish it with
-`php artisan vendor:publish --tag=filament-form-builder-config`.
+`php artisan vendor:publish --tag=filament-form-builder-config`. The package
+speaks English and Dutch; publish its translations with
+`--tag=filament-form-builder-translations` to change a text or add a language.
+
+## What the app needs to run
+
+- **A queue worker.** E-mail notifications, integrations and the export run as
+  queued jobs, so without one nothing goes out. An app without a worker sets
+  `QUEUE_CONNECTION=sync`, which runs them during the request.
+- **The scheduler**, `php artisan schedule:run` every minute. Every night it
+  deletes the submissions older than
+  [their form keeps them](usage.md#how-long-submissions-are-kept); without it
+  they stay.
+- **`php artisan filament:assets`** after every update of the package, which
+  `filament:upgrade` does, so forms on the site load the current script and
+  stylesheet.
+
+## Who sees what
+
+Filament asks a model's policy before it lists, shows, edits or deletes a
+record. The package has none, so everyone who can open the panel sees every
+form and every submission, with the personal data in them. Laravel does not
+find a policy by its name for a package's model, so register them in a service
+provider:
+
+```php
+use Illuminate\Support\Facades\Gate;
+use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
+
+Gate::policy(Form::class, FormPolicy::class);
+Gate::policy(FormSubmission::class, FormSubmissionPolicy::class);
+```
+
+Someone who may view a form but not update it gets its page read-only.
 
 ## Exporting submissions
 

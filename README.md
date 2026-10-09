@@ -77,11 +77,30 @@ it adds it with `php artisan make:queue-batches-table`. To leave the export out
 of a panel, call `->exportAction(false)` on the plugin; `export_action` in the
 config sets it for every panel.
 
+### What the app needs to run
+
+- **A queue worker.** E-mail notifications, integrations and the export run as
+  queued jobs, so without one nothing goes out. An app without a worker sets
+  `QUEUE_CONNECTION=sync`, which runs them during the request.
+- **The scheduler**, `php artisan schedule:run` every minute. Every night it
+  deletes the submissions older than
+  [their form keeps them](docs/usage.md#how-long-submissions-are-kept); without
+  it they stay.
+- **`php artisan filament:assets`** after every update of the package, which
+  `filament:upgrade` does, so forms on the site load the current script and
+  stylesheet.
+
+Everyone who can open the panel sees every form and submission until the app
+registers policies for them, see
+[Who sees what](docs/installation.md#who-sees-what).
+
 ### Showing a form
 
 `<x-render-form :form="$form" />` shows a form on a page. An editor picks one,
 for instance in a page block, with `FormSelect::make('form_id')` from
-`VanOns\FilamentFormBuilder\Filament\Forms\Components`.
+`VanOns\FilamentFormBuilder\Filament\Forms\Components`. See
+[Showing a form](docs/usage.md#showing-a-form) for its view, its route and its
+middleware.
 
 ### A front end in React, Vue or Inertia
 

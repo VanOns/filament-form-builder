@@ -1,5 +1,35 @@
 # Usage
 
+## Showing a form
+
+`<x-render-form :form="$form" />` shows a form on a page, with its conditional
+fields, its steps and its spam traps working; it loads the script and
+stylesheet they need once per page, see
+[Styling forms on the site](#styling-forms-on-the-site). Given `null`, it shows
+nothing. An editor picks the form, for instance in a page block, with
+`FormSelect`, which with [forms per site](installation.md#forms-per-site)
+offers the forms of the page's site:
+
+```php
+use VanOns\FilamentFormBuilder\Filament\Forms\Components\FormSelect;
+
+FormSelect::make('form_id')->required()
+```
+
+Every form renders through the `components/form` view. Pass another for one
+form with `<x-render-form :form="$form" view="forms.vacancy" />`, or publish
+the views with `php artisan vendor:publish --tag=filament-form-builder-views`
+and keep only the files you change.
+
+The form posts to `/filament-form-builder/{id}/submit`, the route
+`filament-form-builder.form.store`, through the middleware in
+`form_middleware`: `web` by default. Add what the site's own pages run through
+and the submission needs too, such as the middleware that sets the language,
+which the validation messages follow. The visitor then sees the thank-you
+message on the same page or goes to the form's redirect, see
+[Submit notification](#submit-notification). A front end in React or Vue posts
+to the same route, see [In a front end of your own](#in-a-front-end-of-your-own).
+
 ## Form types
 
 A form's type decides which fields it has in code, whether editors may add
@@ -103,9 +133,6 @@ Fields\RadioField::make('soort')->editable(['label', 'description']),  // not th
 
 A field type of your own lists its texts in `editableSettings()`.
 
-Every form renders through the `components/form` view. Pass another with
-`<x-render-form :form="$form" view="forms.vacancy" />`.
-
 ### Hooks
 
 Every method below runs on an instance, with the form in `$this->form`.
@@ -115,7 +142,7 @@ Every method below runs on an instance, with the form in `$this->form`.
 | `beforeValidation(array $data)`                           | Before validation                     | What is validated, and so what is stored                                 |
 | `beforeStore(array $data)`                                | Before the submission is stored       | Stored `data`                                                            |
 | `formatValues(array $values, FormSubmission $submission)` | Whenever answers are shown            | The table, the detail page, the export, the mails and their placeholders |
-| `afterSubmission(FormSubmission $submission)`             | Once a visitor's submission is stored | Sends the notifications, queues the integrations                         |
+| `afterSubmission(FormSubmission $submission)`             | Once a visitor's submission is stored | Queues the notifications and the integrations                            |
 | `response(FormSubmission $submission)`                    | After that                            | Replaces the redirect or message when it returns something               |
 
 A visitor can only post the keys of the form's fields. A value `beforeStore()`
@@ -267,19 +294,21 @@ config turns each on or off, its column with it; an IP address is personal
 data, so `ip` is `false` by default, or `'anonymized'` (without its last part)
 or `'full'`.
 
-Submissions stay until someone deletes them, unless `retention_months` in the
-config is set: every night the ones older than that go, with their files and
-including trashed ones. A form can keep them shorter, longer or forever under
-"Keep submissions" in its details, and its Submissions tab says for how long.
-The package schedules `model:prune` for this, so the app's scheduler has to
-run.
-
 A submission counts as read once someone opens its page, stored in `read_at`
 without touching `updated_at` or firing an update. Unread ones show an
 envelope and bold text in the tables, the navigation and a form's Submissions
 tab count them, and the tables filter and mark them in bulk. The page itself
 can mark one unread again and steps to the newer and older submission of the
 same form, also with the `k` and `j` keys.
+
+### How long submissions are kept
+
+Submissions stay until someone deletes them, unless `retention_months` in the
+config is set: every night the ones older than that go, with their files and
+including trashed ones. A form can keep them shorter, longer or forever under
+"Keep submissions" in its details, and its Submissions tab says for how long.
+The package schedules `model:prune` for this, so the app's scheduler has to
+run; without it nothing is deleted.
 
 ## Filtering submissions
 
@@ -327,15 +356,16 @@ public function getFilterConstraints(): array
 ## After a submission
 
 Once a visitor's submission is stored, the form type's `afterSubmission()`
-sends the e-mail notifications and queues the form's
-[integrations](#integrations). A submission created in code, by a seeder or an
-import, triggers neither.
+queues the e-mail notifications and the form's [integrations](#integrations).
+A submission created in code, by a seeder or an import, triggers neither.
 
 To react to every form a visitor sends, whatever its type, listen for
 `VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmitted`. It fires after
 `afterSubmission()`, with the stored submission as `$event->formSubmission`.
 `FormSubmissionCreated` fires for every stored submission, also one made in
-code.
+code. Both models fire an event for every change: `FormCreated`,
+`FormUpdated`, `FormDeleted`, `FormRestored` and `FormForceDeleted` in
+`Events\Form`, and the same for a submission in `Events\FormSubmission`.
 
 ### E-mail notifications
 
@@ -361,6 +391,13 @@ notification is edited in a slide-over:
 On a form that already exists, saving, switching, duplicating or deleting a
 notification stores it straight away; a form being created keeps them until it
 is saved.
+
+Every mail goes out from a `SendFormNotificationJob` of its own, so like the
+integrations it needs a queue worker unless the queue is `sync`. The
+submission's page lists each mail as queued, sent or failed, with the error.
+`email_notifications` set to `false` in the config, or `hasNotifications()`
+returning false on a form type, leaves the e-mails out of the Notifications tab
+and sends none.
 
 A new notification starts empty, as a confirmation to the person who sent the
 form, or as a message for staff with every answer and a link to the
@@ -544,6 +581,8 @@ required conditional field is only required while its conditions show it.
 A title or text block can have conditions too, on its wrapper. It has no answer,
 so no rule looks at it; it shows while its rules hold for the fields that show.
 A field type of your own without an answer opts in with `canHaveConditions()`.
+`field_conditions` set to `false` in the config leaves the Conditions tab out
+of the builder; conditions a field already has, or gets in code, still apply.
 
 What a rule can test depends on the field it looks at, through the field type's
 `getConditionOperators()`: any answer can equal a value or be empty, a number
@@ -1010,14 +1049,16 @@ public function modifySubmitNotification(FormSubmission $submission): void
 }
 ```
 
-### File uploads
+## File uploads
 
-Uploaded files are stored on the `uploads.disk` (default `local`) and kept in
-the submission's `files` column, apart from the answers. They are served through
-signed links that stay valid for `uploads.link_days` days (default 7), so a
-notification mail can link to them for someone without an account. Add middleware
-to `uploads.middleware` to put the links behind a login as well.
-
+Uploaded files are stored on the `uploads.disk` (default `local`), each up to
+`uploads.max_size` kilobytes (default 10240), and kept in the submission's
+`files` column, apart from the answers. They are served through signed links
+that stay valid for `uploads.link_days` days (default 7), so a notification mail
+can link to them for someone without an account. Add middleware to
+`uploads.middleware` to put the links behind a login as well. The files go
+once their submission is deleted for good, by hand or after
+[its retention](#how-long-submissions-are-kept).
 
 ## Field widths
 
