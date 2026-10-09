@@ -36,6 +36,11 @@ trait HasConditions
 
     public static function hasConditionSettings(): bool
     {
-        return config('filament-form-builder.field_conditions') === true;
+        return config('filament-form-builder.field_conditions') === true && static::canHaveConditions();
+    }
+
+    public static function canHaveConditions(): bool
+    {
+        return static::isInput();
     }
 }

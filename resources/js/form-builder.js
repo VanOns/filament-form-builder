@@ -1,6 +1,6 @@
 // The version query of this file, so an update never pairs it with cached older modules.
 const version = new URL(import.meta.url).search
-const { hiddenKeys, readValues } = await import(`./conditions.js${version}`)
+const { hiddenKeys, isShown, readValues } = await import(`./conditions.js${version}`)
 const { visibleSteps, nextStep, previousStep, firstStepWithError, progress, firstInvalid, reportStep, validateOnly } = await import(`./steps.js${version}`)
 
 function readConditions(form) {
@@ -19,15 +19,22 @@ function readConditions(form) {
  * page does, and what the visitor typed is back when it shows again.
  */
 function connect(form, conditions) {
-    if (Object.keys(conditions).length === 0) {
+    const blocks = [...form.querySelectorAll('[data-form-builder-input-wrapper][data-conditions]')]
+
+    if (Object.keys(conditions).length === 0 && blocks.length === 0) {
         return
     }
 
     const update = () => {
-        const hidden = hiddenKeys(conditions, readValues(form))
+        const values = readValues(form)
+        const hidden = hiddenKeys(conditions, values)
 
         for (const key of Object.keys(conditions)) {
             toggle(form, key, !hidden.has(key))
+        }
+
+        for (const block of blocks) {
+            block.style.display = isShown(JSON.parse(block.dataset.conditions), values, hidden) ? '' : 'none'
         }
     }
 

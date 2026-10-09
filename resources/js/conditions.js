@@ -99,6 +99,16 @@ export function hiddenKeys(conditions, values) {
 }
 
 /**
+ * Whether a title, text block or anything else without an answer of its own
+ * shows: its conditions hold for the answers of the fields that show.
+ */
+export function isShown(conditions, values, hidden = []) {
+    const skipped = new Set(hidden)
+
+    return passes(conditions, Object.fromEntries(Object.entries(values ?? {}).filter(([key]) => !skipped.has(key))))
+}
+
+/**
  * The answers in a form element, by field key: `key[]` fields as a list, a file
  * as its name. Only what the form would post counts, so a disabled field or an
  * unticked box is no answer.

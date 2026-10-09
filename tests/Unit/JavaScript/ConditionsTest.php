@@ -84,3 +84,14 @@ it('hides a field that depends on a hidden one', function () {
         [$conditions, ['onderwerp' => 'website', 'toelichting' => 'Een app']],
     ]))->toBe([[], ['bijlage', 'toelichting']]);
 });
+
+it('shows a title or text block while its conditions hold for the fields that show', function () {
+    $forBusinesses = ['match' => 'all', 'rules' => [['key' => 'soort', 'operator' => 'equals', 'value' => 'zakelijk']]];
+
+    expect(inJavaScript('isShown', [
+        [$forBusinesses, ['soort' => 'zakelijk']],
+        [$forBusinesses, ['soort' => 'particulier']],
+        [$forBusinesses, ['soort' => 'zakelijk'], ['soort']],
+        [null, []],
+    ]))->toBe([true, false, false, true]);
+});

@@ -61,6 +61,8 @@ abstract class FormField
             'data-form-builder-input-wrapper' => $this->getKey(),
             'data-form-builder-column-span' => (string) $span,
             'data-form-builder-new-row' => $this->newRow ? 'true' : null,
+            // An input carries its own; a title or text block has nothing else to carry them.
+            'data-conditions' => !static::isInput() && $this->hasConditions() ? json_encode($this->getConditions()->toArray()) : null,
             'style' => "--form-builder-column-span:{$span}" . ($this->newRow ? ';--form-builder-column-start:1' : ''),
         ], fn (?string $value): bool => $value !== null));
     }

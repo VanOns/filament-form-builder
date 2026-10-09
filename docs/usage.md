@@ -541,6 +541,10 @@ form loads that script itself. A hidden field is disabled, so it is not posted
 and what the visitor typed is back when it shows again. On the server, a
 required conditional field is only required while its conditions show it.
 
+A title or text block can have conditions too, on its wrapper. It has no answer,
+so no rule looks at it; it shows while its rules hold for the fields that show.
+A field type of your own without an answer opts in with `canHaveConditions()`.
+
 What a rule can test depends on the field it looks at, through the field type's
 `getConditionOperators()`: any answer can equal a value or be empty, a number
 can also be greater than, at least, less than or at most a value, a date can
@@ -576,7 +580,9 @@ resolve: {
 ```
 
 Hand the page the conditions with the fields. `$form->getFieldConditions()`
-gives the fields that have any, by key:
+gives the fields that have any, by key. A title or text block has no key: hand
+its own `$field->getConditions()->toArray()` along with it and check it with
+`isShown()`.
 
 ```php
 return Inertia::render('Contact', [
@@ -594,6 +600,7 @@ return Inertia::render('Contact', [
 | `hiddenKeys(conditions, values)` | The keys of the fields to hide, as a `Set`. A hidden field counts as empty for the others, so a field that depends on a hidden one hides too |
 | `readValues(form)`             | The answers in a form element by key, the way it would post them         |
 | `passes(conditions, values)`   | Whether one field's conditions hold                                      |
+| `isShown(conditions, values, hidden)` | Whether a title or text block shows: its conditions hold for the answers of the fields that show |
 | `matches(value, operator, expected)` | Whether an answer meets one rule                                   |
 
 They read the rules exactly as the server does, so a field the page hides is

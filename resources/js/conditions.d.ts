@@ -30,4 +30,6 @@ export function passes(conditions: Conditions | null | undefined, values: Answer
 
 export function hiddenKeys(conditions: Record<string, Conditions> | null | undefined, values: Answers): Set<string>
 
+export function isShown(conditions: Conditions | null | undefined, values: Answers, hidden?: Iterable<string>): boolean
+
 export function readValues(form: HTMLFormElement): Record<string, string | string[]>

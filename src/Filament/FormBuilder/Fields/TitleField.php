@@ -88,4 +88,9 @@ class TitleField extends FormField
     {
         return false;
     }
+
+    public static function canHaveConditions(): bool
+    {
+        return true;
+    }
 }

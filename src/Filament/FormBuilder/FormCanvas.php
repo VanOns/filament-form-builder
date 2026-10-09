@@ -953,26 +953,30 @@ class FormCanvas extends Field
         ];
 
         // A field without an advanced tab shows a project's own settings above its preview.
-        if (! $type::isInput()) {
-            return [$fields[0], ...$projectSettings, $fields[1]];
-        }
+        $general = $type::isInput() ? $fields : [$fields[0], ...$projectSettings, $fields[1]];
+        $tabs = [];
 
-        $tabs = [
-            Tabs\Tab::make(__('filament-form-builder::general.general'))
-                ->schema($fields),
-            Tabs\Tab::make(__('filament-form-builder::fields.advanced'))
-                ->schema([...$this->getAdvancedSchema($type, $except), ...$projectSettings]),
-        ];
+        if ($type::isInput()) {
+            $tabs[] = Tabs\Tab::make(__('filament-form-builder::fields.advanced'))
+                ->schema([...$this->getAdvancedSchema($type, $except), ...$projectSettings]);
+        }
 
         if ($type::hasConditionSettings()) {
             $tabs[] = Tabs\Tab::make(__('filament-form-builder::fields.conditions'))
                 ->schema($this->getConditionsSchema($except));
         }
 
+        if ($tabs === []) {
+            return $general;
+        }
+
         return [
             Tabs::make()
                 ->contained(false)
-                ->tabs($tabs),
+                ->tabs([
+                    Tabs\Tab::make(__('filament-form-builder::general.general'))->schema($general),
+                    ...$tabs,
+                ]),
         ];
     }
 

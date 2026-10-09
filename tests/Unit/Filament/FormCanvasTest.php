@@ -3,6 +3,8 @@
 use Filament\Actions\Testing\TestAction;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Foundation\Auth\User;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\ViewErrorBag;
 use Livewire\Livewire;
 use Tests\Fixtures\ApplicationForm;
 use Tests\Fixtures\HalfRowForm;
@@ -604,6 +606,34 @@ it('previews a text block while its text is being edited', function () {
 
     $page->mountAction(onCanvas('edit', ['item' => array_key_first($page->get('data.custom.fields'))]))
         ->assertMountedActionModalSee('Bel ons gerust.');
+});
+
+it('lets a title and a text block show only for some answers', function () {
+    $form = canvasForm([
+        ['type' => 'radio', 'label' => 'Soort', 'key' => 'soort', 'options' => [['value' => 'zakelijk', 'label' => 'Zakelijk']]],
+        ['type' => 'title', 'title' => 'Uw bedrijf'],
+        ['type' => 'text_block', 'text' => '<p>Het KvK-nummer staat op uw uittreksel.</p>'],
+        ['type' => 'text', 'label' => 'KvK-nummer', 'key' => 'kvk'],
+    ]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    [, $title, $text] = array_keys($page->get('data.custom.fields'));
+    $forBusinesses = ['conditions' => [['key' => 'soort', 'operator' => 'equals', 'value' => 'zakelijk']]];
+
+    $page->callAction(onCanvas('edit', ['item' => $title]), data: $forBusinesses)
+        ->assertHasNoActionErrors()
+        ->callAction(onCanvas('edit', ['item' => $text]), data: $forBusinesses)
+        ->assertHasNoActionErrors()
+        ->call('save');
+
+    $form->refresh();
+    [, $savedTitle, $savedText] = $form->getFields();
+    view()->share('errors', new ViewErrorBag());
+    $html = Blade::render('<x-render-form :form="$form" />', ['form' => $form]);
+
+    expect($savedTitle->getConditions()->toArray()['rules'])->toBe([['key' => 'soort', 'operator' => 'equals', 'value' => 'zakelijk']])
+        ->and($savedText->hasConditions())->toBeTrue()
+        ->and($form->getFieldConditions())->toBe([])
+        ->and(substr_count($html, 'data-conditions='))->toBe(2);
 });
 
 it('keeps the order the options of a choice field were dragged into', function () {
