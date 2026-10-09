@@ -120,6 +120,84 @@ abstract class ChoiceField extends FormField
         return 'choice';
     }
 
+    public static function editableSettings(): array
+    {
+        return [...parent::editableSettings(), 'options'];
+    }
+
+    /**
+     * The labels of the options, by their value; the values and which options
+     * there are stay with the code.
+     */
+    public function getChanges(array $state): array
+    {
+        $changes = parent::getChanges([...$state, 'options' => null]);
+        $code = array_column($this->options, 'label', 'value');
+        $labels = [];
+
+        foreach (is_array($state['options'] ?? null) ? $state['options'] : [] as $option) {
+            $value = (string) ($option['value'] ?? '');
+            $label = $option['label'] ?? null;
+
+            if (array_key_exists($value, $code) && is_string($label) && trim($label) !== '' && $label !== $code[$value]) {
+                $labels[$value] = $label;
+            }
+        }
+
+        if ($labels !== [] && in_array('options', $this->getEditableSettings(), true)) {
+            $changes['options'] = $labels;
+        }
+
+        return $changes;
+    }
+
+    public function applyChanges(array $changes): static
+    {
+        parent::applyChanges(Arr::except($changes, 'options'));
+
+        $labels = $changes['options'] ?? null;
+
+        if (! is_array($labels) || ! in_array('options', $this->getEditableSettings(), true)) {
+            return $this;
+        }
+
+        foreach ($this->options as $index => $option) {
+            $label = $labels[$option['value'] ?? ''] ?? null;
+
+            if (is_string($label) && trim($label) !== '') {
+                $this->options[$index]['label'] = $label;
+            }
+        }
+
+        return $this;
+    }
+
+    public static function getEditableFields(array $settings): array
+    {
+        $fields = parent::getEditableFields(array_values(array_diff($settings, ['options'])));
+
+        if (in_array('options', $settings, true)) {
+            $fields[] = Repeater::make('options')
+                ->label(__('filament-form-builder::fields.options'))
+                ->helperText(__('filament-form-builder::fields.options_from_code'))
+                ->addable(false)
+                ->deletable(false)
+                ->reorderable(false)
+                ->columns()
+                ->columnSpanFull()
+                ->schema([
+                    TextInput::make('value')
+                        ->label(__('filament-form-builder::fields.value'))
+                        ->disabled()
+                        ->dehydrated(),
+                    TextInput::make('label')
+                        ->label(__('filament-form-builder::fields.label')),
+                ]);
+        }
+
+        return $fields;
+    }
+
     public static function getFields(): array
     {
         return [

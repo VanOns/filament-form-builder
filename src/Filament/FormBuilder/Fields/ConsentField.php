@@ -109,6 +109,11 @@ class ConsentField extends CheckboxField
         return null;
     }
 
+    public static function editableSettings(): array
+    {
+        return ['text', 'label', 'description'];
+    }
+
     public static function getFields(): array
     {
         return [

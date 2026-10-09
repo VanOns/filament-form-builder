@@ -55,6 +55,11 @@ class TitleField extends FormField
         return Heroicon::OutlinedH1;
     }
 
+    public static function editableSettings(): array
+    {
+        return ['title'];
+    }
+
     public static function getFields(): array
     {
         return [

@@ -41,6 +41,11 @@ abstract class CaptchaField extends FormField
         return Heroicon::OutlinedShieldCheck;
     }
 
+    public static function editableSettings(): array
+    {
+        return [];
+    }
+
     public static function getFields(): array
     {
         return [

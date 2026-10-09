@@ -50,8 +50,8 @@ class VacancyApplication extends FormType
 
 - `CustomFields::make()` marks where the fields an editor builds go. A type
   without it has no canvas.
-- The canvas shows the type's own fields around the editor's, locked, and marks
-  the editor's part as "Custom fields". That part always starts and ends on a
+- The canvas shows the type's own fields around the editor's, locked in place,
+  and marks the editor's part as "Custom fields". That part always starts and ends on a
   row of its own, on the page too. The type's keys stay reserved, and so do
   those of its `extraValues()`, so an editor's field never takes one.
 - A field added in code later with a key an editor's field already has wins:
@@ -65,7 +65,43 @@ class VacancyApplication extends FormType
   Without the parameter the default applies. A visitor can change the URL, so
   it suits context, not something to trust.
 - A type without fields of its own and without `CustomFields::make()` shows no
-  fields section at all; one with fields but no marker shows them read-only.
+  fields section at all; one with fields but no marker shows them with only
+  their texts to change.
+
+#### Texts an editor may change
+
+An editor may change the texts of a field from code: a click on it opens a
+slide-over with just those. Its key, type, rules, required, width, place and
+conditions stay with the code, and so do the values of its options.
+
+| Field type                                  | Texts                                   |
+|---------------------------------------------|-----------------------------------------|
+| Text, e-mail, phone, number, text area, dropdown | label, description, placeholder    |
+| Date, upload, checkbox                      | label, description                      |
+| Radio, checkbox list, dropdown              | also the labels of the options          |
+| Consent                                     | its text, label, description            |
+| Title, step                                 | title                                   |
+| Text block                                  | text                                    |
+| Submit                                      | label                                   |
+
+The form stores only what differs from the code, in `custom.overrides` by field
+key, so a text the developer changes later still comes through where the editor
+left it alone; emptying a text, or **Back to default**, brings the code's back.
+An option's label goes by its value, so it stays with its option when the code
+adds or moves one, and the value is what a submission stores. Everything that
+reads the form's fields follows: the page, the validation messages, the merge
+tags, the export and the submission's page.
+
+`editable()` narrows it per field, or opens up a setting of the field type
+beyond its texts:
+
+```php
+Fields\ConsentField::make('voorwaarden')->editable(false),          // nothing
+Fields\EmailField::make('email')->label('E-mail')->editable(['label']), // only the label
+Fields\RadioField::make('soort')->editable(['label', 'description']),  // not the option labels
+```
+
+A field type of your own lists its texts in `editableSettings()`.
 
 Every form renders through the `components/form` view. Pass another with
 `<x-render-form :form="$form" view="forms.vacancy" />`.

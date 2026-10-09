@@ -35,6 +35,11 @@ abstract class InputField extends FormField
         ];
     }
 
+    public static function editableSettings(): array
+    {
+        return [...parent::editableSettings(), 'placeholder'];
+    }
+
     public static function getFields(): array
     {
         return [

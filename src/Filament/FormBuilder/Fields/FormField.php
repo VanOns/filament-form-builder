@@ -12,6 +12,7 @@ use VanOns\FilamentFormBuilder\Traits\Fields\HasAnswer;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasAttributes;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasConditions;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasDefaultValue;
+use VanOns\FilamentFormBuilder\Traits\Fields\HasEditableSettings;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasFields;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasKey;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasLabel;
@@ -36,6 +37,7 @@ abstract class FormField
     use HasAttributes;
     use HasSubmissionColumns;
     use HasAnswer;
+    use HasEditableSettings;
 
     protected bool $newRow = false;
 

@@ -671,7 +671,7 @@ it('shows the fields of a type without room for more, without letting anyone add
     $form = canvasForm([['type' => 'text', 'label' => 'Uit een eerder type', 'key' => 'eerder']], ['template' => 'contact']);
 
     Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
-        ->assertSee('The fields of this form are defined in code.')
+        ->assertSee('The fields of this form are defined in code; click a field to change its texts.')
         ->assertSee('Company name')
         // Not assertDontSee: Livewire 4.3 leaves the relation manager's snapshot, which holds the form, in the HTML.
         ->assertDontSeeHtml('data-item=')

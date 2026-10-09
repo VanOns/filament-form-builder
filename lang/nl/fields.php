@@ -9,6 +9,7 @@ return [
     'description' => 'Beschrijving',
     'key' => 'Key',
     'options' => 'Opties',
+    'options_from_code' => 'De waarden komen uit de code; je past alleen de labels aan.',
     'rows' => 'Rijen',
     'advanced' => 'Geavanceerd',
     'other_settings' => 'Overig',

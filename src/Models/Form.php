@@ -183,6 +183,7 @@ class Form extends Model
     {
         $fields = [];
         $startsRow = false;
+        $changes = $this->getFieldChanges();
 
         // The editor's fields form a block of their own, as on the canvas.
         foreach ($this->getType()->fields() as $field) {
@@ -199,11 +200,24 @@ class Form extends Model
                 continue;
             }
 
+            $field->applyChanges($changes[$field->getKey()] ?? []);
             $fields[] = $startsRow ? $field->newRow() : $field;
             $startsRow = false;
         }
 
         return $fields;
+    }
+
+    /**
+     * What editors changed of the fields the type has in code, by field key.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function getFieldChanges(): array
+    {
+        $changes = $this->custom['overrides'] ?? null;
+
+        return is_array($changes) ? array_filter($changes, is_array(...)) : [];
     }
 
     /**

@@ -37,6 +37,11 @@ class SubmitField extends FormField
         return Heroicon::OutlinedPaperAirplane;
     }
 
+    public static function editableSettings(): array
+    {
+        return ['label'];
+    }
+
     public static function getFields(): array
     {
         return [

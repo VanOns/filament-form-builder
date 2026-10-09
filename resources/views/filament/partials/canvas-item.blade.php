@@ -9,6 +9,10 @@
     $conditions = $conditionsEditor->badge($rules, $match);
     // The type took this key in code, which leaves the field out of the form until it gets another.
     $isTakenByType = $isEditable && $field::isInput() && in_array($field->getKey(), $typeKeys, true);
+    $editTexts = ! $isEditable && $canEditCodeFields && $field->getEditableSettings() !== []
+        ? $editCodeFieldAction(['key' => $field->getKey()])->getLivewireClickHandler()
+        : null;
+    $isChanged = ! $isEditable && isset($fieldChanges[$field->getKey()]);
 @endphp
 
 <div
@@ -75,6 +79,12 @@
                 {{ __('filament-form-builder::general.canvas.code') }}
             </span>
         @endunless
+        @if ($isChanged)
+            <span class="ffb-canvas-badge ffb-canvas-badge-primary" title="{{ __('filament-form-builder::general.canvas.code_field_changed_tooltip') }}">
+                <x-filament::icon :icon="Heroicon::OutlinedPencilSquare" class="ffb-canvas-badge-icon" />
+                <span class="ffb-canvas-badge-text">{{ __('filament-form-builder::general.canvas.code_field_changed') }}</span>
+            </span>
+        @endif
 
         @if ($canResize && $isEditable && ! $field->isHidden() && count($options) > 1)
             <x-filament::dropdown placement="bottom-end">
@@ -122,6 +132,14 @@
             tabindex="0"
             x-on:click="edit(@js($uuid))"
             x-on:keydown.enter="edit(@js($uuid))"
+            class="ffb-canvas-item-preview"
+        >
+    @elseif ($editTexts)
+        <div
+            role="button"
+            tabindex="0"
+            wire:click="{{ $editTexts }}"
+            wire:keydown.enter="{{ $editTexts }}"
             class="ffb-canvas-item-preview"
         >
     @else

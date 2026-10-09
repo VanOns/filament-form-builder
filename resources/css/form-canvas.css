@@ -460,6 +460,15 @@
     cursor: default;
 }
 
+/* A field from code whose texts an editor may change. */
+.ffb-canvas-item-fixed:has(.ffb-canvas-item-preview[role='button']):hover {
+    box-shadow: 0 0 0 1px var(--ffb-primary-ring);
+}
+
+.ffb-canvas-item-fixed .ffb-canvas-item-preview[role='button'] {
+    cursor: pointer;
+}
+
 .ffb-canvas-ghost {
     opacity: 0.4;
 }

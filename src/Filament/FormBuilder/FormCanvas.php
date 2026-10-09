@@ -38,6 +38,8 @@ class FormCanvas extends Field
 
     protected ?string $stepSettings = null;
 
+    protected ?string $fieldChanges = null;
+
     protected ?Closure $afterKeyRenamed = null;
 
     protected ?Closure $keyUsages = null;
@@ -66,6 +68,7 @@ class FormCanvas extends Field
             fn (FormCanvas $component): Action => $component->getReorderAction(),
             fn (FormCanvas $component): Action => $component->getResizeAction(),
             fn (FormCanvas $component): Action => $component->getStepSettingsAction(),
+            fn (FormCanvas $component): Action => $component->getEditCodeFieldAction(),
         ]);
     }
 
@@ -113,6 +116,41 @@ class FormCanvas extends Field
         $settings = $this->stepSettings === null ? null : $this->makeGetUtility()($this->stepSettings);
 
         return StepSettings::normalize(is_array($settings) ? $settings : []);
+    }
+
+    /**
+     * Where the form keeps what editors changed of the fields from code, such
+     * as `custom.overrides`; a field there that renders nothing saves it.
+     */
+    public function fieldChanges(?string $statePath): static
+    {
+        $this->fieldChanges = $statePath;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function getFieldChanges(): array
+    {
+        $changes = $this->fieldChanges === null ? null : $this->makeGetUtility()($this->fieldChanges);
+
+        return is_array($changes) ? array_filter($changes, is_array(...)) : [];
+    }
+
+    /**
+     * A field the type has in code, as the form shows it or as the code has it.
+     */
+    public function getCodeField(string $key, bool $withChanges = true): ?FormField
+    {
+        foreach ($this->getFormType()?->fields() ?? [] as $field) {
+            if ($field instanceof FormField && $field->getKey() === $key) {
+                return $withChanges ? $field->applyChanges($this->getFieldChanges()[$key] ?? []) : $field;
+            }
+        }
+
+        return null;
     }
 
     public function hasSteps(): bool
@@ -196,10 +234,18 @@ class FormCanvas extends Field
         $after = [];
         $isAfter = false;
 
+        $changes = $this->getFieldChanges();
+
         foreach ($this->getFormType()?->fields() ?? [] as $field) {
             if ($field instanceof CustomFields) {
                 $isAfter = true;
-            } elseif ($isAfter) {
+
+                continue;
+            }
+
+            $field->applyChanges($changes[$field->getKey()] ?? []);
+
+            if ($isAfter) {
                 $after[] = $field;
             } else {
                 $before[] = $field;
@@ -379,6 +425,63 @@ class FormCanvas extends Field
             ])
             ->action(function (array $data, FormCanvas $component): void {
                 $component->makeSetUtility()($component->stepSettings, StepSettings::normalize($data));
+            });
+    }
+
+    /**
+     * Lets an editor change the texts of a field from code, as far as the
+     * field allows; its key, rules and place stay with the code.
+     */
+    public function getEditCodeFieldAction(): Action
+    {
+        $field = fn (array $arguments, FormCanvas $component, bool $withChanges = true): ?FormField => $component->getCodeField((string) ($arguments['key'] ?? ''), $withChanges);
+
+        return Action::make('editCodeField')
+            ->modalHeading(fn (array $arguments, FormCanvas $component): ?string => $field($arguments, $component)?->getTypeLabel())
+            ->modalDescription(__('filament-form-builder::general.canvas.code_field_description'))
+            ->modalIcon(fn (array $arguments, FormCanvas $component): string | BackedEnum | null => $field($arguments, $component)?->icon())
+            ->modalSubmitActionLabel(__('filament-form-builder::general.save'))
+            ->slideOver()
+            ->visible(fn (FormCanvas $component): bool => $component->fieldChanges !== null)
+            ->fillForm(fn (array $arguments, FormCanvas $component): array => $field($arguments, $component)?->getEditableState() ?? [])
+            ->schema(function (array $arguments, FormCanvas $component) use ($field): array {
+                $code = $field($arguments, $component, withChanges: false);
+
+                if ($code === null) {
+                    return [];
+                }
+
+                return [
+                    Group::make($code::getEditableFields($code->getEditableSettings()))->columns(2),
+                    View::make('filament-form-builder::filament.partials.settings-preview')
+                        ->key('preview')
+                        ->viewData(fn (Get $get): array => ['field' => (clone $code)->applyChanges($code->getChanges((array) $get('')))]),
+                ];
+            })
+            ->modalFooterActions(fn (Action $action, array $arguments, FormCanvas $component): array => [
+                $action->getModalSubmitAction(),
+                $action->getModalCancelAction(),
+                $action->makeModalSubmitAction('resetCodeField', arguments: ['reset' => true])
+                    ->label(__('filament-form-builder::general.canvas.code_field_reset'))
+                    ->icon(Heroicon::OutlinedArrowUturnLeft)
+                    ->color('gray')
+                    ->visible(isset($component->getFieldChanges()[$arguments['key'] ?? '']))
+                    ->extraAttributes(['class' => 'ffb-modal-action-end']),
+            ])
+            ->action(function (array $arguments, array $data, FormCanvas $component) use ($field): void {
+                $key = (string) ($arguments['key'] ?? '');
+                $code = $field($arguments, $component, withChanges: false);
+
+                if ($code === null) {
+                    return;
+                }
+
+                $changes = ($arguments['reset'] ?? false) ? [] : $code->getChanges($data);
+
+                $component->makeSetUtility()($component->fieldChanges, array_filter(
+                    [...$component->getFieldChanges(), $key => $changes],
+                    fn (array $fieldChanges): bool => $fieldChanges !== [],
+                ));
             });
     }
 

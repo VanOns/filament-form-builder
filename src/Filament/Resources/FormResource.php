@@ -205,6 +205,7 @@ class FormResource extends Resource
                     ->hiddenLabel()
                     ->formType(static::getFormType(...))
                     ->stepSettings('custom.steps')
+                    ->fieldChanges('custom.overrides')
                     ->afterKeyRenamed(static::renameKeyWhereUsed(...))
                     ->keyUsagesUsing(static::findKeyUsages(...)),
                 // What the canvas's start block sets; the canvas draws it.
@@ -212,6 +213,11 @@ class FormResource extends Resource
                     ->hidden()
                     ->dehydratedWhenHidden()
                     ->formatStateUsing(fn (mixed $state): array => StepSettings::normalize(is_array($state) ? $state : [])),
+                // What editors changed of the fields from code; the canvas shows it.
+                Field::make('custom.overrides')
+                    ->hidden()
+                    ->dehydratedWhenHidden()
+                    ->formatStateUsing(fn (mixed $state): array => is_array($state) ? $state : []),
             ])->columnSpanFull();
     }
 

@@ -95,6 +95,12 @@ class DateField extends InputField
         return Heroicon::OutlinedCalendarDays;
     }
 
+    // A date input has no placeholder.
+    public static function editableSettings(): array
+    {
+        return ['label', 'description'];
+    }
+
     public static function getFields(): array
     {
         return [

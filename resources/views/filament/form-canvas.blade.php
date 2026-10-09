@@ -22,6 +22,9 @@
     $stepSettingsAction = $getAction('stepSettings');
     $canSetSteps = $stepSettingsAction?->isVisible() && ! $isDisabled();
     $deleteAction = $getAction('delete');
+    $editCodeFieldAction = $getAction('editCodeField');
+    $canEditCodeFields = $editCodeFieldAction?->isVisible() && ! $isDisabled();
+    $fieldChanges = $getFieldChanges();
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">

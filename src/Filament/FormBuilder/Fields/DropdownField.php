@@ -30,6 +30,11 @@ class DropdownField extends ChoiceField
         return Heroicon::OutlinedChevronUpDown;
     }
 
+    public static function editableSettings(): array
+    {
+        return [...parent::editableSettings(), 'placeholder'];
+    }
+
     public static function getFields(): array
     {
         return [

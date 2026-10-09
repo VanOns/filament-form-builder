@@ -38,6 +38,18 @@ class TextField extends FormField
         return Heroicon::OutlinedDocumentText;
     }
 
+    public static function editableSettings(): array
+    {
+        return ['text'];
+    }
+
+    public static function getEditableFields(array $settings): array
+    {
+        return in_array('text', $settings, true)
+            ? [RichEditor::make('text')->label(__('filament-form-builder::general.text'))]
+            : [];
+    }
+
     public static function getFields(): array
     {
         return [

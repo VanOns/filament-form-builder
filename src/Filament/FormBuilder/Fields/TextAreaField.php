@@ -39,6 +39,11 @@ class TextAreaField extends FormField
         return Heroicon::OutlinedBars3BottomLeft;
     }
 
+    public static function editableSettings(): array
+    {
+        return [...parent::editableSettings(), 'placeholder'];
+    }
+
     public static function getFields(): array
     {
         return [

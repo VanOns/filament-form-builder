@@ -55,6 +55,11 @@ class StepField extends FormField
         return false;
     }
 
+    public static function editableSettings(): array
+    {
+        return ['title'];
+    }
+
     public static function getFields(): array
     {
         return [

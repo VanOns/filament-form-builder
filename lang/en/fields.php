@@ -9,6 +9,7 @@ return [
     'description' => 'Description',
     'key' => 'Key',
     'options' => 'Options',
+    'options_from_code' => 'The values come from the code; you only change the labels.',
     'rows' => 'Rows',
     'advanced' => 'Advanced',
     'other_settings' => 'Other',
