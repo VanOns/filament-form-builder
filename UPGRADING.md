@@ -137,6 +137,7 @@ code. See [Form types](docs/usage.md#form-types).
   and `$keyPrefix` is gone. `label()` and `rules()` are now fluent setters.
 * The submissions tab of a form filters by rules instead of a select filter per choice field. A field
   type offers its rules in `getFilterConstraints()`; see [Filtering submissions](docs/usage.md#filtering-submissions).
+  Groups joined by or only show once Livewire's `payload.max_nesting_depth` is 13 or more; its default is 10.
 
 * A notification lists its recipients in `to`, an address or `field:key` for the answer of a field,
   where v2 had `receivers`. It also has an `id`, `enabled`, `cc`, `bcc`, `reply_to`, `conditions` and

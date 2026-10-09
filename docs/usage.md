@@ -300,6 +300,18 @@ The inverse of a rule, such as "does not contain", also matches the
 submissions that left the field empty. The list of all submissions only
 filters by form.
 
+Groups joined by or need Livewire to accept state 13 levels deep, where it
+stops at 10 by default; until then the filter offers rules joined by and only.
+Raise the limit in `config/livewire.php` (`php artisan livewire:publish --config`
+if the app has none yet):
+
+```php
+'payload' => [
+    // ...
+    'max_nesting_depth' => 13,
+],
+```
+
 A field type of your own offers its rules in `getFilterConstraints()`. By
 default every column it fills gets the text rules:
 

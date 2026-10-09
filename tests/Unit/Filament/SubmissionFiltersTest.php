@@ -2,6 +2,7 @@
 
 use Filament\Tables\Filters\QueryBuilder\Constraints\DateConstraint;
 use Illuminate\Foundation\Auth\User;
+use Livewire\Exceptions\MaxNestingDepthExceededException;
 use Livewire\Livewire;
 use Tests\Fixtures\ApplicationForm;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
@@ -163,12 +164,32 @@ it('finds submissions by the page they came from and its campaign', function () 
 });
 
 it('allows groups joined by OR, but no OR inside an OR', function () {
+    config(['livewire.payload.max_nesting_depth' => null]);
     $filter = FormSubmissionColumns::for(filteredForm())->filters()[0];
     $rule = ['type' => 'naam', 'data' => ['operator' => 'contains', 'settings' => ['text' => 'jan']]];
     $or = fn (array ...$groups): array => ['type' => 'or', 'data' => ['groups' => array_map(fn (array $rules): array => ['rules' => $rules], $groups)]];
 
     expect($filter->exceedsRuleLimits([$or([$rule], [$rule], [$rule])]))->toBeFalse()
         ->and($filter->exceedsRuleLimits([$or([$or([$rule], [$rule])], [$rule])]))->toBeTrue();
+});
+
+it('offers groups joined by OR only when Livewire takes the paths of the rules inside them', function () {
+    $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+    $form = filteredForm();
+    $rule = ['type' => 'aanhef', 'data' => ['operator' => 'is', 'settings' => ['values' => ['dhr']]]];
+    $rules = ['or' => ['type' => 'or', 'data' => ['groups' => ['group' => ['rules' => ['rule' => $rule]]]]]];
+    $deepest = 'tableDeferredFilters.queryBuilder.rules.or.data.groups.group.rules.rule.data.settings.values.0';
+    $offersOr = fn (): bool => ! FormSubmissionColumns::for($form)->filters()[0]->exceedsRuleLimits(array_values($rules));
+    $table = fn () => Livewire::test(FormSubmissionsRelationManager::class, ['ownerRecord' => $form, 'pageClass' => EditForm::class])
+        ->set('tableDeferredFilters.queryBuilder.rules', $rules);
+
+    expect($offersOr())->toBeFalse()
+        ->and(fn () => $table()->set($deepest, 'mw'))->toThrow(MaxNestingDepthExceededException::class);
+
+    config(['livewire.payload.max_nesting_depth' => 13]);
+
+    expect($offersOr())->toBeTrue();
+    $table()->set($deepest, 'mw')->assertSet($deepest, 'mw');
 });
 
 it('filters the submissions of a form in its table', function () {

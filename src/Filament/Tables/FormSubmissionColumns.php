@@ -81,8 +81,19 @@ class FormSubmissionColumns
                 ->constraints($this->constraints())
                 ->constraintPickerColumns(2)
                 // Rules, or groups of rules joined by OR, but no OR inside an OR.
-                ->maxNestingDepth(2),
+                ->maxNestingDepth(fn (): int => self::allowsOrGroups() ? 2 : 1),
         ];
+    }
+
+    /**
+     * Livewire refuses state paths deeper than its `payload.max_nesting_depth`
+     * (10 by default); a rule inside an OR group is edited 13 levels deep.
+     */
+    public static function allowsOrGroups(): bool
+    {
+        $depth = config('livewire.payload.max_nesting_depth');
+
+        return $depth === null || $depth >= 13;
     }
 
     /**
