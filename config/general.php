@@ -36,6 +36,9 @@ return [
     'layout' => 'flexible',
     'field_conditions' => true,
     'email_notifications' => true,
+    // Forms per site with van-ons/filament-multisite, linked like pages: publish
+    // the `filament-form-builder-multisite-migrations` and migrate first.
+    'multisite' => false,
     'redirect_query' => true,
     // The forms on the site load a minimal stylesheet with the grid; turn it off
     // to style them entirely yourself.

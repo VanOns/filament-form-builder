@@ -27,7 +27,11 @@
         "orchestra/testbench": "^9.0|^10.0|^11.0|^12.0|^13.0",
         "pestphp/pest": "^3.0|^4.0",
         "pestphp/pest-plugin-laravel": "^3.0|^4.0",
-        "phpstan/phpstan": "^2.1"
+        "phpstan/phpstan": "^2.1",
+        "van-ons/filament-multisite": "^2.1"
+    },
+    "suggest": {
+        "van-ons/filament-multisite": "Link a form to its translations per site, like pages (set `multisite` to true)."
     },
     "scripts": {
         "analyse": "vendor/bin/phpstan analyse --memory-limit=1G",
@@ -58,5 +62,11 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
-    }
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/VanOns/filament-multisite"
+        }
+    ]
 }

@@ -4,7 +4,6 @@ namespace VanOns\FilamentFormBuilder\Models;
 
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
@@ -44,8 +43,10 @@ use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
+ * @property string|null $site with forms per site, see SiteAwareForm
+ * @property int|null $origin_id
  */
-class Form extends Model
+class Form extends SiteAwareForm
 {
     use SoftDeletes;
 

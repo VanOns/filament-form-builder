@@ -45,6 +45,10 @@ use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
+use VanOns\FilamentMultisite\Facade\FilamentMultisite;
+use VanOns\FilamentMultisite\Filament\Columns\SiteColumn;
+use VanOns\FilamentMultisite\Filament\Fields\SiteSelect;
+use VanOns\FilamentMultisite\Filament\Filters\SiteFilter;
 
 class FormResource extends Resource
 {
@@ -74,7 +78,9 @@ class FormResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
+        FormModel::ensureSiteColumns();
+
+        $schema = $schema
             ->components([
                 Tabs::make()
                     ->columnSpanFull()
@@ -124,6 +130,9 @@ class FormResource extends Resource
                             ]),
                     ]),
             ]);
+
+        // On a form's copy for another site, what follows the origin cannot change.
+        return FormModel::usesSites() ? FilamentMultisite::schema($schema) : $schema;
     }
 
     public static function getSettingsSection(): Section
@@ -187,6 +196,7 @@ class FormResource extends Resource
                     ->visible($isFixed)
                     ->dehydratedWhenHidden()
                     ->columnSpan(1),
+                ...FormModel::usesSites() ? [SiteSelect::make('site')->columnSpanFull()] : [],
             ])->columns(3);
     }
 
@@ -355,6 +365,8 @@ class FormResource extends Resource
 
     public static function table(Table $table): Table
     {
+        FormModel::ensureSiteColumns();
+
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query
                 ->withCount(['submissions', 'submissions as unread_submissions_count' => fn (Builder $query) => $query->whereNull('read_at')])
@@ -364,6 +376,7 @@ class FormResource extends Resource
                     ->label(__('filament-form-builder::general.title'))
                     ->sortable()
                     ->searchable(),
+                ...FormModel::usesSites() ? [SiteColumn::make('site')->toggleable()] : [],
                 TextColumn::make('template')
                     ->formatStateUsing(fn (?string $state): ?string => FormTypeHelper::options()[$state] ?? $state)
                     ->label(__('filament-form-builder::general.type'))
@@ -398,6 +411,7 @@ class FormResource extends Resource
             ])
             ->recordUrl(static::recordUrl(...))
             ->filters([
+                ...FormModel::usesSites() ? [SiteFilter::make('site')] : [],
                 SelectFilter::make('template')
                     ->label(__('filament-form-builder::general.type'))
                     ->options(FormTypeHelper::options())

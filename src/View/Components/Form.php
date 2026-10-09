@@ -17,6 +17,13 @@ class Form extends Component
 
     public function render(): View|Closure|string
     {
-        return $this->form === null ? '' : view($this->view, ['form' => $this->form]);
+        if ($this->form === null) {
+            return '';
+        }
+
+        // With forms per site, a page copied to another site shows that site's form.
+        $this->form = $this->form->inCurrentSite();
+
+        return view($this->view, ['form' => $this->form]);
     }
 }

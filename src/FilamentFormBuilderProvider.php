@@ -33,6 +33,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
     {
         $this->hasTranslations();
         $this->hasUpgradeMigration();
+        $this->hasMultisiteMigration();
         $this->hasConfig();
         $this->hasViewComponents();
         $this->hasViews();
@@ -58,6 +59,14 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
         $this->publishesMigrations([
             __DIR__.'/../database/upgrades' => database_path('migrations'),
         ], 'filament-form-builder-upgrade-migrations');
+    }
+
+    // Only an app that turns `multisite` on wants these columns.
+    public function hasMultisiteMigration(): void
+    {
+        $this->publishesMigrations([
+            __DIR__.'/../database/multisite' => database_path('migrations'),
+        ], 'filament-form-builder-multisite-migrations');
     }
 
     public function hasConfig(): void
