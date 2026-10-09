@@ -100,7 +100,8 @@ php artisan migrate
 
 Turned on without the columns, the forms page says which commands to run.
 
-- The form's page gets multisite's site switcher: picking another site opens
+- The form's page gets multisite's site switcher, in a section beside the
+  title: picking another site opens
   the form's copy there, or makes one from the form, titled with the site's
   short name after it ("Contact (EN)") as titles are unique. Everything an
   editor writes is the copy's own; the type and how long submissions are kept

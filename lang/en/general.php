@@ -9,6 +9,7 @@ return [
     'created_at' => 'Created at',
     'updated_at' => 'Updated at',
     'form_details' => 'Form',
+    'site' => 'Site',
     'fixed_type' => 'Use a fixed form',
     'submit_notification' => 'After submitting',
     'submit_notification_explanation' => 'What happens when someone sends the form.',

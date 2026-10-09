@@ -9,6 +9,7 @@ return [
     'created_at' => 'Aangemaakt op',
     'updated_at' => 'Aangepast op',
     'form_details' => 'Formulier',
+    'site' => 'Site',
     'fixed_type' => 'Vast formulier gebruiken',
     'submit_notification' => 'Na verzenden',
     'submit_notification_explanation' => 'Wat er gebeurt als iemand het formulier verstuurt.',

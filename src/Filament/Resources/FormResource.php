@@ -9,6 +9,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
@@ -92,7 +93,12 @@ class FormResource extends Resource
                             ->key('general', isInheritable: false)
                             ->icon('heroicon-o-pencil-square')
                             ->schema([
-                                static::getGeneralSection(),
+                                FormModel::usesSites()
+                                    ? Grid::make(['lg' => 4])->schema([
+                                        static::getGeneralSection()->columnSpan(['lg' => 3]),
+                                        static::getSiteSection(),
+                                    ])
+                                    : static::getGeneralSection(),
                                 static::getCustomSection(),
                                 static::getSettingsSection(),
                             ]),
@@ -196,8 +202,16 @@ class FormResource extends Resource
                     ->visible($isFixed)
                     ->dehydratedWhenHidden()
                     ->columnSpan(1),
-                ...FormModel::usesSites() ? [SiteSelect::make('site')->columnSpanFull()] : [],
             ])->columns(3);
+    }
+
+    public static function getSiteSection(): Section
+    {
+        return Section::make(__('filament-form-builder::general.site'))
+            ->icon('heroicon-o-globe-alt')
+            ->schema([
+                SiteSelect::make('site')->hiddenLabel(),
+            ]);
     }
 
     public static function getCustomSection(): Section
