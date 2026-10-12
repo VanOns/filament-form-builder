@@ -20,7 +20,9 @@ class FormSubmissionController
         CreateFormSubmission $request
     ): mixed {
         $data = $request->except(['submitter_email', '_token', 'g-recaptcha-response']);
-        if (!empty($request->allFiles())) {
+        if (!empty($files = $request->allFiles())) {
+            // Files under keys without rules skipped validation, so they're never stored.
+            $data = Arr::except($data, array_keys(array_diff_key($files, $request->validated())));
             $data = array_merge($data, $this->mapFields($data));
         }
 
