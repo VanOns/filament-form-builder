@@ -190,7 +190,7 @@ it('offers groups joined by OR only when Livewire takes the paths of the rules i
 
     expect($offersOr())->toBeTrue();
     $table()->set($deepest, 'mw')->assertSet($deepest, 'mw');
-});
+})->skip(!class_exists(MaxNestingDepthExceededException::class), 'Livewire 3 sets no limit on the depth of a path.');
 
 it('filters the submissions of a form in its table', function () {
     $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));

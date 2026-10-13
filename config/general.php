@@ -31,6 +31,10 @@ return [
     'integrations' => [
         // Insert integrations here
     ],
+    // Lets the webhook integration reach localhost and private networks, such as an n8n beside the app.
+    'webhook' => [
+        'allow_private_network' => false,
+    ],
     // How freely fields sit side by side: 'flexible' (quarters, thirds and
     // halves), 'two_columns' (halves only) or 'full_width' (one field a row).
     'layout' => 'flexible',
@@ -45,6 +49,11 @@ return [
     'styles' => true,
     'form_middleware' => ['web'],
     'rate_limit_per_hour' => 60,
+    // The most characters an answer may have; null for no limit.
+    'max_length' => [
+        'text' => 1000,
+        'textarea' => 20000,
+    ],
     // What a submission keeps about where it came from, shown with its details.
     // An IP address is personal data: false, 'anonymized' or 'full'.
     'submission_meta' => [
@@ -61,6 +70,12 @@ return [
         'disk' => 'local',
         // In kilobytes, per file.
         'max_size' => 10240,
+        // What an upload may be, checked against its content; null takes any file.
+        'extensions' => [
+            'pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif',
+            'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp', 'rtf', 'txt', 'csv',
+            'zip', 'mp3', 'm4a', 'wav', 'mp4', 'mov',
+        ],
         'link_days' => 7,
         // Uploads a notification attaches, in kilobytes together; the rest stay a link.
         'attach_max_size' => 10240,

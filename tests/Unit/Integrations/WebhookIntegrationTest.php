@@ -67,3 +67,40 @@ it('shows where it sends to on its card', function () {
     expect(WebhookIntegration::summary(['url' => 'https://hooks.example.test/forms/']))->toBe('hooks.example.test/forms')
         ->and(WebhookIntegration::summary([]))->toBeNull();
 });
+
+it('posts nowhere inside the server\'s own network', function (string $url) {
+    config(['filament-form-builder.webhook.allow_private_network' => false]);
+    Http::fake();
+    $webhook = webhookFor(['url' => $url]);
+
+    $webhook->handle();
+
+    Http::assertNothingSent();
+    expect($webhook->success)->toBeFalse()
+        ->and($webhook->error)->toBe(__('filament-form-builder::general.webhook.blocked'));
+})->with([
+    'localhost' => ['http://localhost/hook'],
+    'loopback' => ['http://127.0.0.1:8080/hook'],
+    'private' => ['https://10.0.0.5/hook'],
+    'cloud metadata' => ['http://169.254.169.254/latest/meta-data/'],
+    'ipv6 loopback' => ['http://[::1]/hook'],
+    'no http' => ['file:///etc/passwd'],
+]);
+
+it('reaches a private network when the app allows it', function () {
+    config(['filament-form-builder.webhook.allow_private_network' => true]);
+    Http::fake();
+
+    webhookFor(['url' => 'http://127.0.0.1:5678/webhook/form'])->handle();
+
+    Http::assertSent(fn (Request $request): bool => $request->url() === 'http://127.0.0.1:5678/webhook/form');
+});
+
+it('posts to a public address', function () {
+    config(['filament-form-builder.webhook.allow_private_network' => false]);
+    Http::fake();
+
+    webhookFor(['url' => 'https://93.184.216.34/hook'])->handle();
+
+    Http::assertSent(fn (Request $request): bool => $request->url() === 'https://93.184.216.34/hook');
+});

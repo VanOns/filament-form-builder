@@ -207,6 +207,11 @@ Stored forms only know the name, so a field class can be renamed, moved or
 swapped for a project's own subclass by changing its entry here. Add an entry
 to offer a field type of your own in the builder's palette.
 
+A text answer is at most `max_length.text` characters (1000), a text area
+`max_length.textarea` (20000); `null` lifts the limit. An upload has to be one
+of `uploads.extensions`, judged by its content rather than its name, and the
+file picker offers only those; `null` takes any file.
+
 Besides text, e-mail, phone, number, choices and uploads there is a date,
 stored as the date input sends it (`2026-10-07`) and shown in the format the
 editor picks (`7 October 2026`, `07-10-2026`, `7 Oct 2026` or `2026-10-07`),
@@ -485,6 +490,11 @@ submission would send:
 
 An answer in the 400s fails for good; one in the 500s, or none at all, is tried
 again. **Send test** posts the latest submission once, without logging it.
+
+The URL has to lead to the public internet: a host that resolves to localhost,
+a private network or a reserved address, also after a redirect, fails without
+a request. Set `webhook.allow_private_network` to `true` for a receiver beside
+the app, such as n8n on the same server.
 
 #### Writing an integration
 

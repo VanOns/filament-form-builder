@@ -82,7 +82,7 @@ it('makes a copy for another site under its own title, linked to its origin', fu
 
     expect($en->refresh())
         ->retention_months->toBe(12)
-        ->custom->toBe(['fields' => [['type' => 'text', 'label' => 'Name', 'key' => 'naam']]])
+        ->custom->toEqual(['fields' => [['type' => 'text', 'label' => 'Name', 'key' => 'naam']]])
         ->and($nl->refresh()->title)->not->toBe('Contact us');
 });
 

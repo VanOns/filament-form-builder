@@ -27,10 +27,22 @@ abstract class InputField extends FormField
         return [];
     }
 
+    /**
+     * @return array<int, mixed>
+     */
+    protected function getLengthRules(): array
+    {
+        // Without these a visitor could post an array or a whole file under the key.
+        $max = config('filament-form-builder.max_length.text', 1000);
+
+        return ['string', ...(is_numeric($max) ? ['max:' . (int) $max] : [])];
+    }
+
     protected function fieldRules(): array
     {
         return [
             ...$this->getDefaultRules(),
+            ...$this->getLengthRules(),
             ...$this->getTypeRules(),
         ];
     }

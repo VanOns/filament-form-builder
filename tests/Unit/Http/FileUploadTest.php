@@ -2,6 +2,8 @@
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\ViewErrorBag;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FileUploadField;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -88,6 +90,8 @@ it('refuses a link that was not signed, was changed or has expired', function ()
 });
 
 it('downloads a file a browser could run script from, instead of opening it', function () {
+    config(['filament-form-builder.uploads.extensions' => null]);
+
     $submission = uploadSubmission(['cv' => UploadedFile::fake()->createWithContent('cv.html', '<script>alert(1)</script>')]);
 
     $response = test()->get($submission->getFiles()['cv'][0]->url());
@@ -108,11 +112,20 @@ it('never takes a typed value for a stored file', function () {
     test()->post(route('filament-form-builder.form.store', ['formId' => $uploadOnly->id]), ['cv' => $forged])
         ->assertSessionHasErrors('cv');
 
-    // ...and what lands in a text field stays an answer, never a file.
-    $submission = uploadSubmission(['naam' => $forged]);
+    // ...and a text field takes no array, so it never becomes a file either.
+    $withText = Form::create([
+        'title' => 'Naam en cv',
+        'template' => 'custom',
+        'custom' => ['fields' => [
+            ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
+            ['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv'],
+        ]],
+    ]);
 
-    expect($submission->files)->toBeNull()
-        ->and($submission->getFiles())->toBe([]);
+    test()->post(route('filament-form-builder.form.store', ['formId' => $withText->id]), ['naam' => $forged])
+        ->assertSessionHasErrors('naam');
+
+    expect(FormSubmission::query()->where('form_id', $withText->id)->exists())->toBeFalse();
 });
 
 it('keeps the files of a submission that can still be restored', function () {
@@ -141,4 +154,43 @@ it('deletes the files of every submission when its form is deleted for good', fu
     $submission->form->forceDelete();
 
     Storage::disk('local')->assertMissing($path);
+});
+
+it('takes only the file types the config allows, judged by their content', function () {
+    $form = Form::create([
+        'title' => 'Alleen documenten',
+        'template' => 'custom',
+        'custom' => ['fields' => [['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv']]],
+    ]);
+    $post = fn (UploadedFile $file) => test()->post(route('filament-form-builder.form.store', ['formId' => $form->id]), ['cv' => $file]);
+
+    // A fake upload takes its type from its name; a real one, as here, from its content.
+    $path = tempnam(sys_get_temp_dir(), 'ffb');
+    file_put_contents($path, '<!doctype html><html><body><script>alert(1)</script></body></html>');
+
+    $post(new UploadedFile($path, 'cv.pdf', 'application/pdf', null, true))
+        ->assertSessionHasErrors('cv');
+    $post(UploadedFile::fake()->createWithContent('cv.html', '<script>alert(1)</script>'))
+        ->assertSessionHasErrors('cv');
+    $post(UploadedFile::fake()->image('photo.png'))
+        ->assertSessionHasNoErrors();
+
+    expect(FormSubmission::query()->where('form_id', $form->id)->count())->toBe(1);
+});
+
+it('offers the allowed types in the file picker', function () {
+    view()->share('errors', new ViewErrorBag());
+    config(['filament-form-builder.uploads.extensions' => ['.PDF', 'png']]);
+
+    expect((string) (new FileUploadField(['key' => 'cv', 'label' => 'CV']))->render())->toContain('accept=".pdf,.png"');
+
+    config(['filament-form-builder.uploads.extensions' => null]);
+
+    expect((string) (new FileUploadField(['key' => 'cv', 'label' => 'CV']))->render())->not->toContain('accept=');
+});
+
+it('leaves the size rule out when no size is set', function () {
+    config(['filament-form-builder.uploads.max_size' => null, 'filament-form-builder.uploads.extensions' => null]);
+
+    expect((new FileUploadField(['key' => 'cv']))->getRules()['cv'])->toBe(['nullable', 'file']);
 });

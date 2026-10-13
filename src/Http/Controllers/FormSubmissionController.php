@@ -15,6 +15,7 @@ use Throwable;
 use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmitted;
 use VanOns\FilamentFormBuilder\Forms\FormType;
+use VanOns\FilamentFormBuilder\Helpers\UrlHelper;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -59,7 +60,7 @@ class FormSubmissionController
                 'data' => $data,
                 'files' => $files ?: null,
                 // The page the form was on, the same one the redirect back goes to.
-                'source_url' => $request->headers->get('referer'),
+                'source_url' => UrlHelper::http($request->headers->get('referer')),
                 'meta' => SubmissionMeta::capture($request),
             ]);
             $submission->setRelation('form', $form)->save();

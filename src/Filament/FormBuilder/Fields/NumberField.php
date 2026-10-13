@@ -36,6 +36,12 @@ class NumberField extends InputField
         return Heroicon::OutlinedHashtag;
     }
 
+    // A number sent as JSON is no string, and `numeric` already says what it may be.
+    protected function getLengthRules(): array
+    {
+        return [];
+    }
+
     protected function getTypeRules(): array
     {
         return ['numeric'];

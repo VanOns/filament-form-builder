@@ -5,5 +5,5 @@
 @endphp
 
 <div {{ $field->getWrapperAttributes() }}>
-    <div class="ffb-text">{!! $field->text !!}</div>
+    <div class="ffb-text">{!! str((string) $field->text)->sanitizeHtml() !!}</div>
 </div>

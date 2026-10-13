@@ -8,13 +8,13 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 it('drops the required rule of a field the visitor never sees', function () {
     $field = new TextInputField(['key' => 'bron', 'required' => true, 'hidden' => true]);
 
-    expect($field->getRules())->toBe(['bron' => ['nullable']]);
+    expect($field->getRules())->toBe(['bron' => ['nullable', 'string', 'max:1000']]);
 });
 
 it('keeps the required rule of a visible field', function () {
     $field = new TextInputField(['key' => 'bron', 'required' => true]);
 
-    expect($field->getRules())->toBe(['bron' => ['required']]);
+    expect($field->getRules())->toBe(['bron' => ['required', 'string', 'max:1000']]);
 });
 
 it('never hides a field that has no value to send on its own', function (string $type) {

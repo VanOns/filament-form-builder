@@ -4,6 +4,7 @@ namespace VanOns\FilamentFormBuilder\Classes;
 
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
+use VanOns\FilamentFormBuilder\Helpers\UrlHelper;
 use VanOns\FilamentFormBuilder\Mail\FormSubmission\FormSubmissionCreatedMail;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Mail\MailPanel;
@@ -211,7 +212,7 @@ class EmailNotification
     protected function getHtmlValues(array $values): array
     {
         $url = $values['submission_url'] ?? '';
-        $from = $values['submitted_from'] ?? '';
+        $from = UrlHelper::http($values['submitted_from'] ?? null) ?? '';
 
         return [
             'all_fields' => new HtmlString($this->getAllFieldsHtml()),

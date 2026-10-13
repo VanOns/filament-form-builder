@@ -89,6 +89,8 @@ class Form extends SiteAwareForm
 
     protected static function booted(): void
     {
+        parent::booted();
+
         // The database removes the submissions on its own, without the model
         // events that would take their files along.
         static::forceDeleting(function (Form $form): void {

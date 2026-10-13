@@ -50,19 +50,48 @@ class FileUploadField extends FormField
         return is_int($maxSize) ? $maxSize : null;
     }
 
-    protected function fieldRules(): array
+    /**
+     * The extensions an upload may have, judged by its content; null takes any.
+     *
+     * @return list<string>|null
+     */
+    public static function getAllowedExtensions(): ?array
     {
-        $rules = [];
-        if ($this->multiple) {
-            $rules[] = 'array';
-        } else {
-            $rules[] = 'file';
-            $rules[] = 'max:' . $this->getMaxSize();
-        }
+        $extensions = config('filament-form-builder.uploads.extensions');
+
+        return is_array($extensions) ? array_values(array_filter(array_map(fn (mixed $extension): string => strtolower(ltrim((string) $extension, '.')), $extensions))) : null;
+    }
+
+    /**
+     * What the file input offers to pick, the same list the server checks.
+     */
+    public function getAccept(): ?string
+    {
+        $extensions = static::getAllowedExtensions();
+
+        return $extensions === null ? null : implode(',', array_map(fn (string $extension): string => ".{$extension}", $extensions));
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function fileRules(): array
+    {
+        $maxSize = $this->getMaxSize();
+        $extensions = static::getAllowedExtensions();
 
         return [
+            'file',
+            ...($maxSize !== null ? ['max:' . $maxSize] : []),
+            ...($extensions !== null ? ['mimes:' . implode(',', $extensions)] : []),
+        ];
+    }
+
+    protected function fieldRules(): array
+    {
+        return [
             ...$this->getDefaultRules(),
-            ...$rules,
+            ...($this->multiple ? ['array'] : $this->fileRules()),
         ];
     }
 
@@ -72,10 +101,7 @@ class FileUploadField extends FormField
 
         return array_filter($this->withExtraRules([
             $key => $this->fieldRules(),
-            $key . '.*' => $this->multiple ? [
-                'file',
-                'max:' . $this->getMaxSize(),
-            ] : null,
+            $key . '.*' => $this->multiple ? $this->fileRules() : null,
         ]));
     }
 

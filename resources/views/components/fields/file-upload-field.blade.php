@@ -16,6 +16,7 @@
         name="{{ $field->getInputName() }}"
         @required($field->isRequired())
         @if ($field->multiple) multiple @endif
+        @if ($field->getAccept()) accept="{{ $field->getAccept() }}" @endif
         @error($field->getKey()) aria-invalid="true" @enderror
         {{ $field->getAttributes() }}
     >
