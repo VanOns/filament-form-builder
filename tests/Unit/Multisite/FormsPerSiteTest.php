@@ -13,6 +13,7 @@ use VanOns\FilamentFormBuilder\Filament\Forms\Components\FormSelect;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\ListForms;
 use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentMultisite\Contracts\Multisitable;
 
 beforeEach(function () {
     view()->share('errors', new ViewErrorBag());
@@ -63,90 +64,6 @@ it('leaves forms alone until multisite is turned on, also without its columns', 
         ->and(Form::idInSite($form->id, 'en'))->toBe($form->id);
 });
 
-it('makes a copy for another site under its own title, linked to its origin', function () {
-    config(['filament-form-builder.multisite' => true]);
-    migrateSites();
-    $nl = sitedForm();
-
-    $en = $nl->findOrCreateInSite('en');
-
-    expect($en)
-        ->site->toBe('en')
-        ->origin_id->toBe($nl->id)
-        ->title->toBe("{$nl->title} (EN)")
-        ->custom->toBe($nl->custom)
-        ->and($nl->findOrCreateInSite('en')->is($en))->toBeTrue();
-
-    $en->update(['title' => 'Contact us', 'custom' => ['fields' => [['type' => 'text', 'label' => 'Name', 'key' => 'naam']]]]);
-    $nl->update(['retention_months' => 12, 'custom' => ['fields' => []]]);
-
-    expect($en->refresh())
-        ->retention_months->toBe(12)
-        ->custom->toBe(['fields' => [['type' => 'text', 'label' => 'Name', 'key' => 'naam']]])
-        ->and($nl->refresh()->title)->not->toBe('Contact us');
-});
-
-it('shows the form of the site a page is on, or the one it has while that site has none', function () {
-    config(['filament-form-builder.multisite' => true]);
-    migrateSites();
-    $nl = sitedForm();
-    $other = sitedForm('Nieuwsbrief');
-    $en = $nl->findOrCreateInSite('en');
-    $render = fn (Form $form): string => Blade::render('<x-render-form :form="$form" />', ['form' => $form]);
-
-    onPage('http://localhost/en/contact');
-
-    expect($render($nl))->toContain("/filament-form-builder/{$en->id}/submit")
-        ->and($render($other))->toContain("/filament-form-builder/{$other->id}/submit")
-        ->and(Form::idInSite($nl->id, 'en'))->toBe($en->id)
-        ->and(Form::idInSite($en->id, 'default'))->toBe($nl->id)
-        ->and(Form::idInSite($other->id, 'en'))->toBe($other->id);
-
-    onPage('http://localhost/contact');
-
-    expect($render($en))->toContain("/filament-form-builder/{$nl->id}/submit");
-});
-
-it('offers the sites in the panel and keeps what follows the origin from changing on a copy', function () {
-    config(['filament-form-builder.multisite' => true]);
-    migrateSites();
-    $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
-    $nl = sitedForm();
-    $en = $nl->findOrCreateInSite('en');
-
-    Livewire::test(ListForms::class)
-        ->assertTableColumnExists('site')
-        ->assertTableFilterExists('site')
-        ->filterTable('site', 'en')
-        ->assertCanSeeTableRecords([$en])
-        ->assertCanNotSeeTableRecords([$nl]);
-
-    Livewire::test(EditForm::class, ['record' => $nl->getRouteKey()])
-        ->assertSee(['Nederlands', 'English'])
-        ->assertFormFieldIsEnabled('retention_months');
-
-    Livewire::test(EditForm::class, ['record' => $en->getRouteKey()])
-        ->assertFormFieldIsDisabled('retention_months')
-        ->assertFormFieldIsEnabled('title');
-});
-
-it('picks the forms of the site a page is on, also for a page copied from another site', function () {
-    config(['filament-form-builder.multisite' => true]);
-    migrateSites();
-    $nl = sitedForm();
-    $other = sitedForm('Nieuwsbrief');
-    $en = $nl->findOrCreateInSite('en');
-    $page = $other->findOrCreateInSite('en');
-
-    $copied = Livewire::test(PickFormPage::class, ['record' => $page, 'picked' => $nl->id])
-        ->assertSet('data.form_id', $en->id);
-
-    expect(array_keys(formSelect($copied)->getFormOptions()))->toEqualCanonicalizing([$en->id, $page->id]);
-
-    Livewire::test(PickFormPage::class, ['record' => $nl, 'picked' => $en->id])
-        ->assertSet('data.form_id', $nl->id);
-});
-
 it('picks any form without forms per site', function () {
     $nl = sitedForm();
     $other = sitedForm('Nieuwsbrief');
@@ -157,9 +74,115 @@ it('picks any form without forms per site', function () {
     expect(array_keys(formSelect($page)->getFormOptions()))->toEqualCanonicalizing([$nl->id, $other->id]);
 });
 
-it('says how to add the columns when multisite is on without them', function () {
+it('turns nothing on without filament-multisite installed', function () {
     config(['filament-form-builder.multisite' => true]);
     $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+    $form = sitedForm();
 
-    Livewire::test(ListForms::class);
-})->throws(Exception::class, 'filament-form-builder-multisite-migrations');
+    Livewire::test(ListForms::class)
+        ->assertTableColumnDoesNotExist('site')
+        ->assertCanSeeTableRecords([$form]);
+
+    expect(Form::usesSites())->toBeFalse()
+        ->and($form->inCurrentSite()->is($form))->toBeTrue()
+        ->and(Form::idInSite($form->id, 'en'))->toBe($form->id);
+})->skip(fn (): bool => interface_exists(Multisitable::class), 'filament-multisite is installed.');
+
+describe('with filament-multisite', function () {
+    beforeEach(function () {
+        if (! interface_exists(Multisitable::class)) {
+            $this->markTestSkipped('It is private for now: `composer multisite` installs it.');
+        }
+    });
+
+    it('makes a copy for another site under its own title, linked to its origin', function () {
+        config(['filament-form-builder.multisite' => true]);
+        migrateSites();
+        $nl = sitedForm();
+
+        $en = $nl->findOrCreateInSite('en');
+
+        expect($en)
+            ->site->toBe('en')
+            ->origin_id->toBe($nl->id)
+            ->title->toBe("{$nl->title} (EN)")
+            ->custom->toBe($nl->custom)
+            ->and($nl->findOrCreateInSite('en')->is($en))->toBeTrue();
+
+        $en->update(['title' => 'Contact us', 'custom' => ['fields' => [['type' => 'text', 'label' => 'Name', 'key' => 'naam']]]]);
+        $nl->update(['retention_months' => 12, 'custom' => ['fields' => []]]);
+
+        expect($en->refresh())
+            ->retention_months->toBe(12)
+            ->custom->toBe(['fields' => [['type' => 'text', 'label' => 'Name', 'key' => 'naam']]])
+            ->and($nl->refresh()->title)->not->toBe('Contact us');
+    });
+
+    it('shows the form of the site a page is on, or the one it has while that site has none', function () {
+        config(['filament-form-builder.multisite' => true]);
+        migrateSites();
+        $nl = sitedForm();
+        $other = sitedForm('Nieuwsbrief');
+        $en = $nl->findOrCreateInSite('en');
+        $render = fn (Form $form): string => Blade::render('<x-render-form :form="$form" />', ['form' => $form]);
+
+        onPage('http://localhost/en/contact');
+
+        expect($render($nl))->toContain("/filament-form-builder/{$en->id}/submit")
+            ->and($render($other))->toContain("/filament-form-builder/{$other->id}/submit")
+            ->and(Form::idInSite($nl->id, 'en'))->toBe($en->id)
+            ->and(Form::idInSite($en->id, 'default'))->toBe($nl->id)
+            ->and(Form::idInSite($other->id, 'en'))->toBe($other->id);
+
+        onPage('http://localhost/contact');
+
+        expect($render($en))->toContain("/filament-form-builder/{$nl->id}/submit");
+    });
+
+    it('offers the sites in the panel and keeps what follows the origin from changing on a copy', function () {
+        config(['filament-form-builder.multisite' => true]);
+        migrateSites();
+        $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+        $nl = sitedForm();
+        $en = $nl->findOrCreateInSite('en');
+
+        Livewire::test(ListForms::class)
+            ->assertTableColumnExists('site')
+            ->assertTableFilterExists('site')
+            ->filterTable('site', 'en')
+            ->assertCanSeeTableRecords([$en])
+            ->assertCanNotSeeTableRecords([$nl]);
+
+        Livewire::test(EditForm::class, ['record' => $nl->getRouteKey()])
+            ->assertSee(['Nederlands', 'English'])
+            ->assertFormFieldIsEnabled('retention_months');
+
+        Livewire::test(EditForm::class, ['record' => $en->getRouteKey()])
+            ->assertFormFieldIsDisabled('retention_months')
+            ->assertFormFieldIsEnabled('title');
+    });
+
+    it('picks the forms of the site a page is on, also for a page copied from another site', function () {
+        config(['filament-form-builder.multisite' => true]);
+        migrateSites();
+        $nl = sitedForm();
+        $other = sitedForm('Nieuwsbrief');
+        $en = $nl->findOrCreateInSite('en');
+        $page = $other->findOrCreateInSite('en');
+
+        $copied = Livewire::test(PickFormPage::class, ['record' => $page, 'picked' => $nl->id])
+            ->assertSet('data.form_id', $en->id);
+
+        expect(array_keys(formSelect($copied)->getFormOptions()))->toEqualCanonicalizing([$en->id, $page->id]);
+
+        Livewire::test(PickFormPage::class, ['record' => $nl, 'picked' => $en->id])
+            ->assertSet('data.form_id', $nl->id);
+    });
+
+    it('says how to add the columns when multisite is on without them', function () {
+        config(['filament-form-builder.multisite' => true]);
+        $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+
+        Livewire::test(ListForms::class);
+    })->throws(Exception::class, 'filament-form-builder-multisite-migrations');
+});
