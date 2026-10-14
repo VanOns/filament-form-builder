@@ -23,7 +23,7 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
 
 ### Installing
 
-* v3 needs Filament 4.13 or 5.8 at least. Laravel 11 to 13 and PHP 8.2 and up stay supported.
+* v3 needs Filament 4.13 or 5.8 at least. It drops Laravel 11, which no longer gets security fixes: Laravel 12 and 13 and PHP 8.2 and up stay supported.
 * Upgrade to v2.9 and run its migrations first. Then publish the one upgrade migration with
   `php artisan vendor:publish --tag=filament-form-builder-upgrade-migrations` and run
   `php artisan migrate`. It adds `form_submissions.files`, `form_submissions.field_snapshot`,
@@ -80,6 +80,9 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
 | `form-uploads-middleware`: `['web', 'auth']` | `uploads.middleware`: `[]`, the download links are signed                             |
 |                                              | `uploads.link_days`: how long a link stays valid                                      |
 |                                              | `uploads.attach_max_size`: how many kilobytes of uploads a notification attaches      |
+|                                              | `uploads.extensions`: the file types an upload may be, checked against its content; `null` takes any |
+|                                              | `max_length`: the most characters a text field (`1000`) and a text area (`20000`) take |
+|                                              | `webhook.allow_private_network`: lets the webhook reach localhost and private networks |
 | `add_nav_group`                              | `navigation_group`, or `->navigationGroup()` on the plugin per panel                  |
 |                                              | `without_fields`, or `->withoutFields()` on the plugin per panel: types out of the palette |
 |                                              | `fields` gains `date`, `consent` and `step`                                           |

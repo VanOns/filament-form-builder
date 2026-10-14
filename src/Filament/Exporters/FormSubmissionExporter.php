@@ -57,13 +57,31 @@ class FormSubmissionExporter extends Exporter
      */
     public static function getColumnsFor(?Form $form, ?array $dataKeys = null): array
     {
-        return [
-            ExportColumn::make('form_id'),
-            ExportColumn::make('form.title'),
-            ...static::getAvailableDataExportColumns($form, $dataKeys),
-            ExportColumn::make('created_at'),
-            ...static::getDetailExportColumns(),
-        ];
+        return array_map(
+            fn (ExportColumn $column): ExportColumn => $column->formatStateUsing(fn (mixed $state): mixed => static::escapeFormula($state)),
+            [
+                ExportColumn::make('form_id'),
+                ExportColumn::make('form.title'),
+                ...static::getAvailableDataExportColumns($form, $dataKeys),
+                ExportColumn::make('created_at'),
+                ...static::getDetailExportColumns(),
+            ],
+        );
+    }
+
+    // Visitors fill in the answers, so what a spreadsheet would run as a formula is written as text.
+    public static function escapeFormula(mixed $state): mixed
+    {
+        if (!is_string($state) || $state === '') {
+            return $state;
+        }
+
+        // A signed number such as -5 is a number to a spreadsheet, not a formula.
+        if (in_array($state[0], ['-', '+'], true) && is_numeric($state)) {
+            return $state;
+        }
+
+        return in_array($state[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'" . $state : $state;
     }
 
     /**

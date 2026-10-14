@@ -31,6 +31,7 @@ use VanOns\FilamentFormBuilder\Enums\IntegrationStatus;
 use VanOns\FilamentFormBuilder\Enums\NotificationStatus;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
+use VanOns\FilamentFormBuilder\Helpers\UrlHelper;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionIntegrationLog;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
@@ -241,7 +242,7 @@ class ViewFormSubmission extends ViewRecord
                 TextEntry::make('source_url')
                     ->label(__('filament-form-builder::general.submission.submitted_from'))
                     ->icon(Heroicon::OutlinedGlobeAlt)
-                    ->url(fn (?string $state): ?string => $state)
+                    ->url(fn (?string $state): ?string => UrlHelper::http($state))
                     ->openUrlInNewTab()
                     ->color('primary')
                     ->limit(60)
@@ -268,7 +269,7 @@ class ViewFormSubmission extends ViewRecord
                     ->inlineLabel(), array_keys(SubmissionMeta::allLabels()), SubmissionMeta::allLabels()),
                 ...array_map(function (SubmissionAnswer $answer): TextEntry {
                     $text = FormSubmission::toText($answer->value);
-                    $url = filter_var($text, FILTER_VALIDATE_URL) !== false ? $text : null;
+                    $url = UrlHelper::http($text);
 
                     return TextEntry::make("type_value_{$answer->key}")
                         ->label($answer->label)

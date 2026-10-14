@@ -29,6 +29,17 @@ class TextAreaField extends FormField
         return $this;
     }
 
+    protected function fieldRules(): array
+    {
+        $max = config('filament-form-builder.max_length.textarea', 20000);
+
+        return [
+            ...$this->getDefaultRules(),
+            'string',
+            ...(is_numeric($max) ? ['max:' . (int) $max] : []),
+        ];
+    }
+
     public static function minWidth(): FieldWidth
     {
         return FieldWidth::THIRD;

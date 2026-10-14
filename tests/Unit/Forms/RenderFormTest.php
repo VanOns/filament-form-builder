@@ -52,3 +52,20 @@ it('shows the thank-you message above the form after a submission', function () 
     expect(Blade::render('<x-render-form :form="$form" />', ['form' => siteForm('Contact')]))
         ->toMatch('#<div class="ffb-message" role="status">\s*<p>Bedankt Jan!</p>\s*</div>#');
 });
+
+it('renders the editor\'s text and message without script', function () {
+    $form = Form::create(['title' => 'Scripted', 'template' => 'custom', 'custom' => ['fields' => [
+        ['type' => 'text_block', 'text' => '<p><strong>Welkom</strong> <a href="https://example.test">hier</a></p><img src="x" onerror="alert(1)"><script>alert(2)</script>'],
+    ]]]);
+
+    session(['submit_notification_type' => 'content', 'submit_notification_content' => '<p>Bedankt <em>Jan</em>!</p><img src="x" onerror="alert(3)"><a href="javascript:alert(4)">x</a>']);
+
+    $html = Blade::render('<x-render-form :form="$form" />', ['form' => $form]);
+
+    expect($html)->toContain('<strong>Welkom</strong>')
+        ->toContain('href="https://example.test"')
+        ->toContain('<em>Jan</em>')
+        ->not->toContain('onerror')
+        ->not->toContain('<script>alert')
+        ->not->toContain('javascript:alert');
+});

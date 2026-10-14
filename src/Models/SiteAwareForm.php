@@ -29,11 +29,16 @@ if (interface_exists(Multisitable::class)) {
          */
         protected array $translates = ['title', 'custom', 'notifications', 'integrations', 'settings', 'submit_notifications'];
 
-        // Without `multisite` a form need not have the columns the observer writes to.
+        // The trait observes through whenBooted(), which Laravel 11 lacks: booted() observes instead.
         public static function bootHasSites(): void
         {
+        }
+
+        // Without `multisite` a form need not have the columns the observer writes to.
+        protected static function booted(): void
+        {
             if (static::usesSites()) {
-                static::whenBooted(fn () => static::observe(HasSitesObserver::class));
+                static::observe(HasSitesObserver::class);
             }
         }
 

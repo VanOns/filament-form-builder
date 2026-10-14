@@ -32,9 +32,9 @@ it('builds the same field in code as the canvas stores', function () {
 
 it('adds the rules given in code after the field\'s own', function () {
     expect(TextAreaField::make('message')->required()->rules(['max:6000'])->getRules())
-        ->toBe(['message' => ['required', 'max:6000']])
+        ->toBe(['message' => ['required', 'string', 'max:20000', 'max:6000']])
         ->and(TextInputField::make('name')->getRules())
-        ->toBe(['name' => ['nullable']]);
+        ->toBe(['name' => ['nullable', 'string', 'max:1000']]);
 });
 
 it('adds the rules given in code to a choice and an upload too', function () {

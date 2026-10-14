@@ -114,7 +114,7 @@ describe('with filament-multisite', function () {
 
         expect($en->refresh())
             ->retention_months->toBe(12)
-            ->custom->toBe(['fields' => [['type' => 'text', 'label' => 'Name', 'key' => 'naam']]])
+            ->custom->toEqual(['fields' => [['type' => 'text', 'label' => 'Name', 'key' => 'naam']]])
             ->and($nl->refresh()->title)->not->toBe('Contact us');
     });
 

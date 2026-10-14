@@ -248,6 +248,7 @@ return [
         'payload_latest' => 'With the latest submission.',
         'payload_example' => 'An example; once there is a submission, it shows here.',
         'failed' => 'The URL answered with :status.',
+        'blocked' => 'The URL points into the server\'s own network, which webhooks may not reach.',
     ],
     'export_form_submissions' => 'Export form submissions',
     'view_submissions_of_form' => 'All submissions of this form',

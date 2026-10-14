@@ -13,6 +13,8 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Livewire\Component as Livewire;
+use Psr\Http\Message\UriInterface;
+use RuntimeException;
 use VanOns\FilamentFormBuilder\Classes\Integration;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\MergeTagEditor;
@@ -107,7 +109,15 @@ class WebhookIntegration extends Integration
 
     public function handle(): void
     {
-        $response = $this->request()->post((string) $this->setting('url'), $this->payload());
+        $url = (string) $this->setting('url');
+
+        if (!static::allowsUrl($url)) {
+            $this->fail(__('filament-form-builder::general.webhook.blocked'));
+
+            return;
+        }
+
+        $response = $this->request()->post($url, $this->payload());
 
         // The receiving end may be down for a moment, so the queue tries again.
         if ($response->serverError()) {
@@ -146,9 +156,56 @@ class WebhookIntegration extends Integration
         ];
     }
 
+    // An editor types the URL, so it stays out of the server's own network; a host that does not resolve fails on its own.
+    public static function allowsUrl(string $url): bool
+    {
+        if (config('filament-form-builder.webhook.allow_private_network') === true) {
+            return true;
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        $host = trim((string) parse_url($url, PHP_URL_HOST), '[]');
+
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+            return false;
+        }
+
+        $ips = filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : static::resolveHost($host);
+
+        foreach ($ips as $ip) {
+            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected static function resolveHost(string $host): array
+    {
+        // The system resolver reads the hosts file too, so `localhost` and its kind are caught.
+        $ipv4 = gethostbynamel($host) ?: [];
+        $ipv6 = array_column(@dns_get_record($host, DNS_AAAA) ?: [], 'ipv6');
+
+        return array_values(array_filter([...$ipv4, ...$ipv6], is_string(...)));
+    }
+
     protected function request(): PendingRequest
     {
-        $request = Http::timeout(10)->acceptJson();
+        $request = Http::timeout(10)->acceptJson()->withOptions([
+            // A redirect may not lead into the network the URL itself was kept out of.
+            'allow_redirects' => [
+                'max' => 5,
+                'on_redirect' => function (mixed $request, mixed $response, UriInterface $uri): void {
+                    if (!static::allowsUrl((string) $uri)) {
+                        throw new RuntimeException(__('filament-form-builder::general.webhook.blocked'));
+                    }
+                },
+            ],
+        ]);
 
         return match ($this->setting('auth')) {
             'bearer' => $request->withToken((string) $this->secret('token')),

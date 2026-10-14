@@ -248,6 +248,7 @@ return [
         'payload_latest' => 'Met de laatste inzending.',
         'payload_example' => 'Een voorbeeld; zodra er een inzending is, staat die hier.',
         'failed' => 'De URL antwoordde met :status.',
+        'blocked' => 'De URL wijst naar het eigen netwerk van de server, en daar mogen webhooks niet heen.',
     ],
     'export_form_submissions' => 'Exporteer formulier inzendingen',
     'view_submissions_of_form' => 'Alle inzendingen van dit formulier',

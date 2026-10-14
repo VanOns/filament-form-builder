@@ -197,3 +197,29 @@ it('lists the forms in the navigation group a panel sets', function () {
         ->and(FormSubmissionResource::getNavigationGroup())->toBe('Website')
         ->and($plugin->navigationGroup(false)->getNavigationGroup())->toBeNull();
 });
+
+it('writes an answer a spreadsheet would run as a formula as text', function () {
+    $form = formWithFields('Formules', ['Voornaam', 'Bericht']);
+    $submission = FormSubmission::create([
+        'form_id' => $form->id,
+        'data' => ['voornaam' => '=HYPERLINK("https://evil.example","x")', 'bericht' => '@SUM(1+1)'],
+        'source_url' => 'https://fonk.nl/contact',
+    ]);
+
+    $exporter = new FormSubmissionExporter(new Export(), ['data.voornaam' => 'Voornaam', 'data.bericht' => 'Bericht', 'source_url' => 'Submitted from'], ['form_id' => $form->id]);
+
+    expect($exporter($submission->fresh()))->toBe(["'=HYPERLINK(\"https://evil.example\",\"x\")", "'@SUM(1+1)", 'https://fonk.nl/contact']);
+});
+
+it('leaves numbers and plain text alone when escaping formulas', function (mixed $state, mixed $expected) {
+    expect(FormSubmissionExporter::escapeFormula($state))->toBe($expected);
+})->with([
+    'negative number' => ['-5', '-5'],
+    'positive number' => ['+31', '+31'],
+    'phone with spaces' => ['+31 6 1234', "'+31 6 1234"],
+    'tab' => ["\tx", "'\tx"],
+    'plain' => ['Jan', 'Jan'],
+    'empty' => ['', ''],
+    'null' => [null, null],
+    'int' => [5, 5],
+]);

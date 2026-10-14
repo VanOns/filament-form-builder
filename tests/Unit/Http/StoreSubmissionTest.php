@@ -137,3 +137,39 @@ it('tells the app a visitor sent a form, but not about a submission made in code
     Event::assertDispatchedTimes(FormSubmitted::class, 1);
     Event::assertDispatched(FormSubmitted::class, fn (FormSubmitted $event): bool => $event->formSubmission->is($submission));
 });
+
+it('takes no array or overlong text as an answer', function (array $payload, string $error) {
+    $form = Form::create([
+        'title' => 'Lengte ' . uniqid(),
+        'template' => 'custom',
+        'custom' => ['fields' => [
+            ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
+            ['type' => 'textarea', 'label' => 'Bericht', 'key' => 'bericht'],
+            ['type' => 'number', 'label' => 'Aantal', 'key' => 'aantal'],
+        ]],
+    ]);
+
+    test()->post(route('filament-form-builder.form.store', ['formId' => $form->id]), $payload)
+        ->assertSessionHasErrors($error);
+
+    expect(FormSubmission::query()->where('form_id', $form->id)->exists())->toBeFalse();
+})->with([
+    'nested array' => [['naam' => ['a' => ['b' => 'x']]], 'naam'],
+    'text too long' => [['naam' => str_repeat('a', 1001)], 'naam'],
+    'textarea too long' => [['bericht' => str_repeat('a', 20001)], 'bericht'],
+]);
+
+it('follows the configured answer length, or none', function () {
+    $form = Form::create([
+        'title' => 'Lengte config',
+        'template' => 'custom',
+        'custom' => ['fields' => [['type' => 'text', 'label' => 'Naam', 'key' => 'naam'], ['type' => 'number', 'label' => 'Aantal', 'key' => 'aantal']]],
+    ]);
+
+    config(['filament-form-builder.max_length.text' => null]);
+
+    $submission = submit($form, ['naam' => str_repeat('a', 5000), 'aantal' => 3]);
+
+    expect(strlen($submission->data['naam']))->toBe(5000)
+        ->and((int) $submission->data['aantal'])->toBe(3);
+});

@@ -10,6 +10,7 @@ use function Filament\Support\generate_icon_html;
 
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Concerns\DisablesActionsWhenDisabled;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -19,6 +20,8 @@ use VanOns\FilamentFormBuilder\Models\FormSubmission;
  */
 abstract class CardList extends Field
 {
+    use DisablesActionsWhenDisabled;
+
     /**
      * An item as the editor holds it, with an `id`.
      *

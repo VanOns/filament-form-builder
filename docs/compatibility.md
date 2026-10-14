@@ -5,7 +5,7 @@ Please see the table below to determine which version you need.
 
 | Version                                                               | Filament              | Laravel    | PHP  |
 |-----------------------------------------------------------------------|-----------------------|------------|------|
-| v3 (current)                                                          | \>=4.13 \| \>=5.8     | 11, 12, 13 | 8.2+ |
+| v3 (current)                                                          | \>=4.13 \| \>=5.8     | 12, 13     | 8.2+ |
 | [v2](https://github.com/VanOns/filament-form-builder/tree/release/v2) | \>=4.0 \| \>=5.0      | 11, 12, 13 | 8.2+ |
 | [v1](https://github.com/VanOns/filament-form-builder/tree/release/v1) | <4.0                  |            |      |
 

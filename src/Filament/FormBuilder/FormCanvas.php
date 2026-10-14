@@ -24,6 +24,7 @@ use VanOns\FilamentFormBuilder\Classes\FieldConditions;
 use VanOns\FilamentFormBuilder\Classes\StepSettings;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 use VanOns\FilamentFormBuilder\Enums\StepProgress;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Concerns\DisablesActionsWhenDisabled;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\StepField;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
@@ -33,6 +34,8 @@ use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
 
 class FormCanvas extends Field
 {
+    use DisablesActionsWhenDisabled;
+
     protected string $view = 'filament-form-builder::filament.form-canvas';
 
     protected FormType | Closure | null $formType = null;
