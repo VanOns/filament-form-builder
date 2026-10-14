@@ -111,6 +111,10 @@ whose files are missing.
   server answers 422 with an error on `ffb_token`. A project view for `<x-render-form>` adds
   `<x-filament-form-builder::honeypot :form="$form" />`. If the developer would rather not, `hasHoneypot()`
   returning false turns it off for a form type, and `honeypot.enabled` for all forms.
+- The submit route answers with a 303 instead of a 201, and a redirect to another site reaches Inertia as a
+  409 with `X-Inertia-Location`. A form type the project added only to answer Inertia, with a `response()`
+  that does this, can go: map its name in `types` to `CustomForm` or move its forms to `custom`. If it turned
+  on `validatesSteps()` as well, set `validate_steps` in the config.
 - That front end only renders the field types it knows, while editors can pick every type in the palette,
   including the ones v3 adds: `step` (forms in steps), `date`, `consent` and `turnstile`. List the types in
   the `fields` config it does not render and ask the developer, per type, whether to support it or keep it

@@ -774,6 +774,8 @@ public function validatesSteps(): bool
 }
 ```
 
+`validate_steps` in the config does the same for every form type.
+
 The next button then posts the answers so far to the form's own route with
 [Laravel Precognition](https://laravel.com/docs/precognition), which checks the
 step's fields only and stores nothing. A message shows under its field and the

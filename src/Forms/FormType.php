@@ -167,7 +167,7 @@ class FormType
      */
     public function validatesSteps(): bool
     {
-        return false;
+        return config('filament-form-builder.validate_steps') === true;
     }
 
     /**

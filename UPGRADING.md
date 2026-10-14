@@ -89,6 +89,7 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
 |                                              | `styles`: the minimal stylesheet forms on the site load                               |
 |                                              | `submission_meta`: what a submission keeps about where it came from                   |
 |                                              | `retention_months`: how long submissions are kept                                     |
+|                                              | `validate_steps`: the server checks every step of a form before "Next", see [Checking a step on the server](docs/usage.md#checking-a-step-on-the-server) |
 |                                              | `honeypot`, `duplicate_seconds`: spam traps and double clicks, see [Spam](docs/usage.md#spam) |
 |                                              | `turnstile`: Cloudflare Turnstile, beside `recaptcha`; `fields` gains `turnstile`     |
 | `enable_export_action`: `false`              | `export_action`: `true`, or `->exportAction()` on the plugin per panel, see [Exporting submissions](docs/installation.md#exporting-submissions) |

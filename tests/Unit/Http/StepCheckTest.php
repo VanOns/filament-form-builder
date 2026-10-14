@@ -54,6 +54,16 @@ it('checks no step of a form type that does not ask for it', function () {
     expect(FormSubmission::count())->toBe(0);
 });
 
+it('checks the steps of every form type once the config asks for it', function () {
+    config(['filament-form-builder.validate_steps' => true]);
+    $form = signUpForm('custom', [['type' => 'text', 'label' => 'Naam', 'key' => 'naam', 'required' => true]]);
+
+    checkStep($form, [], 'naam')->assertUnprocessable()->assertJsonValidationErrors(['naam']);
+    checkStep($form, ['naam' => 'Jan'], 'naam')->assertNoContent();
+
+    expect(FormSubmission::count())->toBe(0);
+});
+
 it('leaves the spam traps to the form itself', function () {
     config(['filament-form-builder.honeypot' => ['enabled' => true, 'field' => 'ffb_website', 'min_seconds' => 2]]);
 

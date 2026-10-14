@@ -40,6 +40,9 @@ return [
     'layout' => 'flexible',
     'field_conditions' => true,
     'email_notifications' => true,
+    // "Next" in a form in steps has the server check the step first, for rules
+    // the browser cannot check; a form type can say otherwise.
+    'validate_steps' => false,
     // Forms per site with van-ons/filament-multisite, linked like pages: publish
     // the `filament-form-builder-multisite-migrations` and migrate first.
     'multisite' => false,
