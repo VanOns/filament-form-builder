@@ -1,3 +1,6 @@
+includes:
+	- phpstan-multisite.php
+
 parameters:
 	level: 6
 	paths:

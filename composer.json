@@ -28,8 +28,7 @@
         "orchestra/testbench": "^10.0|^11.0|^12.0|^13.0",
         "pestphp/pest": "^3.0|^4.0",
         "pestphp/pest-plugin-laravel": "^3.0|^4.0",
-        "phpstan/phpstan": "^2.1",
-        "van-ons/filament-multisite": "^2.1"
+        "phpstan/phpstan": "^2.1"
     },
     "suggest": {
         "van-ons/filament-multisite": "Link a form to its translations per site, like pages (set `multisite` to true)."
@@ -38,7 +37,16 @@
         "analyse": "vendor/bin/phpstan analyse --memory-limit=1G",
         "format": "vendor/bin/php-cs-fixer fix",
         "format:check": "vendor/bin/php-cs-fixer check",
-        "test": "vendor/bin/pest"
+        "test": "vendor/bin/pest",
+        "multisite": [
+            "@php -r \"copy('composer.json', 'composer-multisite.json'); file_exists('composer.lock') && copy('composer.lock', 'composer-multisite.lock');\"",
+            "@putenv COMPOSER=composer-multisite.json",
+            "@composer config repositories.filament-multisite vcs https://github.com/VanOns/filament-multisite",
+            "@composer require --dev van-ons/filament-multisite:^2.1 --no-interaction"
+        ]
+    },
+    "scripts-descriptions": {
+        "multisite": "Installs the private van-ons/filament-multisite for the tests of forms per site, leaving composer.json alone."
     },
     "autoload": {
         "psr-4": {
@@ -63,11 +71,5 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
-    },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/VanOns/filament-multisite"
-        }
-    ]
+    }
 }

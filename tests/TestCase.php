@@ -46,7 +46,8 @@ abstract class TestCase extends BaseTestCase
             FilamentServiceProvider::class,
             LivewireServiceProvider::class,
             FilamentFormBuilderProvider::class,
-            FilamentMultisiteServiceProvider::class,
+            // Private for now, so only there after `composer multisite`.
+            ...class_exists(FilamentMultisiteServiceProvider::class) ? [FilamentMultisiteServiceProvider::class] : [],
             TestPanelProvider::class,
         ];
     }
