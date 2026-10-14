@@ -34,7 +34,7 @@ class FormSubmissionController
         if ($request->isCaught()) {
             Log::info("The honeypot caught a submission of form {$form->getKey()}.");
 
-            return $this->respond($type, $unsaved());
+            return $this->respond($request, $type, $unsaved());
         }
 
         $repeat = $this->repeatKey($request, $input, $uploads);
@@ -45,10 +45,10 @@ class FormSubmissionController
             $first = FormSubmission::query()->find(Cache::get($repeat));
 
             if ($first === null) {
-                return $this->respond($type, $unsaved());
+                return $this->respond($request, $type, $unsaved());
             }
 
-            return $type->response($first) ?? $this->respond($type, $first);
+            return $type->response($first) ?? $this->respond($request, $type, $first);
         }
 
         try {
@@ -78,21 +78,29 @@ class FormSubmissionController
         $type->afterSubmission($submission);
         FormSubmitted::dispatch($submission);
 
-        return $type->response($submission) ?? $this->respond($type, $submission);
+        return $type->response($submission) ?? $this->respond($request, $type, $submission);
     }
 
     /**
      * The redirect or message the form is set up with, for the answers given.
+     * A 303, which a browser and Inertia both follow with a GET.
      */
-    protected function respond(FormType $type, FormSubmission $submission): mixed
+    protected function respond(Request $request, FormType $type, FormSubmission $submission): mixed
     {
         $type->resolveSubmitNotification($submission);
 
         if (! empty($callBackUrl = $type->getRedirectUrl())) {
-            return redirect($callBackUrl);
+            $host = parse_url($callBackUrl, PHP_URL_HOST);
+
+            // Inertia cannot follow a redirect to another site: this is how it lets the browser go there itself.
+            if ($request->hasHeader('X-Inertia') && is_string($host) && $host !== $request->getHost()) {
+                return response('', Response::HTTP_CONFLICT, ['X-Inertia-Location' => $callBackUrl]);
+            }
+
+            return redirect($callBackUrl, Response::HTTP_SEE_OTHER);
         }
 
-        return back(Response::HTTP_CREATED)->with([
+        return back(Response::HTTP_SEE_OTHER)->with([
             'submit_notification_type' => $type->getNotificationType(),
             'submit_notification_content' => $type->getNotificationMessage(),
         ]);

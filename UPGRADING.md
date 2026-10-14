@@ -124,6 +124,10 @@ code. See [Form types](docs/usage.md#form-types).
   `getCustomFormLabels()` and `getFormAttributes()` give way to `getRules()` and `getSubmissionFields()`.
 * Notifications and integrations only run for a visitor's submission, no longer for every created
   `FormSubmission`.
+* A submission is answered with a 303, back with the message or on to the redirect, where it was a 201.
+  A front end that looked for the 201 looks for the redirect instead. Inertia follows it, and gets a
+  redirect to another site as a 409 with `X-Inertia-Location`, so a `response()` that did this for
+  Inertia can go.
 * `submitter_email` is gone from the submission, the table, the export and the placeholders. Use the
   e-mail field's own key instead: its merge tag in a mail, `email` as a receiver.
 

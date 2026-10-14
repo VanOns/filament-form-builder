@@ -27,8 +27,9 @@ The form posts to `/filament-form-builder/{id}/submit`, the route
 and the submission needs too, such as the middleware that sets the language,
 which the validation messages follow. The visitor then sees the thank-you
 message on the same page or goes to the form's redirect, see
-[Submit notification](#submit-notification). A front end in React or Vue posts
-to the same route, see [In a front end of your own](#in-a-front-end-of-your-own).
+[Submit notification](#submit-notification); both come as a 303 redirect, which
+the browser follows. A front end in React or Vue posts to the same route, see
+[In a front end of your own](#in-a-front-end-of-your-own).
 
 ## Form types
 
@@ -682,6 +683,13 @@ export default function ContactForm({ form }) {
 A field left out of the form is not posted. With `useForm()` instead, pass its
 `data` as the values and leave the hidden keys out with `transform()`.
 
+Inertia follows the 303 the route answers with, back to the page with the
+thank-you message in the session as `submit_notification_content`, so share
+that with the page; or on to the form's redirect. A redirect to another site
+comes as a 409 with `X-Inertia-Location`, which has Inertia send the browser
+there itself. Every form type works this way, so a front end of your own needs
+no type of its own.
+
 The server turns a form away without the [honeypot](#spam) unless it is off.
 `$form->getHoneypot()`, above, is null when the form has none; set its two
 fields with `resources/js/honeypot.js`:
@@ -924,7 +932,7 @@ whose conditions the answers meet, skipping a kind the type does not allow
 (`hasRedirect()`, `hasNotificationMessage()`). A URL goes through
 `FilamentFormBuilderPlugin::resolveRedirectUrl($outcome['url'], $form)`, a
 message gets its tags filled in. When a URL is present it redirects, otherwise
-the message is flashed back. `getSubmitNotification($submission)` returns the
+the message is flashed back, both with a 303. `getSubmitNotification($submission)` returns the
 outcome that applies, for a type that handles the response itself.
 
 ### Passing field data via the query string
@@ -981,7 +989,7 @@ FilamentFormBuilderPlugin::resolveRedirectUrlUsing(function (mixed $stored, Form
 
 Both hooks are optional; the defaults keep the plain URL `TextInput` and
 string passthrough. Neither runs when a form type returns its own `response()`
-(e.g. an Inertia redirect), so call `$this->resolveSubmitNotification($submission)`
+(e.g. JSON for an app), so call `$this->resolveSubmitNotification($submission)`
 there to get the resolved values.
 
 ### Modifying the redirect URL and message per submission
