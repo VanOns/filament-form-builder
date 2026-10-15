@@ -75,15 +75,13 @@ function paginate(form, conditions) {
     const previous = container.querySelector('[data-form-builder-previous]')
     const next = container.querySelector('[data-form-builder-next]')
     const ends = [...container.querySelectorAll('[data-form-builder-steps-end]')]
-    const status = container.querySelector('[data-form-builder-step-status]')
     const hidden = () => hiddenKeys(conditions, readValues(form))
+    const pageTitle = document.title
     let current = 0
+    let furthest = 0
 
-    const describe = (number, total) => {
-        const title = steps[current].title
-
-        return container.dataset.stepOf.replace(':current', number).replace(':total', total) + (title ? `: ${title}` : '')
-    }
+    const stepOf = (number, total) => container.dataset.stepOf.replace(':current', number).replace(':total', total)
+    const describe = (number, total) => stepOf(number, total) + (steps[current].title ? `: ${steps[current].title}` : '')
 
     const render = (shouldFocus = false) => {
         const hiddenNow = hidden()
@@ -102,8 +100,14 @@ function paginate(form, conditions) {
         for (const item of container.querySelectorAll('[data-form-builder-progress-step]')) {
             const index = Number(item.dataset.formBuilderProgressStep)
 
+            const isDone = index !== current && index < furthest
+            const isLink = isDone && index < current
+
             item.hidden = !visible.includes(index)
-            item.dataset.state = index < current ? 'done' : (index === current ? 'current' : 'upcoming')
+            item.dataset.state = isDone ? 'done' : (index === current ? 'current' : 'upcoming')
+            item.querySelector('[data-form-builder-progress-done]').hidden = !isDone
+            item.querySelector('[data-form-builder-progress-link]').hidden = !isLink
+            item.querySelector('[data-form-builder-progress-text]').hidden = isLink
 
             if (index === current) {
                 item.setAttribute('aria-current', 'step')
@@ -121,16 +125,19 @@ function paginate(form, conditions) {
             container.querySelector('[data-form-builder-progress-label]').textContent = describe(number, total)
         }
 
-        if (shouldFocus) {
-            const heading = fieldsets[current].querySelector('legend') ?? fieldsets[current]
+        const legend = fieldsets[current].querySelector('legend')
 
-            status.textContent = describe(number, total)
-            heading.focus()
+        legend.querySelector('[data-form-builder-step-number]').textContent = stepOf(number, total)
+
+        if (shouldFocus) {
+            document.title = `${describe(number, total)} – ${pageTitle}`
+            legend.focus()
         }
     }
 
     const go = (index) => {
         current = index
+        furthest = Math.max(furthest, index)
         render(true)
     }
 
@@ -170,6 +177,10 @@ function paginate(form, conditions) {
     }
 
     next.addEventListener('click', advance)
+
+    for (const link of container.querySelectorAll('[data-form-builder-progress-link]')) {
+        link.addEventListener('click', () => go(Number(link.dataset.formBuilderProgressLink)))
+    }
 
     previous.addEventListener('click', () => {
         const before = previousStep(steps, hidden(), current)
@@ -216,12 +227,17 @@ function paginate(form, conditions) {
 
     // After the server turned the form away: the step with the first error, or the last for one at the end.
     current = firstStepWithError(steps, errorKeys) ?? (errorKeys.length > 0 ? visible.at(-1) : visible[0]) ?? 0
+    furthest = current
 
     for (const element of container.querySelectorAll('[data-form-builder-progress]')) {
         element.hidden = false
     }
 
     render()
+
+    if (errorKeys.length > 0) {
+        focusFirstError(container)
+    }
 }
 
 /**
@@ -268,8 +284,30 @@ async function checkStep(form, fieldset, keys) {
 }
 
 function clearErrors(fieldset) {
-    fieldset.querySelectorAll('.ffb-error').forEach((error) => error.remove())
+    for (const error of fieldset.querySelectorAll('.ffb-error')) {
+        for (const element of fieldset.querySelectorAll('[aria-describedby]')) {
+            describedBy(element, error.id, false)
+        }
+
+        error.remove()
+    }
+
     fieldset.querySelectorAll('[aria-invalid]').forEach((input) => input.removeAttribute('aria-invalid'))
+}
+
+function describedBy(element, id, isAdded) {
+    const ids = (element.getAttribute('aria-describedby') ?? '').split(' ').filter((current) => current !== '' && current !== id)
+    const value = [...ids, ...(isAdded ? [id] : [])].join(' ')
+
+    if (value === '') {
+        element.removeAttribute('aria-describedby')
+    } else {
+        element.setAttribute('aria-describedby', value)
+    }
+}
+
+function describedElements(wrapper) {
+    return wrapper.matches('fieldset') ? [wrapper] : [...wrapper.querySelectorAll('[data-form-builder-input]')]
 }
 
 /**
@@ -287,15 +325,29 @@ function showErrors(fieldset, errors) {
         }
 
         const error = document.createElement('p')
+        error.id = `${wrapper.dataset.formBuilderInputWrapper}-error`
         error.className = 'ffb-error'
         error.textContent = [messages].flat()[0]
         wrapper.append(error)
 
         wrapper.querySelectorAll('[data-form-builder-input]').forEach((input) => input.setAttribute('aria-invalid', 'true'))
+        describedElements(wrapper).forEach((element) => describedBy(element, error.id, true))
         first ??= wrapper.querySelector('[data-form-builder-input]:not(:disabled)')
     }
 
     first?.focus()
+}
+
+function focusFirstError(element) {
+    const error = [...element.querySelectorAll('.ffb-error')].find((candidate) => !candidate.closest('[hidden]'))
+    const input = error?.closest('[data-form-builder-input-wrapper]')?.querySelector('[data-form-builder-input]:not(:disabled)')
+
+    if (input) {
+        input.focus()
+    } else if (error) {
+        error.tabIndex = -1
+        error.focus()
+    }
 }
 
 /**
@@ -330,4 +382,10 @@ document.querySelectorAll('[data-form-builder-form]').forEach((form) => {
     connect(form, conditions)
     paginate(form, conditions)
     sendOnce(form)
+
+    form.querySelector('[data-form-builder-message]')?.focus()
+
+    if (!form.querySelector('[data-form-builder-steps]')) {
+        focusFirstError(form)
+    }
 })

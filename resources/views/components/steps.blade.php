@@ -6,6 +6,7 @@
     /** @var \VanOns\FilamentFormBuilder\Models\Form $form */
     $settings = $form->getStepSettings();
     $steps = $form->getSteps();
+    $showsProgress = $settings['progress'] !== \VanOns\FilamentFormBuilder\Enums\StepProgress::None->value;
     [$submitFields, $endFields] = collect($form->getEndFields())
         ->partition(fn ($field): bool => $field instanceof \VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\SubmitField);
 @endphp
@@ -16,22 +17,20 @@
     data-form-builder-steps
     data-step-of="{{ __('filament-form-builder::general.steps.step_of', ['current' => ':current', 'total' => ':total']) }}"
 >
-    @if ($settings['progress'] !== \VanOns\FilamentFormBuilder\Enums\StepProgress::None->value)
+    @if ($showsProgress)
         @include("filament-form-builder::components.steps.progress-{$settings['progress']}", ['steps' => $steps])
     @endif
-
-    <p class="ffb-sr-only" aria-live="polite" data-form-builder-step-status></p>
 
     @foreach ($steps as $index => $step)
         <fieldset
             class="ffb-step"
-            tabindex="-1"
             data-form-builder-step="{{ $index }}"
             @if (filled($step['title'])) data-title="{{ $step['title'] }}" @endif
         >
-            @if (filled($step['title']))
-                <legend class="ffb-step-title" tabindex="-1">{{ $step['title'] }}</legend>
-            @endif
+            <legend @class(['ffb-step-title', 'ffb-sr-only' => blank($step['title']) && $showsProgress]) tabindex="-1">
+                <span @class(['ffb-step-number', 'ffb-sr-only' => $showsProgress])><span data-form-builder-step-number>{{ __('filament-form-builder::general.steps.step_of', ['current' => $loop->iteration, 'total' => $loop->count]) }}</span>@if (filled($step['title']))<span class="ffb-sr-only">:</span>@endif</span>
+                {{ $step['title'] }}
+            </legend>
 
             @foreach ($step['fields'] as $field)
                 {!! $field->render() !!}

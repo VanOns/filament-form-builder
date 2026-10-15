@@ -260,6 +260,8 @@ return [
     'queued' => 'In wachtrij',
     'export_completed' => '{1} De export van de inzendingen is klaar: :count rij geëxporteerd.|[0,*] De export van de inzendingen is klaar: :count rijen geëxporteerd.',
     'export_failed_rows' => '{1} :count rij kon niet worden geëxporteerd.|[0,*] :count rijen konden niet worden geëxporteerd.',
+    'session_expired' => 'Uw sessie was verlopen, daardoor is het formulier niet verstuurd. Uw antwoorden staan er nog; bijgevoegde bestanden moet u opnieuw kiezen. Verstuur het formulier opnieuw.',
+    'required' => 'Verplicht',
     'steps' => [
         'step' => 'Stap',
         'title' => 'Titel van de stap',
@@ -284,6 +286,7 @@ return [
         'next' => 'Volgende',
         'previous_label' => 'Tekst van de vorige-knop',
         'next_label' => 'Tekst van de volgende-knop',
+        'completed' => 'Voltooid',
         'step_of' => 'Stap :current van :total',
     ],
     'canvas' => [

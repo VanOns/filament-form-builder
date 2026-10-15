@@ -6,6 +6,7 @@ use BackedEnum;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\ViewErrorBag;
 use VanOns\FilamentFormBuilder\Traits\Fields\CanBeHidden;
 use VanOns\FilamentFormBuilder\Traits\Fields\CanBeRequired;
 use VanOns\FilamentFormBuilder\Traits\Fields\HasAnswer;
@@ -65,6 +66,39 @@ abstract class FormField
             'data-conditions' => !static::isInput() && $this->hasConditions() ? json_encode($this->getConditions()->toArray()) : null,
             'style' => "--form-builder-column-span:{$span}" . ($this->newRow ? ';--form-builder-column-start:1' : ''),
         ], fn (?string $value): bool => $value !== null));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getErrorKeys(): array
+    {
+        return [$this->getKey(), $this->getKey() . '.*'];
+    }
+
+    public function getDescriptionId(): string
+    {
+        return $this->getKey() . '-description';
+    }
+
+    public function getErrorId(): string
+    {
+        return $this->getKey() . '-error';
+    }
+
+    public function getDescribedBy(ViewErrorBag $errors): ?string
+    {
+        $ids = array_filter([
+            filled($this->description) ? $this->getDescriptionId() : null,
+            $this->hasError($errors) ? $this->getErrorId() : null,
+        ]);
+
+        return $ids === [] ? null : implode(' ', $ids);
+    }
+
+    public function hasError(ViewErrorBag $errors): bool
+    {
+        return collect($this->getErrorKeys())->contains(fn (string $key): bool => $errors->getBag('default')->has($key));
     }
 
     /**
