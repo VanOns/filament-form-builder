@@ -142,6 +142,11 @@
     color: #065f46;
 }
 
+:where(.ffb-message-error) {
+    background: #fef2f2;
+    color: var(--ffb-error);
+}
+
 /* A form in steps. Its own rules on display must not show a step the script hid. */
 :where(.ffb-form) [hidden] {
     display: none !important;
@@ -259,6 +264,24 @@
     border-color: var(--ffb-button);
     background: var(--ffb-button);
     color: var(--ffb-button-text);
+}
+
+:where(.ffb-progress-step-link) {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+:where(.ffb-step-number) {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--ffb-muted);
 }
 
 :where(.ffb-progress-label) {

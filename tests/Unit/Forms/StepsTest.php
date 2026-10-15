@@ -88,8 +88,8 @@ it('renders the steps as fieldsets, with the buttons between them hidden until t
 
     expect($html)
         ->toContain('data-form-builder-steps')
-        ->toContain('<legend class="ffb-step-title" tabindex="-1">Je aanvraag</legend>')
-        ->toContain('class="ffb-progress ffb-progress-steps" data-form-builder-progress hidden')
+        ->toMatch('#<legend class="ffb-step-title" tabindex="-1">\s*<span class="ffb-step-number ffb-sr-only"><span data-form-builder-step-number>Step 2 of 3</span><span class="ffb-sr-only">:</span></span>\s*Je aanvraag\s*</legend>#')
+        ->toContain('class="ffb-progress ffb-progress-steps" aria-label="Progress" data-form-builder-progress hidden')
         ->toContain('data-form-builder-next hidden')
         ->toContain('Verder')
         ->toContain('data-step-of="Step :current of :total"')
@@ -97,10 +97,32 @@ it('renders the steps as fieldsets, with the buttons between them hidden until t
         ->and(strpos($html, 'class="ffb-submit"'))->toBeGreaterThan(strrpos($html, '</fieldset>'));
 });
 
+it('gives a step without a title a legend only a screen reader reads', function () {
+    expect(Blade::render('<x-render-form :form="$form" />', ['form' => steppedForm()]))
+        ->toMatch('#<legend class="ffb-step-title ffb-sr-only" tabindex="-1">\s*<span class="ffb-step-number ffb-sr-only"><span data-form-builder-step-number>Step 1 of 3</span></span>\s*</legend>#')
+        ->not->toContain('aria-live');
+});
+
+it('shows the step number in the legend when no progress shows it', function () {
+    expect(Blade::render('<x-render-form :form="$form" />', ['form' => steppedForm(['progress' => 'none'])]))
+        ->toMatch('#<legend class="ffb-step-title" tabindex="-1">\s*<span class="ffb-step-number"><span data-form-builder-step-number>Step 1 of 3</span></span>#')
+        ->toContain('<span class="ffb-step-number"><span data-form-builder-step-number>Step 2 of 3</span><span class="ffb-sr-only">:</span></span>');
+});
+
+it('names the progress and has every step ready to say it is completed and to link back to it', function () {
+    $html = Blade::render('<x-render-form :form="$form" />', ['form' => steppedForm(['progress' => 'steps'])]);
+
+    expect($html)
+        ->toContain('aria-label="Progress"')
+        ->toContain('<span class="ffb-sr-only" data-form-builder-progress-done hidden>Completed:</span>')
+        ->toContain('<button type="button" class="ffb-progress-step-title ffb-progress-step-link" data-form-builder-progress-link="1" hidden>Je aanvraag</button>')
+        ->toContain('<span class="ffb-progress-step-title" data-form-builder-progress-text>Step 1</span>');
+});
+
 it('shows a bar or no progress at all, as the start block sets', function () {
     $render = fn (string $progress): string => Blade::render('<x-render-form :form="$form" />', ['form' => steppedForm(['progress' => $progress])]);
 
-    expect($render('bar'))->toContain('role="progressbar"')->not->toContain('ffb-progress-steps')
+    expect($render('bar'))->toContain('role="progressbar" aria-labelledby="ffb-progress-label-')->not->toContain('ffb-progress-steps')
         ->and($render('none'))->not->toContain('data-form-builder-progress ');
 });
 

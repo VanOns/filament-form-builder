@@ -11,8 +11,13 @@
 
 <form method="POST" action="{{ route('filament-form-builder.form.store', ['formId' => $form->id]) }}" {{ $form->getWrapperAttributes() }}>
     @if (session('submit_notification_type') === 'content' && $success = session('submit_notification_content'))
-        <div class="ffb-message" role="status">
+        <div class="ffb-message" role="status" tabindex="-1" data-form-builder-message>
             {!! str((string) $success)->sanitizeHtml() !!}
+        </div>
+    @endif
+    @if (session('filament_form_builder_expired') === $form->id)
+        <div class="ffb-message ffb-message-error" role="alert" tabindex="-1" data-form-builder-message>
+            {{ __('filament-form-builder::general.session_expired') }}
         </div>
     @endif
     @csrf
