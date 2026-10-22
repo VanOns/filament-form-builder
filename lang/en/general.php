@@ -260,6 +260,8 @@ return [
     'queued' => 'Queued',
     'export_completed' => '{1} The submissions export is ready: :count row exported.|[0,*] The submissions export is ready: :count rows exported.',
     'export_failed_rows' => '{1} :count row failed to export.|[0,*] :count rows failed to export.',
+    'session_expired' => 'Your session had expired, so the form was not sent. Your answers are still here; attached files need to be chosen again. Please send the form again.',
+    'required' => 'Required',
     'steps' => [
         'step' => 'Step',
         'title' => 'Title of the step',
@@ -284,6 +286,7 @@ return [
         'next' => 'Next',
         'previous_label' => 'Label of the previous button',
         'next_label' => 'Label of the next button',
+        'completed' => 'Completed',
         'step_of' => 'Step :current of :total',
     ],
     'canvas' => [

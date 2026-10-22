@@ -8,11 +8,14 @@ use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\RateLimiter;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Form;
 
@@ -41,6 +44,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
         $this->hasRateLimiter();
         $this->hasAssets();
         $this->hasPruning();
+        $this->hasExpiredSessionResponse();
     }
 
     public function hasTranslations(): void
@@ -118,6 +122,25 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
     {
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
             $schedule->command('model:prune', ['--model' => [FormSubmission::class]])->daily();
+        });
+    }
+
+    public function hasExpiredSessionResponse(): void
+    {
+        $this->callAfterResolving(ExceptionHandler::class, function (ExceptionHandler $handler): void {
+            if (! $handler instanceof Handler) {
+                return;
+            }
+
+            $handler->renderable(function (HttpException $exception, Request $request) {
+                if ($exception->getStatusCode() !== 419 || $request->expectsJson() || ! $request->routeIs('filament-form-builder.form.store')) {
+                    return null;
+                }
+
+                return back()
+                    ->withInput($request->except('_token'))
+                    ->with('filament_form_builder_expired', (int) $request->route('formId'));
+            });
         });
     }
 

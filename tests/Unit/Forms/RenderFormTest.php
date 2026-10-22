@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\RadioField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextAreaField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Models\Form;
@@ -43,14 +44,42 @@ it('shows an error with its field and marks the field invalid', function () {
     $html = (string) (new TextInputField(['key' => 'naam', 'label' => 'Naam']))->render();
 
     expect($html)->toContain('aria-invalid="true"')
-        ->and($html)->toMatch('#<p class="ffb-error">Vul je naam in.</p>\s*</div>\s*$#');
+        ->toContain('aria-describedby="naam-error"')
+        ->and($html)->toMatch('#<p id="naam-error" class="ffb-error">Vul je naam in.</p>\s*</div>\s*$#');
+});
+
+it('points a field at its description and its error', function () {
+    view()->share('errors', (new ViewErrorBag())->put('default', new MessageBag(['naam' => 'Vul je naam in.'])));
+
+    $field = new TextInputField(['key' => 'naam', 'label' => 'Naam', 'description' => 'Zoals op je paspoort']);
+
+    expect((string) $field->render())
+        ->toContain('aria-describedby="naam-description naam-error"')
+        ->toContain('<p id="naam-description" class="ffb-description">Zoals op je paspoort</p>');
+});
+
+it('leaves aria-describedby out for a field without description or error', function () {
+    expect((string) (new TextInputField(['key' => 'naam', 'label' => 'Naam']))->render())
+        ->not->toContain('aria-describedby');
+});
+
+it('says a required choice is required to a screen reader, and points the group at its error', function () {
+    view()->share('errors', (new ViewErrorBag())->put('default', new MessageBag(['kleur.0' => 'Kies een geldige kleur.'])));
+
+    $html = (string) (new RadioField(['key' => 'kleur', 'label' => 'Kleur', 'required' => true, 'options' => [['label' => 'Rood', 'value' => 'rood']]]))->render();
+
+    expect($html)
+        ->toContain('<span class="ffb-sr-only">(Required)</span>')
+        ->toMatch('#<fieldset[^>]*aria-describedby="kleur-error"#')
+        ->toContain('aria-invalid="true"')
+        ->toContain('<p id="kleur-error" class="ffb-error">Kies een geldige kleur.</p>');
 });
 
 it('shows the thank-you message above the form after a submission', function () {
     session(['submit_notification_type' => 'content', 'submit_notification_content' => '<p>Bedankt Jan!</p>']);
 
     expect(Blade::render('<x-render-form :form="$form" />', ['form' => siteForm('Contact')]))
-        ->toMatch('#<div class="ffb-message" role="status">\s*<p>Bedankt Jan!</p>\s*</div>#');
+        ->toMatch('#<div class="ffb-message" role="status" tabindex="-1" data-form-builder-message>\s*<p>Bedankt Jan!</p>\s*</div>#');
 });
 
 it('renders the editor\'s text and message without script', function () {
