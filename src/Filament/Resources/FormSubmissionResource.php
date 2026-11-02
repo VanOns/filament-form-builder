@@ -27,7 +27,7 @@ class FormSubmissionResource extends Resource
         return parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
-            ])->with(['form' => fn ($q) => $q->withTrashed()]);
+            ])->with(['form' => fn ($q) => $q->withoutGlobalScope(SoftDeletingScope::class)]);
     }
 
     public static function getModelLabel(): string
