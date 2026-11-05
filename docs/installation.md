@@ -56,7 +56,7 @@ used outside the panel, where a visitor sends a form or a job sends its mails,
 so it stays in the config. Publish it with
 `php artisan vendor:publish --tag=filament-form-builder-config`. The package
 speaks English and Dutch; publish its translations with
-`--tag=filament-form-builder-translations` to change a text or add a language.
+`--tag=filament-form-builder-lang` to change a text or add a language.
 
 ## What the app needs to run
 

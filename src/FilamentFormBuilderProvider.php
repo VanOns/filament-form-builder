@@ -55,7 +55,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
 
         $this->publishes([
             __DIR__.'/../lang' => $this->app->langPath('vendor/filament-form-builder'),
-        ], 'filament-form-builder-translations');
+        ], ['filament-form-builder-lang', 'filament-form-builder-translations']);
     }
 
     // Kept out of database/migrations so a new install, which gets the v3 schema

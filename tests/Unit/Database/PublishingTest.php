@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\ServiceProvider;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderProvider;
 
 function appMigrations(): array
 {
@@ -42,4 +44,10 @@ it('puts the multisite migration after the create migrations, also when both are
 
     expect(appMigrations())->toHaveCount(5)
         ->and(last(appMigrations()))->toEndWith('_add_sites_to_forms_table.php');
+});
+
+it('publishes the translations under the v2 tag as well', function () {
+    expect(ServiceProvider::pathsToPublish(FilamentFormBuilderProvider::class, 'filament-form-builder-translations'))
+        ->not->toBeEmpty()
+        ->toBe(ServiceProvider::pathsToPublish(FilamentFormBuilderProvider::class, 'filament-form-builder-lang'));
 });

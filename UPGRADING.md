@@ -38,6 +38,8 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
 * `forms.template` now holds the name a form type is registered under instead of a template class: set
   it to `custom`, `contact` or the name of your own type.
 * Republish the config, or compare yours with [`config/general.php`](config/general.php).
+* Translations are published with `--tag=filament-form-builder-lang`, like in our other packages.
+  `--tag=filament-form-builder-translations` still works.
 * Run `php artisan filament:assets`: the canvas brings its own stylesheet and Alpine component, and
   forms on the site load `form-builder.js` and a minimal stylesheet from it. Remove a script tag of
   your own for `form-builder.js`, and set `styles` to `false` if you style forms entirely yourself.
