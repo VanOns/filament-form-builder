@@ -9,8 +9,10 @@ use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\RateLimiter;
 use Spatie\LaravelPackageTools\Package;
@@ -60,17 +62,31 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
     // from the create migrations, never runs it.
     public function hasUpgradeMigration(): void
     {
-        $this->publishesMigrations([
-            __DIR__.'/../database/upgrades' => database_path('migrations'),
-        ], 'filament-form-builder-upgrade-migrations');
+        $this->publishesMigrationsOnce(__DIR__.'/../database/upgrades', 'filament-form-builder-upgrade-migrations');
     }
 
     // Only an app that turns `multisite` on wants these columns.
     public function hasMultisiteMigration(): void
     {
-        $this->publishesMigrations([
-            __DIR__.'/../database/multisite' => database_path('migrations'),
-        ], 'filament-form-builder-multisite-migrations');
+        $this->publishesMigrationsOnce(__DIR__.'/../database/multisite', 'filament-form-builder-multisite-migrations');
+    }
+
+    // Like discoversMigrations(): a migration the app already published keeps its file. A minute
+    // ahead, so these sort after the create migrations even when published in the same second.
+    protected function publishesMigrationsOnce(string $directory, string $tag): void
+    {
+        if (! $this->app->runningInConsole()) {
+            return;
+        }
+
+        $now = Carbon::now()->addMinute();
+        $paths = [];
+
+        foreach ((new Filesystem())->files($directory) as $file) {
+            $paths[$file->getPathname()] = $this->generateMigrationName($file->getBasename('.php'), $now->addSecond());
+        }
+
+        $this->publishes($paths, $tag);
     }
 
     public function hasConfig(): void
