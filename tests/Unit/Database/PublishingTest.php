@@ -68,7 +68,7 @@ it('names the migrations an app has neither published nor run after migrate', fu
     DB::table('migrations')->delete();
 
     expect(outputAfter('migrate'))
-        ->toContain('filament-form-builder has 4 migrations that are not published')
+        ->toContain('Migrations of filament-form-builder that are not published: ')
         ->toContain('create_form_submission_integration_logs_table')
         ->toContain('php artisan vendor:publish --tag=filament-form-builder-migrations')
         ->and(outputAfter('migrate:status'))->toBe('');
