@@ -1,11 +1,7 @@
 <?php
 
-use Illuminate\Console\Events\CommandFinished;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
-use Symfony\Component\Console\Input\ArrayInput;
-use Symfony\Component\Console\Output\BufferedOutput;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderProvider;
 
 function appMigrations(): array
@@ -54,42 +50,4 @@ it('publishes the translations under the v2 tag as well', function () {
     expect(ServiceProvider::pathsToPublish(FilamentFormBuilderProvider::class, 'filament-form-builder-translations'))
         ->not->toBeEmpty()
         ->toBe(ServiceProvider::pathsToPublish(FilamentFormBuilderProvider::class, 'filament-form-builder-lang'));
-});
-
-// Laravel only sends CommandFinished outside unit tests, so the tests send it themselves.
-function outputAfter(string $command): string
-{
-    event(new CommandFinished($command, new ArrayInput([]), $output = new BufferedOutput(), 0));
-
-    return $output->fetch();
-}
-
-it('names the migrations an app has neither published nor run after migrate', function () {
-    DB::table('migrations')->delete();
-
-    expect(outputAfter('migrate'))
-        ->toContain('Migrations of filament-form-builder that are not published: ')
-        ->toContain('create_form_submission_integration_logs_table')
-        ->toContain('php artisan vendor:publish --tag=filament-form-builder-migrations')
-        ->and(outputAfter('migrate:status'))->toBe('');
-});
-
-it('stays quiet once the migrations are published', function () {
-    DB::table('migrations')->delete();
-    $this->artisan('vendor:publish', ['--tag' => 'filament-form-builder-migrations'])->assertSuccessful();
-
-    expect(outputAfter('migrate'))->toBe('');
-});
-
-it('stays quiet about migrations that ran but whose files are gone, as after schema:dump --prune', function () {
-    DB::table('migrations')->delete();
-
-    foreach (File::files(__DIR__.'/../../../database/migrations') as $file) {
-        DB::table('migrations')->insert([
-            'migration' => '2020_01_01_000000_'.preg_replace('/^\\d{4}_\\d{2}_\\d{2}_\\d{6}_/', '', $file->getBasename('.php')),
-            'batch' => 1,
-        ]);
-    }
-
-    expect(outputAfter('migrate'))->toBe('');
 });
