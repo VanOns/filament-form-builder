@@ -13,6 +13,10 @@ php artisan vendor:publish --tag=filament-form-builder-migrations
 php artisan migrate
 ```
 
+After an update, publish the migrations again; only the new ones are added.
+`php artisan migrate` warns about migrations of this package that are not
+published yet.
+
 Then publish the assets: the builder's own, and the script and stylesheet that
 forms on the site load. A Filament app usually does this on every
 `composer update` through `php artisan filament:upgrade`.

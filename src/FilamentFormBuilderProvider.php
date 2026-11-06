@@ -7,6 +7,7 @@ use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Filesystem\Filesystem;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use VanOns\FilamentFormBuilder\Listeners\WarnAboutUnpublishedMigrations;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Form;
 
@@ -39,6 +41,7 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
         $this->hasTranslations();
         $this->hasUpgradeMigration();
         $this->hasMultisiteMigration();
+        $this->hasUnpublishedMigrationsWarning();
         $this->hasConfig();
         $this->hasViewComponents();
         $this->hasViews();
@@ -87,6 +90,16 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
         }
 
         $this->publishes($paths, $tag);
+    }
+
+    public function hasUnpublishedMigrationsWarning(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->app['events']->listen(CommandFinished::class, [
+                new WarnAboutUnpublishedMigrations(static::class, $this->package->name, $this->package->shortName().'-migrations'),
+                'handle',
+            ]);
+        }
     }
 
     public function hasConfig(): void

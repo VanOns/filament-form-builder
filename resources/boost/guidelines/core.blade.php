@@ -24,7 +24,7 @@ return $panel->plugin(
 </code-snippet>
 @endverbatim
 
-Publish tags: `filament-form-builder-migrations`, `filament-form-builder-config` (to `config/filament-form-builder.php`), `filament-form-builder-views`, `filament-form-builder-lang`, plus `filament-form-builder-multisite-migrations` and, for a v2 upgrade only, `filament-form-builder-upgrade-migrations`.
+Publish tags: `filament-form-builder-migrations`, `filament-form-builder-config` (to `config/filament-form-builder.php`), `filament-form-builder-views`, `filament-form-builder-lang`, plus `filament-form-builder-multisite-migrations` and, for a v2 upgrade only, `filament-form-builder-upgrade-migrations`. `php artisan migrate` warns about migrations from `filament-form-builder-migrations` that are not published yet.
 
 What the app needs to run:
 - **A queue worker.** E-mail notifications (`SendFormNotificationJob`), integrations (`RunFormIntegrationJob`) and the export are queued; without a worker set `QUEUE_CONNECTION=sync`.
