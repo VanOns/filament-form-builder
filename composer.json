@@ -17,8 +17,8 @@
     "require": {
         "php": "^8.2",
         "filament/filament": "^4.13|^5.8",
-        "illuminate/contracts": "^12.0|^13.0",
-        "illuminate/support": "^12.0|^13.0",
+        "illuminate/contracts": "^12.51|^13.0",
+        "illuminate/support": "^12.51|^13.0",
         "spatie/laravel-package-tools": "^1.93.1",
         "symfony/html-sanitizer": "^7.2|^8.0"
     },
