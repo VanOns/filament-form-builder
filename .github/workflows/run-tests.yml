@@ -18,7 +18,7 @@ jobs:
         os: [ ubuntu-latest ]
         php: [ 8.2, 8.3, 8.4, 8.5 ]
         laravel: [ 12.*, 13.* ]
-        filament: [ 4.*, 5.* ]
+        filament: [ '^4.13', '^5.8' ]
         stability: [ prefer-lowest, prefer-stable ]
         include:
           - laravel: 12.*
@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        filament: [ 4.*, 5.* ]
+        filament: [ '^4.13', '^5.8' ]
 
     services:
       mysql:
