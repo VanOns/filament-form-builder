@@ -131,6 +131,11 @@ code. See [Form types](docs/usage.md#form-types).
   A front end that looked for the 201 looks for the redirect instead. Inertia follows it, and gets a
   redirect to another site as a 409 with `X-Inertia-Location`, so a `response()` that did this for
   Inertia can go.
+* A session that expired no longer ends in a 419 page: the visitor goes back to the form with the answers
+  and `filament_form_builder_expired` in the session, so the app's own handling of a 419 is not reached for
+  this route. A front end of your own has to show the message itself, see
+  [In a front end of your own](docs/usage.md#in-a-front-end-of-your-own). A request that asks for JSON
+  keeps its 419.
 * `submitter_email` is gone from the submission, the table, the export and the placeholders. Use the
   e-mail field's own key instead: its merge tag in a mail, `email` as a receiver.
 

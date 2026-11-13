@@ -31,6 +31,15 @@ message on the same page or goes to the form's redirect, see
 the browser follows. A front end in React or Vue posts to the same route, see
 [In a front end of your own](#in-a-front-end-of-your-own).
 
+A visitor whose session expired while the form was open comes back to the form
+instead of a 419 page: the answers are still there, files have to be chosen
+again, and a message above the form says it was not sent. A `components/form`
+view of your own shows that message where
+`session('filament_form_builder_expired')` is the form's id. A request that
+asks for JSON keeps its 419. From Laravel 13 a browser that tells the server
+the request comes from the site itself gets through without a token, so the
+message mostly shows on Laravel 12 and in older browsers.
+
 ## Form types
 
 A form's type decides which fields it has in code, whether editors may add
@@ -690,6 +699,12 @@ comes as a 409 with `X-Inertia-Location`, which has Inertia send the browser
 there itself. Every form type works this way, so a front end of your own needs
 no type of its own.
 
+A session that expired is answered the same way, not with a 419: back to the
+page, with the form's id in the session as `filament_form_builder_expired`.
+Share that with the page too and show
+`__('filament-form-builder::general.session_expired')` at that form, or the
+visitor sees the form again without knowing it was not sent.
+
 The server turns a form away without the [honeypot](#spam) unless it is off.
 `$form->getHoneypot()`, above, is null when the form has none; set its two
 fields with `resources/js/honeypot.js`:
@@ -722,7 +737,9 @@ next buttons, and the progress: every step by its title (the default), a bar
 with "Step 2 of 3", or none.
 
 On the site, the next button checks the step's fields before moving on, and a
-step whose fields the conditions all hide is skipped. The submit button and a
+step whose fields the conditions all hide is skipped. In the list of steps, a
+step the visitor has done is a link back to it; forward goes through the next
+button only, so every step is checked again. The submit button and a
 captcha come after the last step, where the next button was. The server checks
 every answer when the form is sent, as always, and the form opens again on the
 step with the first error. Without JavaScript every step shows, one below the
@@ -1177,10 +1194,10 @@ markup has a class for everything a site styles:
 | `ffb-title`       | A title's heading                                          |
 | `ffb-text`        | A text block                                               |
 | `ffb-submit`      | The submit button                                          |
-| `ffb-message`     | The thank-you message after a submission                   |
+| `ffb-message`     | The thank-you message after a submission; with `ffb-message-error`, the message that the session had expired |
 | `ffb-step`        | A step, a `fieldset` with its title in `ffb-step-title`    |
 | `ffb-step-nav`    | The previous, next and submit buttons below the steps; the first two are `ffb-step-button` |
-| `ffb-progress-steps` | The steps by title; each `ffb-progress-step` has `data-state` `done`, `current` or `upcoming` |
+| `ffb-progress-steps` | The steps by title; each `ffb-progress-step` has `data-state` `done`, `current` or `upcoming`, and a done step before the current one is a `ffb-progress-step-link` button |
 | `ffb-progress-bar` | The bar; `ffb-progress-fill` is as wide as `--ffb-progress` |
 
 A field with an error also has `aria-invalid="true"`. The grid comes from the
