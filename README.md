@@ -19,7 +19,7 @@ Add a customizable form builder to your Filament admin panel.
 Start by installing the package via Composer:
 
 ```bash
-composer require van-ons/filament-form-builder:^2.0
+composer require van-ons/filament-form-builder:^3.0
 ```
 
 Next, publish and run the migrations:
@@ -27,6 +27,14 @@ Next, publish and run the migrations:
 ```bash
 php artisan vendor:publish --tag=filament-form-builder-migrations
 php artisan migrate
+```
+
+Then publish the assets: the builder's own, and the script and stylesheet that
+forms on the site load. A Filament app usually does this on every
+`composer update` through `php artisan filament:upgrade`.
+
+```bash
+php artisan filament:assets
 ```
 
 Finally, add the plugin to your Filament panel provider:
@@ -45,6 +53,65 @@ class AdminPanelProvider extends PanelProvider
 }
 ```
 
+### Exporting submissions
+
+The submissions tables can export to CSV and Excel. Filament runs an export in
+the queue and sends the download link as a database notification, so the app
+needs a queue worker, the `job_batches`, `notifications` and `exports` tables,
+and database notifications in the panel:
+
+```bash
+php artisan make:notifications-table
+php artisan vendor:publish --tag=filament-actions-migrations
+php artisan migrate
+```
+
+```php
+return $panel
+    ->plugin(FilamentFormBuilderPlugin::make())
+    ->databaseNotifications();
+```
+
+Laravel's default jobs migration already creates `job_batches`; an app without
+it adds it with `php artisan make:queue-batches-table`. To leave the export out
+of a panel, call `->exportAction(false)` on the plugin; `export_action` in the
+config sets it for every panel.
+
+### What the app needs to run
+
+- **A queue worker.** E-mail notifications, integrations and the export run as
+  queued jobs, so without one nothing goes out. An app without a worker sets
+  `QUEUE_CONNECTION=sync`, which runs them during the request.
+- **The scheduler**, `php artisan schedule:run` every minute. Every night it
+  deletes the submissions older than
+  [their form keeps them](docs/usage.md#how-long-submissions-are-kept); without
+  it they stay.
+- **`php artisan filament:assets`** after every update of the package, which
+  `filament:upgrade` does, so forms on the site load the current script and
+  stylesheet.
+
+Everyone who can open the panel sees every form and submission until the app
+registers policies for them, see
+[Who sees what](docs/installation.md#who-sees-what).
+
+### Showing a form
+
+`<x-render-form :form="$form" />` shows a form on a page. An editor picks one,
+for instance in a page block, with `FormSelect::make('form_id')` from
+`VanOns\FilamentFormBuilder\Filament\Forms\Components`. See
+[Showing a form](docs/usage.md#showing-a-form) for its view, its route and its
+middleware.
+
+### A front end in React, Vue or Inertia
+
+`<x-render-form>` shows a form with its conditional fields working. A front end
+of your own uses the same rules through `resources/js/conditions.js`: hand it
+`$form->getFieldConditions()` and the answers so far, and `hiddenKeys()` says
+which fields to hide, exactly as the server reads them. `resources/js/honeypot.js`
+sets the spam traps the server expects from `$form->getHoneypot()`. See
+[In a front end of your own](docs/usage.md#in-a-front-end-of-your-own) for the
+import alias and an Inertia example.
+
 ## Documentation
 
 Please see the [documentation](https://github.com/VanOns/filament-form-builder/tree/main/docs) for detailed information about installation and usage.
@@ -58,6 +125,11 @@ Please see [Contributing](https://github.com/VanOns/filament-form-builder/blob/m
 ```bash
 composer test
 ```
+
+The tests of forms per site need `van-ons/filament-multisite`, which is
+private for now, and are skipped without it. With access to it,
+`composer multisite` installs it beside the rest without changing
+`composer.json`; `composer install` takes it out again.
 
 ## Changelog
 

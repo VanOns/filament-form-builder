@@ -5,21 +5,20 @@ namespace VanOns\FilamentFormBuilder\Traits\Integrations;
 trait HasResponses
 {
     /**
-     * @var array<string, mixed>|null
+     * @var array<mixed>|null
      */
     public ?array $response = null;
+
     public ?bool $success = null;
 
+    public ?string $error = null;
+
     /**
-     * @param null|string|array<string, mixed> $response
+     * @param  null|string|array<mixed>  $response
      */
     public function setResponse(null|string|array $response): static
     {
-        if (is_string($response)) {
-            $this->response = ['message' => $response];
-        } else {
-            $this->response = $response;
-        }
+        $this->response = is_string($response) ? ['message' => $response] : $response;
 
         return $this;
     }
@@ -32,23 +31,18 @@ trait HasResponses
     }
 
     /**
-     * @return array<string, mixed>
+     * Ends the run as failed, for good: the queue does not try again.
+     *
+     * @param  null|string|array<mixed>  $response
      */
-    public function responseData(): array
+    public function fail(string $message, null|string|array $response = null): static
     {
-        return [
-            'response' => $this->flattenResponse(),
-            'success' => $this->success ?? 'Unknown',
-        ];
-    }
+        $this->error = $message;
 
-    /**
-     * @return array<string, mixed>
-     */
-    protected function flattenResponse(): array
-    {
-        return collect($this->response ?? [
-            'message' => 'No response provided.',
-        ])->dot()->all();
+        if ($response !== null) {
+            $this->setResponse($response);
+        }
+
+        return $this->setSuccess(false);
     }
 }

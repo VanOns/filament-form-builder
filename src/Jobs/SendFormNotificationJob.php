@@ -9,8 +9,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
+use VanOns\FilamentFormBuilder\Enums\NotificationStatus;
 use VanOns\FilamentFormBuilder\Mail\FormSubmission\FormSubmissionCreatedMail;
-use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
 
 class SendFormNotificationJob implements ShouldQueue
@@ -22,28 +22,28 @@ class SendFormNotificationJob implements ShouldQueue
 
     public function __construct(
         public int $notificationLogId,
-        public string $subject,
-        public string $content,
-        public ?string $sender,
+        public FormSubmissionCreatedMail $mail,
         public string $receiver,
-        public FormSubmission $formSubmission,
-        public ?string $senderName = null,
+        /**
+         * @var list<string>
+         */
+        public array $cc = [],
+        /**
+         * @var list<string>
+         */
+        public array $bcc = [],
     ) {
     }
 
     public function handle(): void
     {
         Mail::to($this->receiver)
-            ->send(new FormSubmissionCreatedMail(
-                emailSubject: $this->subject,
-                emailContent: $this->content,
-                formSubmission: $this->formSubmission,
-                sender: $this->sender,
-                senderName: $this->senderName,
-            ));
+            ->cc($this->cc)
+            ->bcc($this->bcc)
+            ->send($this->mail);
 
         FormSubmissionNotificationLog::find($this->notificationLogId)?->update([
-            'status' => 'sent',
+            'status' => NotificationStatus::Sent,
             'sent_at' => now(),
         ]);
     }
@@ -51,7 +51,7 @@ class SendFormNotificationJob implements ShouldQueue
     public function failed(Throwable $e): void
     {
         FormSubmissionNotificationLog::find($this->notificationLogId)?->update([
-            'status' => 'failed',
+            'status' => NotificationStatus::Failed,
             'error' => $e->getMessage(),
             'failed_at' => now(),
         ]);

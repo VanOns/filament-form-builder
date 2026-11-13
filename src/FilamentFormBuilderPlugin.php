@@ -2,15 +2,26 @@
 
 namespace VanOns\FilamentFormBuilder;
 
+use BackedEnum;
 use Closure;
 use Filament\Contracts\Plugin;
+use Filament\Exceptions\NoDefaultPanelSetException;
+use Filament\FilamentManager;
 use Filament\Forms\Components\TextInput;
 use Filament\Panel;
 use Filament\Schemas\Components\Component;
 use Filament\Support\Icons\Heroicon;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Contracts\View\View;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\CreateForm;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\ViewForm;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
+use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class FilamentFormBuilderPlugin implements Plugin
 {
@@ -18,9 +29,153 @@ class FilamentFormBuilderPlugin implements Plugin
 
     protected static ?Closure $resolveRedirectUrlUsing = null;
 
+    /**
+     * @var array<string, array{label: string|Closure, value: Closure, icon: string|BackedEnum}>
+     */
+    protected static array $customMergeTags = [];
+
+    protected string | bool | Closure | null $navigationGroup = null;
+
+    protected bool | Closure | null $hasExportAction = null;
+
+    /**
+     * @var array<string>|Closure|null
+     */
+    protected array | Closure | null $withoutFields = null;
+
+    /**
+     * @var array<Component>|Closure|null
+     */
+    protected array | Closure | null $formSettings = null;
+
+    /**
+     * @var array<Component>|Closure|null
+     */
+    protected array | Closure | null $fieldSettings = null;
+
     public static function make(): static
     {
         return app(static::class);
+    }
+
+    /**
+     * The plugin of the panel being served, else of the default panel, else
+     * one with the config's defaults.
+     */
+    public static function get(): static
+    {
+        try {
+            $panel = app(FilamentManager::class)->getCurrentOrDefaultPanel();
+        } catch (NoDefaultPanelSetException) {
+            $panel = null;
+        }
+
+        $plugin = $panel?->getPlugins()['filament-form-builder'] ?? null;
+
+        return $plugin instanceof static ? $plugin : static::make();
+    }
+
+    /**
+     * Where this panel lists the forms and submissions: true for the
+     * package's own group, false for none, or a group of your own.
+     */
+    public function navigationGroup(string | bool | Closure | null $group = true): static
+    {
+        $this->navigationGroup = $group;
+
+        return $this;
+    }
+
+    public function getNavigationGroup(): ?string
+    {
+        $group = value($this->navigationGroup ?? config('filament-form-builder.navigation_group', true));
+
+        return match (true) {
+            is_string($group) => $group,
+            (bool) $group => __('filament-form-builder::general.navigation-group'),
+            default => null,
+        };
+    }
+
+    /**
+     * Field types out of this panel's palette, by their name in the `fields`
+     * config; a form that already has one keeps it.
+     *
+     * @param  array<string>|Closure  $fields
+     */
+    public function withoutFields(array | Closure $fields): static
+    {
+        $this->withoutFields = $fields;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getWithoutFields(): array
+    {
+        return (array) value($this->withoutFields ?? config('filament-form-builder.without_fields', []));
+    }
+
+    /**
+     * Settings every form in this panel gets next to those of its type, kept
+     * in the form's `settings` column. A closure receives the form type picked,
+     * or null while there is none.
+     *
+     * @param  array<Component>|Closure(?FormType): array<Component>|null  $schema
+     */
+    public function formSettings(array | Closure | null $schema): static
+    {
+        $this->formSettings = $schema;
+
+        return $this;
+    }
+
+    /**
+     * @return array<Component>
+     */
+    public function getFormSettings(?FormType $type): array
+    {
+        return (array) value($this->formSettings ?? [], $type);
+    }
+
+    /**
+     * Settings every field in this panel gets on its slide-over, kept in the
+     * field's `settings`. A closure receives the field type's class.
+     *
+     * @param  array<Component>|Closure(class-string<FormField>): array<Component>|null  $schema
+     */
+    public function fieldSettings(array | Closure | null $schema): static
+    {
+        $this->fieldSettings = $schema;
+
+        return $this;
+    }
+
+    /**
+     * @param  class-string<FormField>  $type
+     * @return array<Component>
+     */
+    public function getFieldSettings(string $type): array
+    {
+        return (array) value($this->fieldSettings ?? [], $type);
+    }
+
+    /**
+     * Whether this panel offers the submissions export, a queued Filament
+     * export that needs the tables the installation docs list.
+     */
+    public function exportAction(bool | Closure $condition = true): static
+    {
+        $this->hasExportAction = $condition;
+
+        return $this;
+    }
+
+    public function hasExportAction(): bool
+    {
+        return (bool) value($this->hasExportAction ?? config('filament-form-builder.export_action', true));
     }
 
     /**
@@ -51,13 +206,39 @@ class FilamentFormBuilderPlugin implements Plugin
         }
 
         return [
-            TextInput::make('submit_notification_url')
-                ->label(__('filament-form-builder::general.url'))
+            TextInput::make('url')
+                ->label(__('filament-form-builder::general.redirect_page'))
                 ->required()
                 ->placeholder(__('filament-form-builder::general.form_redirect_example', ['url' => 'https://example.com/form-confirmation']))
-                ->suffixIcon(Heroicon::OutlinedLink)
+                ->prefixIcon(Heroicon::OutlinedLink)
                 ->columnSpanFull(),
         ];
+    }
+
+    /**
+     * A merge tag of the project's own, such as the site's name or a number it
+     * gives a submission. Every editor offers it under "Other"; the closure gets
+     * the submission and gives the text the tag is filled in with. Registered
+     * for the whole app, as mails are filled in outside the panel.
+     *
+     * @param  Closure(FormSubmission): ?string  $value
+     */
+    public static function mergeTag(string $key, string | Closure $label, Closure $value, string | BackedEnum $icon = Heroicon::OutlinedTag): void
+    {
+        static::$customMergeTags[$key] = ['label' => $label, 'value' => $value, 'icon' => $icon];
+    }
+
+    /**
+     * @return array<string, array{label: string, value: Closure, icon: string|BackedEnum}>
+     */
+    public static function getCustomMergeTags(): array
+    {
+        return array_map(fn (array $tag): array => [...$tag, 'label' => (string) value($tag['label'])], static::$customMergeTags);
+    }
+
+    public static function forgetCustomMergeTags(): void
+    {
+        static::$customMergeTags = [];
     }
 
     public static function resolveRedirectUrl(mixed $stored, Form $form): ?string
@@ -80,6 +261,13 @@ class FilamentFormBuilderPlugin implements Plugin
             FormResource::class,
             FormSubmissionResource::class,
         ]);
+
+        // One picker for every tag button on the page, so it also opens from a modal.
+        $panel->renderHook(
+            PanelsRenderHook::BODY_END,
+            fn (): View => view('filament-form-builder::filament.merge-tag-picker'),
+            scopes: [CreateForm::class, EditForm::class, ViewForm::class],
+        );
     }
 
     public function boot(Panel $panel): void

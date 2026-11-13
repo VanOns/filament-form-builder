@@ -1,5 +1,6 @@
 <?php
 
+use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -36,29 +37,42 @@ it('can be restored after soft deletion', function () {
 it('getWrapperAttributes includes enctype and data-form-builder-form', function () {
     $form = Form::create(['title' => 'Contact']);
 
-    $attributes = $form->getWrapperAttributes();
+    $attributes = $form->getWrapperAttributes()->toHtml();
 
-    expect($attributes)->toContain('enctype=multipart/form-data')
-        ->and($attributes)->toContain("data-form-builder-form={$form->id}");
+    expect($attributes)->toContain('enctype="multipart/form-data"')
+        ->and($attributes)->toContain("data-form-builder-form=\"{$form->id}\"");
 });
 
-it('getWrapperAttributes carries the column count for CSS to lay out', function () {
-    config(['filament-form-builder.columns' => 3]);
+it('returns only the input fields when asked, whatever was asked first', function () {
+    $form = Form::create([
+        'title' => 'Bellen',
+        'template' => 'custom',
+        'custom' => ['fields' => [
+            ['type' => 'title', 'title' => 'Bel me'],
+            ['type' => 'text', 'label' => 'Naam'],
+        ]],
+    ]);
 
-    $attributes = Form::create(['title' => 'Contact'])->getWrapperAttributes();
-
-    expect($attributes)->toContain('data-form-builder-columns=3')
-        ->and($attributes)->toContain('--form-builder-columns:3');
+    expect($form->getFields())->toHaveCount(2)
+        ->and($form->getFields(inputsOnly: true))->toHaveCount(1)
+        ->and($form->getFields())->toHaveCount(2);
 });
 
-it('renders attributes without spaces, because they are written unquoted', function () {
-    config(['filament-form-builder.columns' => 3]);
+it('has no fields when its type is not registered', function () {
+    $form = Form::create(['title' => 'Leeg', 'template' => 'removed', 'custom' => ['fields' => [['type' => 'text', 'label' => 'Naam']]]]);
 
-    $attributes = Form::create(['title' => 'Contact'])->getWrapperAttributes();
+    expect($form->getType())->toBeInstanceOf(FormType::class)
+        ->and($form->getFields())->toBe([]);
+});
 
-    // AttributeHelper emits `key=value`; a space inside a value would end the
-    // attribute early and swallow the rest of the tag.
-    foreach (explode(' ', $attributes) as $pair) {
-        expect(substr_count($pair, '='))->toBeGreaterThan(0);
-    }
+it('hands the conditions of its fields to a front end of its own', function () {
+    $form = Form::create(['title' => 'Offerte', 'template' => 'custom', 'custom' => ['fields' => [
+        ['type' => 'radio', 'label' => 'Onderwerp', 'key' => 'onderwerp', 'options' => [['value' => 'anders', 'label' => 'Iets anders']]],
+        ['type' => 'textarea', 'label' => 'Toelichting', 'key' => 'toelichting', 'conditionMatch' => 'any',
+            'conditions' => [['key' => 'onderwerp', 'operator' => 'equals', 'value' => 'anders']]],
+    ]]]);
+
+    expect($form->getFieldConditions())->toBe([
+        'toelichting' => ['match' => 'any', 'rules' => [['key' => 'onderwerp', 'operator' => 'equals', 'value' => 'anders']]],
+    ]);
 });

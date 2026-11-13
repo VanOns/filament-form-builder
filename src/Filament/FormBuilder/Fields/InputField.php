@@ -2,44 +2,59 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 
-class InputField extends FormField
+abstract class InputField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.input-field';
 
-    public string $inputType = 'text';
-    public ?string $placeholder;
+    public ?string $placeholder = null;
 
-    protected function rules(): array
+    public function placeholder(?string $placeholder): static
     {
-        $type = $this->inputType;
-        $rules =  match ($type) {
-            'email' => ['email'],
-            'number' => ['numeric'],
-            'tel' => ['phone'],
-            default => [],
-        };
+        $this->placeholder = $placeholder;
 
+        return $this;
+    }
+
+    abstract public function getInputType(): string;
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected function getTypeRules(): array
+    {
+        return [];
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected function getLengthRules(): array
+    {
+        // Without these a visitor could post an array or a whole file under the key.
+        $max = config('filament-form-builder.max_length.text', 1000);
+
+        return ['string', ...(is_numeric($max) ? ['max:' . (int) $max] : [])];
+    }
+
+    protected function fieldRules(): array
+    {
         return [
             ...$this->getDefaultRules(),
-            ...$rules,
+            ...$this->getLengthRules(),
+            ...$this->getTypeRules(),
         ];
+    }
+
+    public static function editableSettings(): array
+    {
+        return [...parent::editableSettings(), 'placeholder'];
     }
 
     public static function getFields(): array
     {
         return [
-            Select::make('inputType')
-                ->label(__('filament-form-builder::fields.input_type'))
-                ->required()
-                ->options([
-                    'text' => 'Text',
-                    'number' => 'Number',
-                    'email' => 'Email',
-                    'tel' => 'Telephone',
-                ]),
             ...static::getDefaultFields(),
             TextInput::make('placeholder'),
         ];

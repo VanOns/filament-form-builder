@@ -2,63 +2,62 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
+use Throwable;
+use VanOns\FilamentFormBuilder\Classes\FieldConditions;
 use VanOns\FilamentFormBuilder\Classes\Integration;
+use VanOns\FilamentFormBuilder\Enums\IntegrationStatus;
+use VanOns\FilamentFormBuilder\Jobs\RunFormIntegrationJob;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 trait HasIntegrations
 {
+    public function hasIntegrations(): bool
+    {
+        return Integration::getIntegrations() !== [];
+    }
+
     /**
-     * @var array<int, array<string, mixed>>
+     * Queues each integration that is on and whose conditions the answers
+     * meet; one the conditions leave out is logged as skipped.
      */
-    protected static array $integrationResponses = [];
-
-    public static function hasIntegrations(): bool
+    public function triggerIntegrations(FormSubmission $submission): void
     {
-        return !empty(Integration::getIntegrations());
-    }
-
-    public static function getIntegrations(FormSubmission $submission): array
-    {
-        return $submission->getIntegrations();
-    }
-
-    public static function triggerIntegrations(FormSubmission $submission): void
-    {
-        if (!self::hasIntegrations()) {
+        if (!$this->hasIntegrations()) {
             return;
         }
 
-        foreach ($submission->getIntegrations() as $integration) {
-            self::triggerIntegration($integration);
-        }
+        foreach ($submission->form?->getIntegrations() ?? [] as $id => $integration) {
+            $class = Integration::resolve($integration['class']);
 
-        self::saveIntegrationResponses($submission);
+            if ($class === null || !$integration['enabled']) {
+                continue;
+            }
+
+            $passes = !$class::hasConditions()
+                || FieldConditions::fromArray($integration['conditions'], $integration['conditionMatch'])->passes($submission->data ?? []);
+
+            $log = $submission->integrationLogs()->create([
+                'integration_id' => $id,
+                'integration' => $class,
+                'status' => $passes ? IntegrationStatus::Queued : IntegrationStatus::Skipped,
+            ]);
+
+            if ($passes) {
+                $this->runIntegration($log->id);
+            }
+        }
     }
 
-    public static function triggerIntegration(Integration $integration): void
+    /**
+     * On the sync queue the integration runs right here, and a failure must
+     * not reach the visitor; the log already says it failed.
+     */
+    public function runIntegration(int $logId): void
     {
         try {
-            $integration->handle();
-        } catch (\Exception $e) {
-            $integration->setResponse($e->getMessage())
-                ->setSuccess(false);
+            RunFormIntegrationJob::dispatch($logId);
+        } catch (Throwable $exception) {
+            report($exception);
         }
-
-        self::storeIntegrationResponse($integration);
-    }
-
-    protected static function storeIntegrationResponse(Integration $integration): void
-    {
-        self::$integrationResponses[] = [
-            'integration' => get_class($integration),
-            'response' => $integration->responseData(),
-        ];
-    }
-
-    protected static function saveIntegrationResponses(FormSubmission $submission): void
-    {
-        $submission->update([
-            'integrations' => self::$integrationResponses,
-        ]);
     }
 }

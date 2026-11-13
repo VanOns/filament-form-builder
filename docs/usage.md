@@ -1,32 +1,1020 @@
 # Usage
 
+## Showing a form
+
+`<x-render-form :form="$form" />` shows a form on a page, with its conditional
+fields, its steps and its spam traps working; it loads the script and
+stylesheet they need once per page, see
+[Styling forms on the site](#styling-forms-on-the-site). Given `null`, it shows
+nothing. An editor picks the form, for instance in a page block, with
+`FormSelect`, which with [forms per site](installation.md#forms-per-site)
+offers the forms of the page's site:
+
+```php
+use VanOns\FilamentFormBuilder\Filament\Forms\Components\FormSelect;
+
+FormSelect::make('form_id')->required()
+```
+
+Every form renders through the `components/form` view. Pass another for one
+form with `<x-render-form :form="$form" view="forms.vacancy" />`, or publish
+the views with `php artisan vendor:publish --tag=filament-form-builder-views`
+and keep only the files you change.
+
+The form posts to `/filament-form-builder/{id}/submit`, the route
+`filament-form-builder.form.store`, through the middleware in
+`form_middleware`: `web` by default. Add what the site's own pages run through
+and the submission needs too, such as the middleware that sets the language,
+which the validation messages follow. The visitor then sees the thank-you
+message on the same page or goes to the form's redirect, see
+[Submit notification](#submit-notification); both come as a 303 redirect, which
+the browser follows. A front end in React or Vue posts to the same route, see
+[In a front end of your own](#in-a-front-end-of-your-own).
+
+A visitor whose session expired while the form was open comes back to the form
+instead of a 419 page: the answers are still there, files have to be chosen
+again, and a message above the form says it was not sent. A `components/form`
+view of your own shows that message where
+`session('filament_form_builder_expired')` is the form's id. A request that
+asks for JSON keeps its 419. From Laravel 13 a browser that tells the server
+the request comes from the site itself gets through without a token, so the
+message mostly shows on Laravel 12 and in older browsers.
+
+## Form types
+
+A form's type decides which fields it has in code, whether editors may add
+their own on the canvas, and what happens around a submission. The `types`
+config maps the name a form stores in its `template` column to the class behind
+it:
+
+```php
+'types' => [
+    'custom' => Forms\CustomForm::class,
+    'contact' => Forms\ContactForm::class,
+    'application' => App\Forms\VacancyApplication::class,
+],
+```
+
+`custom` leaves every field to the editor, `contact` has all of them in code.
+A new form is `custom`; editors pick another type behind the "Use a fixed form"
+switch, which only shows when `custom` and at least one other type are
+registered. A type of your own extends `FormType` and returns its fields from `fields()`,
+built with the same field classes the canvas stores:
+
+```php
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
+use VanOns\FilamentFormBuilder\Forms\CustomFields;
+use VanOns\FilamentFormBuilder\Forms\FormType;
+
+class VacancyApplication extends FormType
+{
+    public static function getLabel(): string
+    {
+        return 'Sollicitatie';
+    }
+
+    public function fields(): array
+    {
+        return [
+            Fields\TextInputField::make('voornaam')->label('Voornaam')->required()->span(FieldWidth::HALF),
+            Fields\TextInputField::make('achternaam')->label('Achternaam')->required()->span(FieldWidth::HALF),
+            Fields\TextInputField::make('vacature')->hidden()->default(request()->query('vacature')),
+            CustomFields::make(),
+            Fields\CheckboxField::make('privacy')->label('Ik ga akkoord met de privacyverklaring')->required(),
+            Fields\SubmitField::make('verstuur')->label('Verstuur'),
+        ];
+    }
+}
+```
+
+- `CustomFields::make()` marks where the fields an editor builds go. A type
+  without it has no canvas.
+- The canvas shows the type's own fields around the editor's, locked in place,
+  and marks the editor's part as "Custom fields". That part always starts and ends on a
+  row of its own, on the page too. The type's keys stay reserved, and so do
+  those of its `extraValues()`, so an editor's field never takes one.
+- A field added in code later with a key an editor's field already has wins:
+  the editor's field is left out of the form, with a warning in the log, and
+  the canvas flags it until it is deleted or gets another key.
+- A hidden field renders as `<input type="hidden">` holding its default value,
+  which suits context such as the vacancy a visitor applies for.
+- Any field with a default can start with a parameter of the page's URL
+  instead: "Fill from the URL" under Advanced on the canvas, or
+  `->defaultFromQuery('vacature')` in code, so `?vacature=Adviseur` fills it.
+  Without the parameter the default applies. A visitor can change the URL, so
+  it suits context, not something to trust.
+- A type without fields of its own and without `CustomFields::make()` shows no
+  fields section at all; one with fields but no marker shows them with only
+  their texts to change.
+
+#### Texts an editor may change
+
+An editor may change the texts of a field from code: a click on it opens a
+slide-over with just those. Its key, type, rules, required, width, place and
+conditions stay with the code, and so do the values of its options.
+
+| Field type                                  | Texts                                   |
+|---------------------------------------------|-----------------------------------------|
+| Text, e-mail, phone, number, text area, dropdown | label, description, placeholder    |
+| Date, upload, checkbox                      | label, description                      |
+| Radio, checkbox list, dropdown              | also the labels of the options          |
+| Consent                                     | its text, label, description            |
+| Title, step                                 | title                                   |
+| Text block                                  | text                                    |
+| Submit                                      | label                                   |
+
+The form stores only what differs from the code, in `custom.overrides` by field
+key, so a text the developer changes later still comes through where the editor
+left it alone; emptying a text, or **Back to default**, brings the code's back.
+An option's label goes by its value, so it stays with its option when the code
+adds or moves one, and the value is what a submission stores. Everything that
+reads the form's fields follows: the page, the validation messages, the merge
+tags, the export and the submission's page.
+
+`editable()` narrows it per field, or opens up a setting of the field type
+beyond its texts:
+
+```php
+Fields\ConsentField::make('voorwaarden')->editable(false),          // nothing
+Fields\EmailField::make('email')->label('E-mail')->editable(['label']), // only the label
+Fields\RadioField::make('soort')->editable(['label', 'description']),  // not the option labels
+```
+
+A field type of your own lists its texts in `editableSettings()`.
+
+### Hooks
+
+Every method below runs on an instance, with the form in `$this->form`.
+
+| Method                                                    | When it runs                          | Affects                                                                  |
+|-----------------------------------------------------------|---------------------------------------|--------------------------------------------------------------------------|
+| `beforeValidation(array $data)`                           | Before validation                     | What is validated, and so what is stored                                 |
+| `beforeStore(array $data)`                                | Before the submission is stored       | Stored `data`                                                            |
+| `formatValues(array $values, FormSubmission $submission)` | Whenever answers are shown            | The table, the detail page, the export, the mails and their placeholders |
+| `afterSubmission(FormSubmission $submission)`             | Once a visitor's submission is stored | Queues the notifications and the integrations                            |
+| `response(FormSubmission $submission)`                    | After that                            | Replaces the redirect or message when it returns something               |
+
+A visitor can only post the keys of the form's fields. A value `beforeStore()`
+adds on its own is declared in `extraValues()` as key => label, so it gets a
+label, a placeholder and a column like any field:
+
+```php
+public function extraValues(): array
+{
+    return ['received_from' => 'Received from'];
+}
+
+public function beforeStore(array $data): array
+{
+    return [...$data, 'received_from' => request()->headers->get('referer')];
+}
+```
+
+`formatValues()` receives the answers after the fields formatted them (a choice
+already reads as its label, a file as its download link) and keeps the field
+keys. Whatever it returns is what every output shows:
+
+```php
+public function formatValues(array $values, FormSubmission $submission): array
+{
+    return [...$values, 'property_type' => PropertyType::tryFrom($values['property_type'] ?? '')?->getLabel()];
+}
+```
+
+`rules()` gives rules by field key, added after the rules of the field itself.
+A field in code takes its own with `->rules()`; this is for a field an editor
+built on the canvas, and for a rule about more than one field:
+
+```php
+public function rules(): array
+{
+    return [
+        'email' => ['unique:users,email'],
+        'einddatum' => ['after:startdatum'],
+    ];
+}
+```
+
+They are checked when the form is sent and, where
+[the server checks each step](#checking-a-step-on-the-server), with the step
+their field is in. A rule for a key the form has no field for is left out, so
+an editor who removes that field does not lock the form.
+
+A type may also override `settings()` (extra fields in the form's settings,
+under the canvas, stored in its `settings` column), `messages()` (validation
+messages), and the admin toggles described below.
+
+Settings every form should have, whatever its type, go on the plugin. They show
+next to the type's own and are stored in the same `settings` column; the
+closure gets the type picked, so a setting can also be for one type only:
+
+```php
+FilamentFormBuilderPlugin::make()
+    ->formSettings(fn (?FormType $type): array => [
+        Toggle::make('show_in_footer')->label('Show in the footer'),
+        ...$type instanceof VacancyForm ? [TextInput::make('department')->label('Department')] : [],
+    ]);
+```
+
+Read them as `$form->settings['show_in_footer']`.
+
+## Field types
+
+The `fields` config maps the name a form stores to the class behind it:
+
+```php
+'fields' => [
+    'text' => Fields\TextInputField::class,
+    'email' => Fields\EmailField::class,
+    // ...
+    'postcode' => App\Forms\PostcodeField::class,
+],
+```
+
+Stored forms only know the name, so a field class can be renamed, moved or
+swapped for a project's own subclass by changing its entry here. Add an entry
+to offer a field type of your own in the builder's palette.
+
+A text answer is at most `max_length.text` characters (1000), a text area
+`max_length.textarea` (20000); `null` lifts the limit. An upload has to be one
+of `uploads.extensions`, judged by its content rather than its name, and the
+file picker offers only those; `null` takes any file.
+
+A field can limit what a visitor may answer. An editor sets the limits under
+"Validation" in the field's slide-over, a field in code with the setters
+below, as in `NumberField::make('bedrag')->min(1)->max(500)->decimals(2)`. The
+server checks them, and the browser gets the same ones where HTML has an
+attribute for them:
+
+| Field           | Limits                                                                 | In code                                                   | In the browser           |
+|-----------------|------------------------------------------------------------------------|-----------------------------------------------------------|--------------------------|
+| Text, text area | The fewest and the most characters, never past `max_length`            | `minLength()`, `maxLength()`                              | `minlength`, `maxlength` |
+| Number          | A minimum, a maximum, and decimals: without them only whole numbers    | `min()`, `max()`, `decimals()`                            | `min`, `max`, `step`     |
+| Date            | An earliest and a latest date, each a fixed one, today, or the stricter | `minDate()`, `maxDate()`, `notInPast()`, `notInFuture()` | `min`, `max`             |
+| Checkboxes      | The fewest and the most choices                                        | `minItems()`, `maxItems()`                                | None, the server only    |
+| Upload          | Fewer file types than `uploads.extensions`, smaller files than `uploads.max_size`, and with multiple uploads fewer files than `uploads.max_files` (10) | `extensions()`, `maxSize()`, `maxFiles()` | `accept` |
+
+A limit only counts for an answer that is given, so an optional field may stay
+empty. "Today", for a date that may not be in the past or in the future, is the
+day in the app's `app.timezone`: on UTC that runs an hour or two behind the
+Netherlands around midnight. Every setter has a getter, such as `getMin()`,
+`getMaxLength()` or `getMinDate()`, for a front end of your own. A field type
+of your own offers its settings under "Validation" by returning them from
+`getValidationFields()`, and turns them into rules in `fieldRules()`.
+
+Besides text, e-mail, phone, number, choices and uploads there is a date,
+stored as the date input sends it (`2026-10-07`) and shown in the format the
+editor picks (`7 October 2026`, `07-10-2026`, `7 Oct 2026` or `2026-10-07`),
+and a consent: a box that is always required and never ticked in advance,
+beside a text whose links open the terms in a new tab. Only links, bold and
+italic survive in that text. Its optional name ("Privacy") heads its column,
+and without one the text itself does.
+
+A field type that returns false from `isAvailable()` stays out of the palette,
+while a field of that type already on a form stays there. reCAPTCHA and
+Turnstile do so until they are enabled with a key and a secret, see
+[Spam](#spam).
+
+Settings every field should have, such as a CSS class for a project's own
+views, go on the plugin too. They show under "Other" on the Advanced tab of a
+field's slide-over, or above the preview for a field without one, and are kept
+on the field. The closure gets the field type's class:
+
+```php
+FilamentFormBuilderPlugin::make()
+    ->fieldSettings(fn (string $type): array => $type::isInput()
+        ? [TextInput::make('css_class')->label('CSS class')]
+        : []);
+```
+
+Read them as `$field->getSetting('css_class')`; a field in code sets them with
+`->settings(['css_class' => 'wide'])`.
+
+A field type that stores more than one value, such as a branch picker that
+also keeps the branch's name and e-mail address, lists them all in
+`getSubmissionColumns()` so each gets a label and a column. Only the keys in
+`getInputKeys()`, the field's own key unless it says otherwise, are taken from
+what the visitor posts; the other columns are for the field or its form type's
+`beforeStore()` to fill in.
+
+## Showing answers
+
+The detail page of a submission shows the answers in the shape of the form:
+under the form's titles, each field at the width it has on the canvas, a hidden
+field marked as such and an unanswered one as a dash. An answer reads as text
+by default, a link for an e-mail address or phone number, labels for a list of
+choices, a check for a checkbox; a field that fills several columns shows them
+together, and an upload shows its files. "As a list" turns this into one row
+per answered field with its key, and the page remembers that choice for the
+session. The values a form type adds itself (`extraValues()`) show with the
+submission's details instead, since nobody answered them.
+
+A field can format its answer. The callback receives the value and the
+submission, never an empty answer, and what it returns is what the table, the
+detail page, the export and the mails show. An array becomes labels on the
+detail page and a comma-separated list everywhere else:
+
+```php
+NumberField::make('hours')
+    ->formatAnswerUsing(fn (int $value, FormSubmission $submission): string => "{$value} hours a week")
+```
+
+For something richer on the detail page only, give the field a Blade view of
+its own. It receives `$value` (formatted), `$raw` (as stored), `$field`,
+`$submission` and `$answer`, a `SubmissionAnswer`:
+
+```php
+BranchField::make('branch')->answerView('answers.branch')
+```
+
+A field type sets the default for all its fields in `$answerView`, which the
+built-in views `filament-form-builder::answers.text`, `.email`, `.phone`,
+`.boolean` and `.columns` use too.
+
+Every submission keeps a snapshot of the form's fields as they were when it
+was submitted, down to the title each sat under and its width, so its answers
+keep the layout they came in with: a field added since is left out, and one
+moved since stays where it was. The answers to a field that has since been
+removed show apart,
+under the label they had, and a choice still reads as the option's label. A
+key the snapshot does not know shows under its own name. The export of a form
+puts these answers together in an "Other data" column, one per line.
+
+A submission also keeps where it came from: the page its form was on, and in
+`meta` the browser, the language of the site, the signed-in user, the
+`utm_*` parameters of the page and, only when switched on, the IP address.
+The details on its page show them, and the submission tables and the export
+offer them as columns, off until someone ticks them. The `submission_meta`
+config turns each on or off, its column with it; an IP address is personal
+data, so `ip` is `false` by default, or `'anonymized'` (without its last part)
+or `'full'`.
+
+A submission counts as read once someone opens its page, stored in `read_at`
+without touching `updated_at` or firing an update. Unread ones show an
+envelope and bold text in the tables, the navigation and a form's Submissions
+tab count them, and the tables filter and mark them in bulk. The page itself
+can mark one unread again and steps to the newer and older submission of the
+same form, also with the `k` and `j` keys.
+
+### How long submissions are kept
+
+Submissions stay until someone deletes them, unless `retention_months` in the
+config is set: every night the ones older than that go, with their files and
+including trashed ones. A form can keep them shorter, longer or forever under
+"Keep submissions" in its details, and its Submissions tab says for how long.
+The package schedules `model:prune` for this, so the app's scheduler has to
+run; without it nothing is deleted.
+
+## Filtering submissions
+
+The submissions tab of a form has a column per field, hidden until someone
+turns it on, except for the fields an editor marks "Show as a column"
+(`->showColumn()` in code). A field's "Column name" (`->columnLabel('Hours')`)
+is its short name there and wherever answers are listed apart from the form:
+the export, the filters, the merge tags and the mails. The detail page keeps
+the question.
+
+The tab filters by rules such as "Name contains jan" or
+"Hours is at least 32", combined with and and or. Every field offers the rules
+that suit its type: text matches whatever its case, a number compares as a
+number, a choice goes by its options, a checkbox by whether it was ticked and
+an upload by whether there is a file. The page a submission came from and its
+campaign's `utm_source`, `utm_medium` and `utm_campaign` have text rules too.
+The inverse of a rule, such as "does not contain", also matches the
+submissions that left the field empty. The list of all submissions only
+filters by form.
+
+Groups joined by or need Livewire to accept state 13 levels deep, where it
+stops at 10 by default; until then the filter offers rules joined by and only.
+Raise the limit in `config/livewire.php` (`php artisan livewire:publish --config`
+if the app has none yet):
+
+```php
+'payload' => [
+    // ...
+    'max_nesting_depth' => 13,
+],
+```
+
+A field type of your own offers its rules in `getFilterConstraints()`. By
+default every column it fills gets the text rules:
+
+```php
+use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
+
+public function getFilterConstraints(): array
+{
+    return [AnswerConstraints::choice($this->getKey(), $this->getColumnLabel(), Branch::options())];
+}
+```
+
+## After a submission
+
+Once a visitor's submission is stored, the form type's `afterSubmission()`
+queues the e-mail notifications and the form's [integrations](#integrations).
+A submission created in code, by a seeder or an import, triggers neither.
+
+To react to every form a visitor sends, whatever its type, listen for
+`VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmitted`. It fires after
+`afterSubmission()`, with the stored submission as `$event->formSubmission`.
+`FormSubmissionCreated` fires for every stored submission, also one made in
+code. Both models fire an event for every change: `FormCreated`,
+`FormUpdated`, `FormDeleted`, `FormRestored` and `FormForceDeleted` in
+`Events\Form`, and the same for a submission in `Events\FormSubmission`.
+
+### E-mail notifications
+
+The Notifications tab shows a form's e-mails as cards, under what the visitor
+sees after sending: who they go to, when, and how often they went out. A
+notification is edited in a slide-over:
+
+- **To**: fields of the form that hold an e-mail address, or addresses typed in.
+  A choice whose every option is an address counts too, so a mail can go to the
+  branch a visitor picks. Every recipient gets a mail of their own.
+- **CC** and **BCC**: the same kind of recipients, getting a copy of each of
+  those mails; an address the mail is already for gets no copy of it.
+- **Reply to**: a field or an address, so a reply goes to the person who sent
+  the form.
+- **Sending**: always, or only when the answers meet conditions, the same rules
+  fields use to show.
+- **Attachments**: the uploads go along up to `uploads.attach_max_size`
+  kilobytes together; larger ones stay a link.
+- A switch on the card turns a notification off without deleting it, and
+  **Test mail to me** sends it, filled in with the latest submission, to the
+  person editing it.
+
+On a form that already exists, saving, switching, duplicating or deleting a
+notification stores it straight away; a form being created keeps them until it
+is saved.
+
+Every mail goes out from a `SendFormNotificationJob` of its own, so like the
+integrations it needs a queue worker unless the queue is `sync`. The
+submission's page lists each mail as queued, sent or failed, with the error.
+`email_notifications` set to `false` in the config, or `hasNotifications()`
+returning false on a form type, leaves the e-mails out of the Notifications tab
+and sends none.
+
+A new notification starts empty, as a confirmation to the person who sent the
+form, or as a message for staff with every answer and a link to the
+submission. A field type of your own offers its e-mail columns as recipients
+in `getEmailColumns()`.
+
+### Merge tags
+
+The subject, the content and the sender name of an e-mail notification take
+merge tags. The editor's tag button opens a picker that groups them and
+searches as you type, and typing `{{` in the text offers them too: every answer
+of the form by its label, the form title, all fields as one block, the
+submission's number and date, the page it was sent from, and a link to the
+submission in the panel. They are stored as
+Filament's merge tag nodes and filled in when the mail is sent, each answer
+escaped. A tag for a field the form no longer has stays empty, and the e-mail
+tab warns about it.
+
+Content written before merge tags holds `{{ $key }}` as text. It is still read
+as the same tag, and the editor shows it as one once the form is opened.
+
+A project adds tags of its own, such as the site's name or a number it gives a
+submission, in a service provider's `boot()`. The editors offer them under
+"Other", in the mails, the thank-you message and the redirect query alike, and
+no field can take their key:
+
+```php
+FilamentFormBuilderPlugin::mergeTag(
+    'site_name',
+    label: 'Site name',
+    value: fn (FormSubmission $submission): string => config('app.name'),
+    icon: Heroicon::OutlinedGlobeAlt,
+);
+```
+
+The closure runs for every mail and thank-you message, so keep it cheap; it
+gives text, which is escaped like an answer.
+
+### Integrations
+
+The Integrations tab passes every submission on to another system. Each
+integration is a card that shows what it sends, when it runs, and how often it
+succeeded or failed lately. **Add integration** has a tile for every type in
+the `integrations` config, so an editor picks the type straight away. Its
+slide-over holds the integration's own settings, the fields it asks of the
+form, and when it runs: always, or only when the answers meet conditions. A
+switch turns one off without deleting it, and on a form that already exists
+every change is stored straight away.
+
+Each integration that is on gets a `RunFormIntegrationJob` of its own once a
+visitor sends the form, so the app needs a queue worker unless the queue is
+`sync`. One whose conditions leave it out is logged as skipped. When an
+integration throws, the job tries again after ten seconds and after a minute;
+when it calls `fail()`, it stops at once. The submission's page shows how each
+integration went, what came back, and **Run again**.
+
+#### The webhook
+
+`WebhookIntegration` posts every submission as JSON to a URL, such as one of
+n8n or Zapier:
+
+```php
+'integrations' => [
+    VanOns\FilamentFormBuilder\Integrations\WebhookIntegration::class,
+],
+```
+
+It can sign in with a bearer token, a username and password, or a header of
+your own, stored encrypted. Its slide-over shows the JSON the latest
+submission would send:
+
+```json
+{
+    "form": {"id": 4, "title": "Contact"},
+    "submission": {
+        "id": 214,
+        "submitted_at": "2026-10-07T15:58:12+02:00",
+        "source_url": "https://example.com/contact",
+        "url": "https://example.com/admin/form-submissions/214"
+    },
+    "data": {"voornaam": "Jan", "email": "jan@example.com"},
+    "labels": {"voornaam": "Voornaam", "email": "E-mailadres"}
+}
+```
+
+An answer in the 400s fails for good; one in the 500s, or none at all, is tried
+again. **Send test** posts the latest submission once, without logging it.
+
+The URL has to lead to the public internet: a host that resolves to localhost,
+a private network or a reserved address, also after a redirect, fails without
+a request. Set `webhook.allow_private_network` to `true` for a receiver beside
+the app, such as n8n on the same server.
+
+#### Writing an integration
+
+An integration extends `VanOns\FilamentFormBuilder\Classes\Integration` and
+is added to the `integrations` config:
+
+```php
+use BackedEnum;
+use Filament\Forms\Components\Select;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Http;
+use VanOns\FilamentFormBuilder\Classes\Integration;
+use VanOns\FilamentFormBuilder\Classes\MappedField;
+
+class NewsletterIntegration extends Integration
+{
+    public static function label(): string
+    {
+        return 'Newsletter';
+    }
+
+    public static function description(): ?string
+    {
+        return 'Puts the person who sent the form on a mailing list.';
+    }
+
+    public static function icon(): string|BackedEnum
+    {
+        return Heroicon::OutlinedNewspaper;
+    }
+
+    public static function schema(): array
+    {
+        return [
+            Select::make('list')->options(['customers' => 'Customers'])->required(),
+            static::secretInput('api_key')->required(),
+        ];
+    }
+
+    public static function fields(): array
+    {
+        return [
+            MappedField::make('email', 'E-mail')->email()->required(),
+            MappedField::make('first_name', 'First name'),
+            MappedField::make('note', 'Note')->text(),
+        ];
+    }
+
+    public static function summary(array $integration): ?string
+    {
+        return 'List ' . ($integration['list'] ?? '');
+    }
+
+    public function handle(): void
+    {
+        $response = Http::withToken($this->secret('api_key'))
+            ->post("https://api.example.com/lists/{$this->setting('list')}/members", $this->mapped());
+
+        if ($response->serverError()) {
+            $response->throw();
+        }
+
+        if ($response->failed()) {
+            $this->fail($response->json('message', 'Not subscribed.'), $response->json());
+
+            return;
+        }
+
+        $this->setResponse($response->json());
+    }
+}
+```
+
+| Method                                 | What it is for                                                                                                                                                                                                                                                                                       |
+|----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `label()`, `description()`, `icon()`   | Its tile and its card                                                                                                                                                                                                                                                                                |
+| `schema()`                             | Its own settings, stored on the form; `setting()` reads one. `secretInput()` stores what is typed encrypted and `secret()` reads it back. A `SettingsGroup` in it gets a heading of its own. A setting cannot be named `id`, `class`, `enabled`, `mapping`, `conditions` or `conditionMatch`. |
+| `fields()`                             | What it asks of the form. A `MappedField` is a select of the form's fields, filled in by name for a new integration; `email()` offers the fields with an e-mail address only, `text()` makes it a line of text with merge tags. `mapped()` gives the answers as the export shows them, `mapped(raw: true)` as stored. |
+| `summary()`                            | A line under its name on the card                                                                                                                                                                                                                                                                    |
+| `hasConditions()`                      | `false` leaves out when it runs, for one that must always run                                                                                                                                                                                                                                       |
+| `isTestable()`                         | `true` adds **Send test**; only for one that does no harm when it runs once more                                                                                                                                                                                                                    |
+| `handle()`                             | Sends the submission on, in `$this->formSubmission`. `setResponse()` keeps what came back for the submission's page; `fail()` ends the run as failed without trying again; an exception is tried again.                                                                                          |
+
+## Conditional fields
+
+A custom field can depend on other answers: on its Conditions tab an editor adds
+rules such as "Onderwerp is equal to anders" and chooses whether all of them or
+any of them must hold. The field renders the rules as JSON in a `data-conditions`
+attribute, which `resources/js/form-builder.js` evaluates to show or hide it; the
+form loads that script itself. A hidden field is disabled, so it is not posted
+and what the visitor typed is back when it shows again. On the server, a
+required conditional field is only required while its conditions show it.
+
+A title or text block can have conditions too, on its wrapper. It has no answer,
+so no rule looks at it; it shows while its rules hold for the fields that show.
+A field type of your own without an answer opts in with `canHaveConditions()`.
+`field_conditions` set to `false` in the config leaves the Conditions tab out
+of the builder; conditions a field already has, or gets in code, still apply.
+
+What a rule can test depends on the field it looks at, through the field type's
+`getConditionOperators()`: any answer can equal a value or be empty, a number
+can also be greater than, at least, less than or at most a value, a date can
+be before, on or before, after or on or after a date, and a checkbox is ticked
+or not. `getConditionPhrase()` gives the words a rule reads as, and
+`getConditionValueComponent()` the input its value is filled in with: the
+field's own choices, a date picker for a date, a number field for a number and
+text for the rest. The same rules
+decide when an e-mail notification goes out and which outcome follows a
+submission.
+
+### In a front end of your own
+
+A front end in React, Vue or anything else, such as one on Inertia, uses the
+same rules through `resources/js/conditions.js`. It has no dependencies, and
+`resources/js/conditions.d.ts` types it. Point an alias at the package, the
+way Ziggy is often imported from `vendor`:
+
+```js
+// vite.config.js
+resolve: {
+    alias: {
+        '@form-builder': path.resolve(__dirname, 'vendor/van-ons/filament-form-builder/resources/js'),
+    },
+},
+```
+
+```json
+// tsconfig.json, compilerOptions
+"paths": {
+    "@form-builder/*": ["./vendor/van-ons/filament-form-builder/resources/js/*"]
+}
+```
+
+Hand the page the conditions with the fields. `$form->getFieldConditions()`
+gives the fields that have any, by key. A title or text block has no key: hand
+its own `$field->getConditions()->toArray()` along with it and check it with
+`isShown()`.
+
+```php
+return Inertia::render('Contact', [
+    'form' => [
+        'id' => $form->id,
+        'fields' => $fields, // however your front end reads them
+        'conditions' => $form->getFieldConditions(),
+        'honeypot' => $form->getHoneypot(),
+    ],
+]);
+```
+
+| Function                       | Gives                                                                    |
+|--------------------------------|--------------------------------------------------------------------------|
+| `hiddenKeys(conditions, values)` | The keys of the fields to hide, as a `Set`. A hidden field counts as empty for the others, so a field that depends on a hidden one hides too |
+| `readValues(form)`             | The answers in a form element by key, the way it would post them         |
+| `passes(conditions, values)`   | Whether one field's conditions hold                                      |
+| `isShown(conditions, values, hidden)` | Whether a title or text block shows: its conditions hold for the answers of the fields that show |
+| `matches(value, operator, expected)` | Whether an answer meets one rule                                   |
+
+They read the rules exactly as the server does, so a field the page hides is
+one the server does not require. With Inertia's `<Form>`, which posts what is
+in the form element, reading the answers on every change is enough:
+
+```tsx
+import { Form } from '@inertiajs/react'
+import { useState } from 'react'
+import { hiddenKeys, readValues } from '@form-builder/conditions'
+
+export default function ContactForm({ form }) {
+    const defaults = Object.fromEntries(form.fields.map((field) => [field.key, field.defaultValue]))
+    const [hidden, setHidden] = useState(() => hiddenKeys(form.conditions, defaults))
+
+    return (
+        <Form
+            action={`/filament-form-builder/${form.id}/submit`}
+            method="post"
+            onChange={(event) => setHidden(hiddenKeys(form.conditions, readValues(event.currentTarget)))}
+        >
+            {form.fields
+                .filter((field) => !hidden.has(field.key))
+                .map((field) => <Field key={field.key} field={field} />)}
+        </Form>
+    )
+}
+```
+
+A field left out of the form is not posted. With `useForm()` instead, pass its
+`data` as the values and leave the hidden keys out with `transform()`.
+
+Inertia follows the 303 the route answers with, back to the page with the
+thank-you message in the session as `submit_notification_content`, so share
+that with the page; or on to the form's redirect. A redirect to another site
+comes as a 409 with `X-Inertia-Location`, which has Inertia send the browser
+there itself. Every form type works this way, so a front end of your own needs
+no type of its own.
+
+A session that expired is answered the same way, not with a 419: back to the
+page, with the form's id in the session as `filament_form_builder_expired`.
+Share that with the page too and show
+`__('filament-form-builder::general.session_expired')` at that form, or the
+visitor sees the form again without knowing it was not sent.
+
+The server turns a form away without the [honeypot](#spam) unless it is off.
+`$form->getHoneypot()`, above, is null when the form has none; set its two
+fields with `resources/js/honeypot.js`:
+
+```tsx
+import { honeypotInput } from '@form-builder/honeypot'
+
+{form.honeypot && (
+    <>
+        <input {...honeypotInput(form.honeypot)} />
+        <input type="hidden" name={form.honeypot.tokenField} value={form.honeypot.token} />
+    </>
+)}
+```
+
+With `useForm()`, start its data with `honeypotFields(form.honeypot)` and bind
+the hidden field's value to it, so a bot that fills it in posts what it typed.
+The token holds the moment the page was made, so hand a fresh one with every
+page: a form sent within `honeypot.min_seconds` of it counts as a bot. Turn the
+button off while Inertia's `processing` is true; the server stores a double
+click once either way.
+
+## Steps
+
+A long form can show one step at a time. On the canvas, drag in a **New step**
+where a step should start and give it a title; the fields before the first one
+make the first step. With the first step field, a start block appears at the top
+of the canvas. It sets the first step's title, the labels of the previous and
+next buttons, and the progress: every step by its title (the default), a bar
+with "Step 2 of 3", or none.
+
+On the site, the next button checks the step's fields before moving on, and a
+step whose fields the conditions all hide is skipped. In the list of steps, a
+step the visitor has done is a link back to it; forward goes through the next
+button only, so every step is checked again. The submit button and a
+captcha come after the last step, where the next button was. The server checks
+every answer when the form is sent, as always, and the form opens again on the
+step with the first error. Without JavaScript every step shows, one below the
+other, and the form works as one.
+
+In code, a form type starts a step with `StepField`, and sets what the start
+block would in `stepSettings()`:
+
+```php
+use VanOns\FilamentFormBuilder\Classes\StepSettings;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\StepField;
+
+public function fields(): array
+{
+    return [
+        TextInputField::make('naam')->label('Naam')->required(),
+        StepField::make('motivatie_stap')->title('Motivatie'),
+        TextAreaField::make('motivatie')->label('Motivatie'),
+        SubmitField::make('verstuur'),
+    ];
+}
+
+public function stepSettings(): array
+{
+    return StepSettings::normalize(['title' => 'Over jou', 'progress' => 'bar']);
+}
+```
+
+### Checking a step on the server
+
+The browser checks what an editor can set: required, an e-mail address, a
+length. A rule only the server knows, such as `unique` or `exists`, is checked
+when the form is sent, and the form then opens again on that step. A form type
+can have the server check each step before the visitor moves on:
+
+```php
+public function fields(): array
+{
+    return [
+        EmailField::make('email')->label('E-mail')->required()->rules(['unique:users,email']),
+        StepField::make('profiel')->title('Your profile'),
+        // ...
+    ];
+}
+
+public function validatesSteps(): bool
+{
+    return true;
+}
+```
+
+`validate_steps` in the config does the same for every form type.
+
+The next button then posts the answers so far to the form's own route with
+[Laravel Precognition](https://laravel.com/docs/precognition), which checks the
+step's fields only and stores nothing. A message shows under its field and the
+visitor stays on the step. Uploads only go along with the form itself, and
+when the server cannot be reached the visitor moves on: the form is checked in
+full once it is sent anyway. These checks have a limit of their own, 60 a
+minute per visitor, apart from `rate_limit_per_hour`, and the spam traps wait
+for the form itself.
+
+The steps render through `components/steps`, the progress through
+`components/steps/progress-steps` or `progress-bar`; the classes are under
+[Styling forms on the site](#styling-forms-on-the-site). A `components/form` of
+your own shows the steps with
+`<x-filament-form-builder::steps :form="$form" />` where `$form->hasSteps()`.
+The answers of a submission are grouped per step on its page.
+
+### Steps in a front end of your own
+
+`resources/js/steps.js` holds the same logic for React, Vue or anything else,
+typed by `steps.d.ts`, next to `conditions.js`. Hand the page the steps with
+the fields:
+
+```php
+'steps' => $form->getStepKeys(), // per step its title and the keys of its fields
+```
+
+| Function                                   | Gives                                                                 |
+|--------------------------------------------|-----------------------------------------------------------------------|
+| `visibleSteps(steps, hidden)`              | The indexes of the steps that show, given the keys `hiddenKeys()` hides |
+| `nextStep(steps, hidden, current)`         | The next step that shows, or `null` on the last                      |
+| `previousStep(steps, hidden, current)`     | The previous step that shows, or `null` on the first                 |
+| `firstStepWithError(steps, errorKeys)`     | The step to open after the server turned the form away                |
+| `progress(steps, hidden, current)`         | `{ number, total, percent }` among the steps that show               |
+| `reportStep(element)`                      | Shows why a step's fields cannot be left yet; true when they can      |
+| `validateOnly(keys)`                       | The `Precognition-Validate-Only` header for checking a step's keys    |
+
+Keep every step mounted and hide the others with `hidden`: `<Form>` posts what
+is in the form element, so a step that is not rendered loses its answers. Keep a
+captcha laid out until the last step, with `visibility: hidden` rather than
+`hidden`: Turnstile does not draw itself in an element that is not displayed. Give
+the form `noValidate`, or the browser stops at a required field in a step the
+visitor has not seen yet, and check the step with `reportStep()` instead:
+
+```tsx
+import { Form } from '@inertiajs/react'
+import { useEffect, useRef, useState } from 'react'
+import { hiddenKeys, readValues } from '@form-builder/conditions'
+import { firstStepWithError, nextStep, previousStep, progress, reportStep } from '@form-builder/steps'
+
+export default function ApplicationForm({ form, errors }) {
+    const [hidden, setHidden] = useState(() => new Set<string>())
+    const [current, setCurrent] = useState(0)
+    const fieldsets = useRef<HTMLFieldSetElement[]>([])
+    const following = nextStep(form.steps, hidden, current)
+    const before = previousStep(form.steps, hidden, current)
+    const { number, total } = progress(form.steps, hidden, current)
+
+    useEffect(() => {
+        const step = firstStepWithError(form.steps, Object.keys(errors))
+        step !== null && setCurrent(step)
+    }, [errors])
+
+    return (
+        <Form
+            action={`/filament-form-builder/${form.id}/submit`}
+            method="post"
+            noValidate
+            onChange={(event) => setHidden(hiddenKeys(form.conditions, readValues(event.currentTarget)))}
+        >
+            <p>Step {number} of {total}</p>
+            {form.steps.map((step, index) => (
+                <fieldset key={index} hidden={index !== current} ref={(element) => { fieldsets.current[index] = element }}>
+                    {step.title && <legend>{step.title}</legend>}
+                    {/* the fields of step.keys */}
+                </fieldset>
+            ))}
+            {before !== null && <button type="button" onClick={() => setCurrent(before)}>Previous</button>}
+            {following === null
+                ? <button type="submit">Send</button>
+                : <button type="button" onClick={() => reportStep(fieldsets.current[current]) && setCurrent(following)}>Next</button>}
+        </Form>
+    )
+}
+```
+
+When the form type checks its steps on the server
+(`$form->getType()->validatesSteps()`), post the answers so far before moving
+on, without the uploads. A 204 means the step is fine, a 422 has the errors:
+
+```ts
+import { validateOnly } from '@form-builder/steps'
+
+async function checkStep(form: HTMLFormElement, keys: string[]): Promise<Record<string, string[]>> {
+    const body = new FormData(form)
+
+    for (const [name, value] of [...body]) {
+        if (value instanceof File) {
+            body.delete(name)
+        }
+    }
+
+    const response = await fetch(form.action, {
+        method: 'POST',
+        body,
+        headers: { Accept: 'application/json', Precognition: 'true', 'Precognition-Validate-Only': validateOnly(keys) },
+    })
+
+    return response.status === 422 ? (await response.json()).errors : {}
+}
+```
+
+## Spam
+
+A form on the site sets two traps, on by default: a field nobody sees, which
+bots fill in, and the moment the form was shown, as an encrypted token. A form
+sent with that field filled in, or within `honeypot.min_seconds` of being
+shown, gets the answer a person would, and nothing is stored, mailed or sent
+on; the log notes it. A form that comes without the traps at all, from a front
+end that does not set them, is turned away with an error on `ffb_token` and a
+warning in the log. Turn them off with `honeypot.enabled`, or for one form type
+with `hasHoneypot()`. A view of your own sets them with
+`<x-filament-form-builder::honeypot :form="$form" />`.
+
+A form goes out once: its button turns off when it is sent, and the same
+answers and files from the same visitor within `duplicate_seconds` (10) are
+stored once and answered the same way.
+
+For more, add reCAPTCHA or Cloudflare Turnstile to a form from the palette.
+Each shows there once it is enabled with a key and a secret:
+`RECAPTCHA_ENABLED`, `RECAPTCHA_KEY` and `RECAPTCHA_SECRET`, or
+`TURNSTILE_ENABLED`, `TURNSTILE_KEY` and `TURNSTILE_SECRET`. On top of that,
+`rate_limit_per_hour` caps how many forms a visitor sends.
+
 ## Submit notification
 
-Each form has a "what happens after submission" section with two branches:
+Each form has an "After submitting" section, on its Notifications tab, and a
+new form starts with a thank-you message there. Its outcomes are stored as one
+list in `submit_notifications`, like the e-mail notifications: each has an
+`id`, `conditions` and `conditionMatch`, a `type` (`content` or `url`), and its
+`content`, `url` and `query`.
 
-- **Content**: rich text shown after submit, stored in `submit_notification_content`.
-- **URL**: a redirect target, stored in the dedicated `submit_notification_url`
-  column. The column is cast with `VanOns\FilamentFormBuilder\Casts\RedirectUrl`,
-  so it may hold either a plain URL string or a structured (JSON) value.
+- **Content**: a thank-you message shown after submit. It takes the same merge
+  tags as an e-mail notification, except the link to the submission in the
+  panel, and they are filled in from the submission on submit.
+- **URL**: a redirect target, a plain URL or a structured value a custom
+  redirect field stores (see below), with an optional query string.
 
-On submit, the controller resolves both branches through the form template
-(`$form->getFormComponent()->resolveSubmitNotification($submission)`): the URL via
-`FilamentFormBuilderPlugin::resolveRedirectUrl($form->submit_notification_url, $form)`
-and the message from `submit_notification_content`. When a URL is present it
-redirects, otherwise the message is flashed back.
+The last outcome has no conditions and is edited in place: what a form does by
+default. "A different outcome per answer" adds outcomes before it as cards,
+each under conditions on the answers, edited in a slide-over and ordered with
+"Move up" and "Move down". They are saved with the form.
+
+On submit, the controller resolves the outcome through the form type
+(`$form->getType()->resolveSubmitNotification($submission)`): the first one
+whose conditions the answers meet, skipping a kind the type does not allow
+(`hasRedirect()`, `hasNotificationMessage()`). A URL goes through
+`FilamentFormBuilderPlugin::resolveRedirectUrl($outcome['url'], $form)`, a
+message gets its tags filled in. When a URL is present it redirects, otherwise
+the message is flashed back, both with a 303. `getSubmitNotification($submission)` returns the
+outcome that applies, for a type that handles the response itself.
 
 ### Passing field data via the query string
 
-The URL branch has an optional query string, stored in
-`submit_notification_query`. Set the `submit_notification_query_enabled` config
+The URL branch has an optional query string, stored in the outcome's `query`.
+Set the `redirect_query` config
 flag to `false` to hide the field, or override `hasSubmitNotificationQuery()` on
-a template to drop it for that template alone. Either way a stored query string
-is no longer appended on submit. An editor writes the parameters with the same
-placeholders the e-mail notification uses:
+a form type to drop it for that type alone. Either way a stored query string
+is no longer appended on submit.
+
+Few forms need them, so until a form has parameters a link brings up the rows.
+An editor adds the parameters one row at a time, a name and a value of text
+and merge tags, and they are stored as text: fixed text URL-encoded, tags as
+the placeholders the e-mail notification understands:
 
 ```
-vestiging={{ $key_vestiging }}&form={{ $form_title }}
+vestiging={{ $vestiging }}&bron=website&form={{ $form_title }}
 ```
+
+A query string stored with a part that is no parameter, such as a name without
+`=`, stays a text field to edit by hand. Below the rows, the editor sees the
+URL the latest submission would have sent its visitor to.
 
 `SubmissionPlaceholders::appendQuery()` fills them in from the submission,
 URL-encodes the values and appends the result to the resolved redirect URL,
@@ -43,10 +1031,10 @@ it, e.g. to let editors pick an internal page instead of typing a URL.
 ```php
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 
-// Replace the URL-branch field schema. Bind your field(s) to
-// `submit_notification_url`. Returns an array of components.
+// Replace the URL-branch field schema. Bind your field(s) to `url`, the
+// outcome's key. Returns an array of components.
 FilamentFormBuilderPlugin::redirectSchemaUsing(fn () => [
-    MyPagePicker::make('submit_notification_url')->required()->columnSpanFull(),
+    MyPagePicker::make('url')->required()->columnSpanFull(),
 ]);
 
 // Turn the stored value (string or array) into the final redirect URL.
@@ -60,14 +1048,13 @@ FilamentFormBuilderPlugin::resolveRedirectUrlUsing(function (mixed $stored, Form
 ```
 
 Both hooks are optional; the defaults keep the plain URL `TextInput` and
-string passthrough. Neither runs when a template returns its own response
-(e.g. an Inertia redirect), so call
-`$submission->form->getFormComponent()->resolveSubmitNotification($submission)`
+string passthrough. Neither runs when a form type returns its own `response()`
+(e.g. JSON for an app), so call `$this->resolveSubmitNotification($submission)`
 there to get the resolved values.
 
 ### Modifying the redirect URL and message per submission
 
-A form template may override `modifySubmitNotification()` to change the redirect
+A form type may override `modifySubmitNotification()` to change the redirect
 URL or the notification message based on the submission. The `$redirectUrl` and
 `$notificationMessage` properties hold the values configured on the form, so you
 can read, extend or replace them:
@@ -87,35 +1074,35 @@ public function modifySubmitNotification(FormSubmission $submission): void
 ```
 
 - `$redirectUrl` is only pre-filled when the form uses the **URL** branch, but a
-  template may set it on a **Content** form too — a non-empty URL always wins.
+  type may set it on a **Content** form too — a non-empty URL always wins.
 - `$notificationMessage` is flashed as `submit_notification_content`; setting it
   also flashes `submit_notification_type` as `content`, so the message renders
   even on a URL form without a redirect.
-- The form model caches the template instance, so `$this->form` and both
+- The form model caches its type instance, so `$this->form` and both
   properties are available in any instance method.
 
 ### Hard-coding the redirect URL or message
 
-A template may also drop either branch from the admin, so editors can't
+A form type may also drop either branch from the admin, so editors can't
 configure it. Both default to `true`:
 
 ```php
-public static function hasRedirect(): bool
+public function hasRedirect(): bool
 {
     return false;
 }
 
-public static function hasNotificationMessage(): bool
+public function hasNotificationMessage(): bool
 {
     return true;
 }
 ```
 
 A third toggle hides only the query string, leaving the URL itself editable. It
-defaults to the `submit_notification_query_enabled` config flag:
+defaults to the `redirect_query` config flag:
 
 ```php
-public static function hasSubmitNotificationQuery(): bool
+public function hasSubmitNotificationQuery(): bool
 {
     return false;
 }
@@ -123,13 +1110,13 @@ public static function hasSubmitNotificationQuery(): bool
 
 - The type toggle only shows the allowed branches, and hides itself when only
   one is left — that branch is then always used.
-- When a template allows neither, the whole submit notification section is
+- When a form type allows neither, the whole submit notification section is
   hidden and the stored values are left untouched.
 - A disabled branch is not read from the form on submit, so its property starts
   as `null`. Set it in `modifySubmitNotification()`:
 
 ```php
-public static function hasRedirect(): bool
+public function hasRedirect(): bool
 {
     return false;
 }
@@ -140,100 +1127,137 @@ public function modifySubmitNotification(FormSubmission $submission): void
 }
 ```
 
-### Modifying submission data
+## File uploads
 
-A form template may override these hooks to transform submission data. They run
-at different stages and affect different outputs — choose the right one:
+Uploaded files are stored on the `uploads.disk` (default `local`), each up to
+`uploads.max_size` kilobytes (default 10240), and kept in the submission's
+`files` column, apart from the answers. They are served through signed links
+that stay valid for `uploads.link_days` days (default 7), so a notification mail
+can link to them for someone without an account. Add middleware to
+`uploads.middleware` to put the links behind a login as well. The files go
+once their submission is deleted for good, by hand or after
+[its retention](#how-long-submissions-are-kept).
 
-| Hook                                                               | When it runs                    | Affects                                              |
-|--------------------------------------------------------------------|---------------------------------|------------------------------------------------------|
-| `modifyDataBeforeValidation(array $data, Form $form)`              | Before validation               | Validated input                                      |
-| `modifyDataUsing(array $data, Form $form)`                         | Before the submission is stored | Stored `data`                                        |
-| `modifyDataValues(array $data, FormSubmission $submission)`        | When rendering values           | **Both** the detail view **and** notification emails |
-| `modifyResourceDataUsing(array $data, FormSubmission $submission)` | When rendering the detail view  | Detail view **only**                                 |
+## Field widths
 
-`modifyDataValues()` is the hook for formatting stored values into human-readable
-output while keeping the original field-name keys. By default it returns the data
-unchanged. Override it to apply your own formatting. When you do, the formatting
-applies to both the Filament detail view and the notification emails. This is the
-hook you want for value formatting (e.g. mapping an enum value to its label):
+Every form lays its fields out on a grid of 12 columns. A field takes one of six
+widths: a quarter, a third, a half, two thirds, three quarters or the full row.
+Rows fill up on their own, so three thirds share one row and two halves the
+next, and no more than four fields ever sit side by side.
+
+The `layout` config value decides how many of those widths a project offers:
+
+| `layout`      | Widths                     |
+|---------------|----------------------------|
+| `flexible`    | All six (the default)      |
+| `two_columns` | Halves and the full row    |
+| `full_width`  | The full row only          |
+
+It applies everywhere: the builder only offers those widths, and stored widths,
+including those set in code, round to the nearest one when a form is shown, so a
+third reads as a half in `two_columns`.
+
+In the builder, the width on a field's toolbar opens a picker with all six. A
+new field takes the room left on the row it lands on, so a field dropped next to
+two thirds becomes a third. Dropped against a field on a full row, it shares that
+row: next to one field both become halves, next to two all three become thirds.
+Dropped between two rows, or near the top or bottom edge of one, it gets a row of
+its own. Moving a field works the same way, and the row it leaves closes up. The
+canvas shows where the field lands and how wide everything becomes while it is
+dragged. In code, pass the width
+to `span()`:
 
 ```php
-public static function modifyDataValues(array $data, FormSubmission $submission): array
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
+
+TextInputField::make('voornaam')->span(FieldWidth::HALF);
+```
+
+Rows stay full. When a field on a full row changes width, the others follow at
+the widths closest to their own: making the first of three thirds a half turns
+the other two into quarters. Fields at the end that no longer fit move to a row
+of their own right below, which they fill, so the rows below stay as they were.
+A field that is deleted or moved away leaves its room to the others on its row,
+and a copy shares its original's row or gets one of its own below.
+
+Each field type has a minimum width, below which the builder offers nothing: a
+third for titles, text blocks, text areas, uploads and checkboxes, half for
+reCAPTCHA and Turnstile, a quarter for the rest. The submit button always takes the full row,
+so it sits on a row of its own. A type of your own sets its own:
+
+```php
+public static function minWidth(): FieldWidth
 {
-    return [
-        ...$data,
-        'property_type' => static::getOptions('property_type')[$data['property_type']] ?? null,
-    ];
+    return FieldWidth::HALF;
 }
 ```
 
-> **Note:** `modifyResourceDataUsing()` rewrites the keys into human labels and
-> is used by the detail view only. Do **not** put value formatting here if you
-> also want it reflected in emails — use `modifyDataValues()` instead. By default
-> `modifyResourceDataUsing()` already runs your `modifyDataValues()` output through
-> key formatting, so overriding it is rarely needed.
+A field is stored with its span in columns (`column_span`, 3 to 12). A value
+that is no width of its own reads as the widest width that fits it, one below
+the minimum as the minimum, and an empty one as the full row.
+`$field->getWidth()` returns the `FieldWidth`, `$field->getColumnSpan()` the
+number of columns.
 
+### Styling forms on the site
 
-## Form columns
-
-The number of grid columns a form is rendered with defaults to the `columns`
-config value (`2`). A form template may override it:
-
-```php
-public static function columns(): int
-{
-    return 3;
-}
-```
-
-Read it through the model with `$form->getColumns()` when rendering a form on
-the front end.
-
-### Field width
-
-A large field spans the full row, whatever the column count. Each custom field
-additionally carries a column span and an optional start column for anything in
-between. The "width" and "start column" selects appear on forms with more than
-2 columns — and hide again while "large" is checked, since large already means
-full width. On forms with up to 2 columns only the large checkbox shows, so
-existing projects keep working unchanged after an update. Set the
-`field_column_settings` config flag to `true` to offer the selects everywhere.
-
-When rendering, resolve a field's width with:
-
-```php
-$field->getColumnSpan($form->getColumns());  // int, 1..columns
-$field->getColumnStart($form->getColumns()); // int or null (auto)
-```
-
-`getColumnSpan()` returns the full column count for large fields and the stored
-span (default 1) otherwise, so both old and new data resolve through the same
-call. Both getters cap their value at the column count, and the span is also
-capped at the room left after the start column, so stored values never overflow
-the grid when a template later reduces its columns.
-
-### Laying the grid out in CSS
-
-You do not have to call the getters yourself. The shipped views already render
-`{{ $form->getWrapperAttributes() }}` on the form and
-`{{ $field->getWrapperAttributes() }}` on every field wrapper, and those now
-carry the placement — including in views a project published earlier. Two rules
-are enough to turn that into a grid:
+A form loads `form-builder.js`, for its conditions, and a minimal stylesheet,
+once per page however many forms it has. Both come from
+`php artisan filament:assets`. The stylesheet lays the fields out on the grid,
+stacks them on a narrow screen and gives labels, inputs, errors and the button
+a plain look. Every rule in it sits in `:where()`, so any rule of the site's own
+wins, and a few custom properties on `.ffb-form` set its colours:
 
 ```css
-[data-form-builder-form] {
-    display: grid;
-    grid-template-columns: repeat(var(--form-builder-columns, 1), minmax(0, 1fr));
-}
-
-[data-form-builder-input-wrapper] {
-    grid-column: var(--form-builder-column-start, auto) / span var(--form-builder-column-span, 1);
+.ffb-form {
+    --ffb-background: #fff;
+    --ffb-border: #d4d4d8;
+    --ffb-muted: #71717a;
+    --ffb-error: #b91c1c;
+    --ffb-button: #18181b;
+    --ffb-button-text: #fff;
+    --ffb-radius: 0.375rem;
 }
 ```
 
-The same numbers are also available as `data-form-builder-columns`,
-`data-form-builder-column-span` and `data-form-builder-column-start` for
-projects that would rather select on attributes than custom properties. The
-package ships no CSS of its own, so nothing changes visually until you add
-rules like these.
+To style forms entirely yourself, set `styles` to `false` in the config. The
+markup has a class for everything a site styles:
+
+| Class             | On                                                         |
+|-------------------|------------------------------------------------------------|
+| `ffb-form`        | The form                                                   |
+| `ffb-field`       | The wrapper of every field, a `fieldset` for choices       |
+| `ffb-label`       | The label, or the legend of a choice field                 |
+| `ffb-required`    | The star after a required field's label                    |
+| `ffb-description` | The description below a field, or a choice field's legend  |
+| `ffb-check`       | The label around a checkbox or an option, input first      |
+| `ffb-options`     | The options of a choice field                              |
+| `ffb-error`       | A validation message, inside the field's wrapper           |
+| `ffb-title`       | A title's heading                                          |
+| `ffb-text`        | A text block                                               |
+| `ffb-submit`      | The submit button                                          |
+| `ffb-message`     | The thank-you message after a submission; with `ffb-message-error`, the message that the session had expired |
+| `ffb-step`        | A step, a `fieldset` with its title in `ffb-step-title`    |
+| `ffb-step-nav`    | The previous, next and submit buttons below the steps; the first two are `ffb-step-button` |
+| `ffb-progress-steps` | The steps by title; each `ffb-progress-step` has `data-state` `done`, `current` or `upcoming`, and a done step before the current one is a `ffb-progress-step-link` button |
+| `ffb-progress-bar` | The bar; `ffb-progress-fill` is as wide as `--ffb-progress` |
+
+A field with an error also has `aria-invalid="true"`. The grid comes from the
+wrapper's custom properties, which a stylesheet of your own picks up the same
+way:
+
+```css
+.ffb-form {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.ffb-field {
+    grid-column: var(--form-builder-column-start, auto) / span var(--form-builder-column-span, 12);
+}
+```
+
+The fields an editor builds form a block of their own: the first of them starts
+a new row, and so does the first field from code after them. Their wrapper
+carries `--form-builder-column-start: 1` and `data-form-builder-new-row`. The
+span is also available as `data-form-builder-column-span` for projects that
+would rather select on attributes than custom properties.

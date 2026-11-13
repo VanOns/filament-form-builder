@@ -9,21 +9,21 @@ use VanOns\FilamentFormBuilder\Models\Form as FormModel;
 
 class Form extends Component
 {
-    public function __construct(public ?FormModel $form)
-    {
+    public function __construct(
+        public ?FormModel $form,
+        public string $view = 'filament-form-builder::components.form',
+    ) {
     }
 
     public function render(): View|Closure|string
     {
-        if (!isset($this->form)) {
+        if ($this->form === null) {
             return '';
         }
 
-        $formComponent = $this->form->getFormComponent();
-        if (is_subclass_of($this->form->template, FormComponent::class) && method_exists($formComponent, 'render')) {
-            return $formComponent->render();
-        } else {
-            return '';
-        }
+        // With forms per site, a page copied to another site shows that site's form.
+        $this->form = $this->form->inCurrentSite();
+
+        return view($this->view, ['form' => $this->form]);
     }
 }

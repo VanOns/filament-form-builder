@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
+use Illuminate\Routing\Middleware\ValidateSignature;
 use Illuminate\Support\Facades\Route;
 use VanOns\FilamentFormBuilder\Http\Controllers\FormSubmissionController;
 
@@ -10,12 +12,17 @@ Route::name('filament-form-builder.')
             ->middleware(
                 [
                     'throttle:filament-form-builder-submissions',
-                    ...config('filament-form-builder.form-middleware', []),
+                    // Without it, a check of one step would be stored as a submission.
+                    HandlePrecognitiveRequests::class,
+                    ...config('filament-form-builder.form_middleware', []),
                 ]
             )
             ->name('form.store');
-        Route::get('file/{filePath}', [FormSubmissionController::class, 'showFile'])
-            ->middleware(config('filament-form-builder.form-uploads-middleware'))
-            ->where('filePath', '.*')
+        Route::get('submissions/{submissionId}/files/{key}/{index}', [FormSubmissionController::class, 'showFile'])
+            ->middleware([
+                ValidateSignature::class,
+                ...config('filament-form-builder.uploads.middleware', []),
+            ])
+            ->whereNumber(['submissionId', 'index'])
             ->name('form.download-file');
     });

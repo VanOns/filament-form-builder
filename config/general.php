@@ -1,41 +1,115 @@
 <?php
 
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
+use VanOns\FilamentFormBuilder\Forms;
 
 return [
-    'add_nav_group' => true,
-    'templates' => [
-        \VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm::class => 'Custom',
-        \VanOns\FilamentFormBuilder\View\Components\Forms\ContactForm::class => 'Contact',
+    'types' => [
+        'custom' => Forms\CustomForm::class,
+        'contact' => Forms\ContactForm::class,
+    ],
+    'fields' => [
+        'title' => Fields\TitleField::class,
+        'text_block' => Fields\TextField::class,
+        'step' => Fields\StepField::class,
+        'text' => Fields\TextInputField::class,
+        'textarea' => Fields\TextAreaField::class,
+        'email' => Fields\EmailField::class,
+        'phone' => Fields\PhoneField::class,
+        'number' => Fields\NumberField::class,
+        'date' => Fields\DateField::class,
+        'radio' => Fields\RadioField::class,
+        'checkbox_list' => Fields\CheckboxListField::class,
+        'dropdown' => Fields\DropdownField::class,
+        'checkbox' => Fields\CheckboxField::class,
+        'consent' => Fields\ConsentField::class,
+        'file_upload' => Fields\FileUploadField::class,
+        'recaptcha' => Fields\RecaptchaField::class,
+        'turnstile' => Fields\TurnstileField::class,
+        'submit' => Fields\SubmitField::class,
     ],
     'integrations' => [
         // Insert integrations here
     ],
-    'columns' => 2,
-    'field_column_settings' => false,
-    'rate-limit-hour' => 60,
-    'email_notification_enabled' => false,
-    'submit_notification_query_enabled' => true,
-    'form-middleware' => ['web'],
-    'form-uploads-middleware' => ['web', 'auth'],
-    'form-uploads-disk' => 'private',
-    'form-uploads-max-size' => 10240,
-    'fields' => [
-        Fields\TitleField::class,
-        Fields\TextField::class,
-        Fields\InputField::class,
-        Fields\TextAreaField::class,
-        Fields\SelectField::class,
-        Fields\CheckboxField::class,
-        Fields\FileUploadField::class,
-        Fields\RecaptchaField::class,
-        Fields\SubmitField::class,
+    // Lets the webhook integration reach localhost and private networks, such as an n8n beside the app.
+    'webhook' => [
+        'allow_private_network' => false,
     ],
+    // How freely fields sit side by side: 'flexible' (quarters, thirds and
+    // halves), 'two_columns' (halves only) or 'full_width' (one field a row).
+    'layout' => 'flexible',
+    'field_conditions' => true,
+    'email_notifications' => true,
+    // "Next" in a form in steps has the server check the step first, for rules
+    // the browser cannot check; a form type can say otherwise.
+    'validate_steps' => false,
+    // Forms per site with van-ons/filament-multisite, linked like pages: publish
+    // the `filament-form-builder-multisite-migrations` and migrate first.
+    'multisite' => false,
+    'redirect_query' => true,
+    // The forms on the site load a minimal stylesheet with the grid; turn it off
+    // to style them entirely yourself.
+    'styles' => true,
+    'form_middleware' => ['web'],
+    'rate_limit_per_hour' => 60,
+    // The most characters an answer may have; null for no limit.
+    'max_length' => [
+        'text' => 1000,
+        'textarea' => 20000,
+    ],
+    // What a submission keeps about where it came from, shown with its details.
+    // An IP address is personal data: false, 'anonymized' or 'full'.
+    'submission_meta' => [
+        'user_agent' => true,
+        'locale' => true,
+        'user' => true,
+        'campaign' => true,
+        'ip' => false,
+    ],
+    // Months a submission is kept, with its files, unless its form says otherwise;
+    // null keeps them. Deleted each night, so the scheduler has to run.
+    'retention_months' => null,
+    'uploads' => [
+        'disk' => 'local',
+        // In kilobytes, per file.
+        'max_size' => 10240,
+        // The most files a field with multiple uploads takes; null for no limit.
+        'max_files' => 10,
+        // What an upload may be, checked against its content; null takes any file.
+        'extensions' => [
+            'pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif',
+            'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp', 'rtf', 'txt', 'csv',
+            'zip', 'mp3', 'm4a', 'wav', 'mp4', 'mov',
+        ],
+        'link_days' => 7,
+        // Uploads a notification attaches, in kilobytes together; the rest stay a link.
+        'attach_max_size' => 10240,
+        'middleware' => [],
+    ],
+    // A field nobody sees, which bots fill in, and the least time a person
+    // takes to send a form. A front end of its own has to set both.
+    'honeypot' => [
+        'enabled' => true,
+        'field' => 'ffb_website',
+        'min_seconds' => 2,
+    ],
+    // The same answers from the same visitor within these seconds are stored once.
+    'duplicate_seconds' => 10,
     'recaptcha' => [
         'enabled' => env('RECAPTCHA_ENABLED', false),
         'secret' => env('RECAPTCHA_SECRET', ''),
         'key' => env('RECAPTCHA_KEY', ''),
     ],
-    'enable_export_action' => false,
-    'field_visibility_settings' => true,
+    'turnstile' => [
+        'enabled' => env('TURNSTILE_ENABLED', false),
+        'secret' => env('TURNSTILE_SECRET', ''),
+        'key' => env('TURNSTILE_KEY', ''),
+    ],
+    // Defaults for every panel; a panel sets its own on the plugin.
+    'navigation_group' => true,
+    // Field types left out of the builder's palette, by their name in 'fields'.
+    'without_fields' => [],
+    // A queued Filament export: it needs the exports, job_batches and notifications
+    // tables, see the installation docs.
+    'export_action' => true,
 ];

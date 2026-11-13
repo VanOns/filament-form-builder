@@ -3,53 +3,55 @@
 namespace VanOns\FilamentFormBuilder\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
+use Symfony\Component\HttpFoundation\Response;
+use VanOns\FilamentFormBuilder\Classes\Honeypot;
 use VanOns\FilamentFormBuilder\Models\Form;
 
 class CreateFormSubmission extends FormRequest
 {
     public Form $form;
 
-    protected function getForm(): Form
-    {
-        if (!isset($this->form)) {
-            $this->form = Form::query()
-                ->findOrFail($this->route('formId'));
-        }
+    /**
+     * @var array<string, mixed>|null
+     */
+    protected ?array $prepared = null;
 
-        return $this->form;
+    protected bool $caught = false;
+
+    public function getForm(): Form
+    {
+        return $this->form ??= Form::query()->findOrFail($this->route('formId'));
     }
 
-    /**
-     * @return array<string, mixed>
-    */
-    public function rules(): array
+    // A bot gets no validation errors to learn from; the controller answers it as if it got through.
+    public function validateResolved(): void
     {
-        $rules = [
-            'submitter_email' => ['sometimes', 'nullable', 'string', 'email:rfc'],
-        ];
+        // Checking a step stores nothing, so the spam traps wait for the form itself.
+        if ($this->isPrecognitive()) {
+            abort_unless($this->getForm()->getType()->validatesSteps(), Response::HTTP_FORBIDDEN);
+            parent::validateResolved();
 
-        return array_merge($rules, $this->getFormRules());
+            return;
+        }
+
+        $this->caught = Honeypot::caught($this, $this->getForm());
+
+        if (! $this->caught) {
+            parent::validateResolved();
+        }
+    }
+
+    public function isCaught(): bool
+    {
+        return $this->caught;
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function getFormRules(): array
+    public function rules(): array
     {
-        $form = $this->getForm();
-
-        $rules = [];
-
-        try {
-            if (TemplateHelper::isTemplate($form->template)) {
-                $rules = $form->getFormComponent()->getRules();
-            }
-
-            return $rules;
-        } catch (\Exception) {
-            return $rules;
-        }
+        return $this->getForm()->getRules();
     }
 
     /**
@@ -57,7 +59,7 @@ class CreateFormSubmission extends FormRequest
      */
     public function attributes(): array
     {
-        return $this->getForm()->getFormAttributes();
+        return $this->getForm()->getSubmissionFields();
     }
 
     /**
@@ -65,19 +67,20 @@ class CreateFormSubmission extends FormRequest
      */
     public function messages(): array
     {
-        return $this->getForm()->getFormMessages();
+        return $this->getForm()->getType()->messages();
     }
 
     /**
+     * The input as the form type prepared it: what is validated is also what
+     * is stored. Files go on top: in all() a typed value hides a file posted
+     * under the same key, which would then skip the rules of that key.
+     *
      * @return array<string, mixed>
      */
     public function validationData(): array
     {
-        $form = $this->getForm();
-        if ($template = $form->template) {
-            return $template::modifyDataBeforeValidation($this->all(), $form);
-        }
-
-        return $this->all();
+        return $this->prepared ??= $this->getForm()->getType()->beforeValidation(
+            array_replace_recursive($this->input(), $this->allFiles()),
+        );
     }
 }

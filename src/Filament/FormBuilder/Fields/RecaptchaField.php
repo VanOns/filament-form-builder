@@ -2,39 +2,26 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
-use Filament\Schemas\Components\Text;
+use Illuminate\Contracts\Validation\ValidationRule;
 use VanOns\FilamentFormBuilder\Rules\RecaptchaRule;
 use VanOns\FilamentFormBuilder\Services\RecaptchaService;
 
-class RecaptchaField extends FormField
+class RecaptchaField extends CaptchaField
 {
     public static string $view = 'filament-form-builder::components.fields.recaptcha-field';
+    public static string $previewView = 'filament-form-builder::filament.previews.recaptcha';
 
-    public ?string $key = 'g-recaptcha-response';
-    public static string $keyPrefix = '';
+    public const KEY = 'g-recaptcha-response';
 
-    protected function rules(): array
+    public ?string $key = self::KEY;
+
+    public static function isAvailable(): bool
     {
-        return RecaptchaService::checkEnabled()
-            ? ['required', 'string', new RecaptchaRule()]
-            : [];
+        return RecaptchaService::checkEnabled();
     }
 
-    public static function getFields(): array
+    protected static function rule(): ValidationRule
     {
-        return [
-            Text::make(__('filament-form-builder::general.no_settings'))
-                ->columnStart(1),
-        ];
-    }
-
-    public static function isInput(): bool
-    {
-        return false;
-    }
-
-    public static function hasVisibilitySettings(): bool
-    {
-        return false;
+        return new RecaptchaRule();
     }
 }

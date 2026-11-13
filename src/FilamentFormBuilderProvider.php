@@ -2,12 +2,23 @@
 
 namespace VanOns\FilamentFormBuilder;
 
+use Filament\Support\Assets\AlpineComponent;
+use Filament\Support\Assets\Css;
+use Filament\Support\Assets\Js;
+use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\RateLimiter;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Form;
 
 class FilamentFormBuilderProvider extends PackageServiceProvider
@@ -26,11 +37,16 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
     public function packageBooted(): void
     {
         $this->hasTranslations();
+        $this->hasUpgradeMigration();
+        $this->hasMultisiteMigration();
         $this->hasConfig();
         $this->hasViewComponents();
         $this->hasViews();
         $this->hasRoutes();
         $this->hasRateLimiter();
+        $this->hasAssets();
+        $this->hasPruning();
+        $this->hasExpiredSessionResponse();
     }
 
     public function hasTranslations(): void
@@ -39,7 +55,38 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
 
         $this->publishes([
             __DIR__.'/../lang' => $this->app->langPath('vendor/filament-form-builder'),
-        ], 'filament-form-builder-translations');
+        ], ['filament-form-builder-lang', 'filament-form-builder-translations']);
+    }
+
+    // Kept out of database/migrations so a new install, which gets the v3 schema
+    // from the create migrations, never runs it.
+    public function hasUpgradeMigration(): void
+    {
+        $this->publishesMigrationsOnce(__DIR__.'/../database/upgrades', 'filament-form-builder-upgrade-migrations');
+    }
+
+    // Only an app that turns `multisite` on wants these columns.
+    public function hasMultisiteMigration(): void
+    {
+        $this->publishesMigrationsOnce(__DIR__.'/../database/multisite', 'filament-form-builder-multisite-migrations');
+    }
+
+    // Like discoversMigrations(): a migration the app already published keeps its file. A minute
+    // ahead, so these sort after the create migrations even when published in the same second.
+    protected function publishesMigrationsOnce(string $directory, string $tag): void
+    {
+        if (! $this->app->runningInConsole()) {
+            return;
+        }
+
+        $now = Carbon::now()->addMinute();
+        $paths = [];
+
+        foreach ((new Filesystem())->files($directory) as $file) {
+            $paths[$file->getPathname()] = $this->generateMigrationName($file->getBasename('.php'), $now->addSecond());
+        }
+
+        $this->publishes($paths, $tag);
     }
 
     public function hasConfig(): void
@@ -70,15 +117,63 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
     }
 
+    public function hasAssets(): void
+    {
+        FilamentAsset::register([
+            Css::make('form-canvas', __DIR__.'/../resources/css/form-canvas.css'),
+            Css::make('form-submission', __DIR__.'/../resources/css/form-submission.css'),
+            AlpineComponent::make('form-canvas', __DIR__.'/../resources/js/components/form-canvas.js'),
+            AlpineComponent::make('merge-tag-picker', __DIR__.'/../resources/js/components/merge-tag-picker.js'),
+            AlpineComponent::make('recipients-input', __DIR__.'/../resources/js/components/recipients-input.js'),
+            // For the forms on the site, which load them themselves; never in the panel.
+            Css::make('form-builder', __DIR__.'/../resources/css/form-builder.css')->loadedOnRequest(),
+            Js::make('form-builder', __DIR__.'/../resources/js/form-builder.js')->loadedOnRequest(),
+            Js::make('conditions', __DIR__.'/../resources/js/conditions.js')->loadedOnRequest(),
+            Js::make('steps', __DIR__.'/../resources/js/steps.js')->loadedOnRequest(),
+        ], 'van-ons/filament-form-builder');
+    }
+
+    // Every night, so a retention set later on a form needs no change in the app.
+    public function hasPruning(): void
+    {
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            $schedule->command('model:prune', ['--model' => [FormSubmission::class]])->daily();
+        });
+    }
+
+    public function hasExpiredSessionResponse(): void
+    {
+        $this->callAfterResolving(ExceptionHandler::class, function (ExceptionHandler $handler): void {
+            if (! $handler instanceof Handler) {
+                return;
+            }
+
+            $handler->renderable(function (HttpException $exception, Request $request) {
+                if ($exception->getStatusCode() !== 419 || $request->expectsJson() || ! $request->routeIs('filament-form-builder.form.store')) {
+                    return null;
+                }
+
+                return back()
+                    ->withInput($request->except('_token'))
+                    ->with('filament_form_builder_expired', (int) $request->route('formId'));
+            });
+        });
+    }
+
     public function hasRateLimiter(): void
     {
         RateLimiter::for(
             'filament-form-builder-submissions',
             function (Request $request) {
-                $limit = config('filament-form-builder.rate-limit-hour', 60);
+                $visitor = $request->user()?->id ?: $request->ip();
 
-                return Limit::perHour($limit)
-                    ->by($request->user()?->id ?: $request->ip());
+                // Checking a step is no submission, so it does not use up the hour's.
+                if ($request->isAttemptingPrecognition()) {
+                    return Limit::perMinute(60)->by("step-check|{$visitor}");
+                }
+
+                return Limit::perHour(config('filament-form-builder.rate_limit_per_hour', 60))
+                    ->by($visitor);
             }
         );
     }

@@ -1,5 +1,7 @@
 <?php
 
+use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
+use VanOns\FilamentFormBuilder\Forms\ContactForm;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
@@ -51,37 +53,37 @@ it('getFormattedData filters out empty/null values', function () {
         ->not->toHaveKey('fax');
 });
 
-it('getAllUrlsInData returns URLs from flat data', function () {
-    $form = Form::create(['title' => 'Contact']);
-    $submission = FormSubmission::create([
-        'form_id' => $form->id,
-        'data' => [
-            'website' => 'https://example.com',
-            'name' => 'Alice',
-        ],
-    ]);
+class ShoutingContactForm extends ContactForm
+{
+    public function formatValues(array $values, FormSubmission $submission): array
+    {
+        return [...$values, 'name' => strtoupper($values['name'] ?? '')];
+    }
+}
 
-    expect($submission->getAllUrlsInData())->toBe(['https://example.com']);
+it('shows a choice by its label everywhere an answer is shown', function () {
+    $form = Form::create([
+        'title' => 'Contact',
+        'template' => 'custom',
+        'custom' => ['fields' => [
+            ['type' => 'radio', 'label' => 'Aanhef', 'key' => 'aanhef', 'options' => [
+                ['value' => 'mw', 'label' => 'Mevrouw'],
+            ]],
+        ]],
+    ]);
+    $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['aanhef' => 'mw']]);
+
+    expect($submission->getDisplayText('aanhef'))->toBe('Mevrouw')
+        ->and($submission->getAnswers()['current'][0]->value)->toBe('Mevrouw')
+        ->and(SubmissionPlaceholders::make($submission)->replace('{{ $aanhef }}'))->toBe('Mevrouw');
 });
 
-it('getAllUrlsInData finds URLs nested inside arrays', function () {
-    $form = Form::create(['title' => 'Contact']);
-    $submission = FormSubmission::create([
-        'form_id' => $form->id,
-        'data' => [
-            'links' => ['http://foo.com', 'https://bar.com'],
-        ],
-    ]);
+it('runs the form type formatting wherever an answer is shown', function () {
+    config(['filament-form-builder.types.shouting' => ShoutingContactForm::class]);
 
-    expect($submission->getAllUrlsInData())->toBe(['http://foo.com', 'https://bar.com']);
-});
+    $form = Form::create(['title' => 'Contact', 'template' => 'shouting']);
+    $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['name' => 'jan']]);
 
-it('getAllUrlsInData returns an empty array when no URLs are present', function () {
-    $form = Form::create(['title' => 'Contact']);
-    $submission = FormSubmission::create([
-        'form_id' => $form->id,
-        'data' => ['name' => 'Alice', 'message' => 'Hello'],
-    ]);
-
-    expect($submission->getAllUrlsInData())->toBeEmpty();
+    expect($submission->getDisplayText('name'))->toBe('JAN')
+        ->and(SubmissionPlaceholders::make($submission)->replace('{{ $name }}'))->toBe('JAN');
 });

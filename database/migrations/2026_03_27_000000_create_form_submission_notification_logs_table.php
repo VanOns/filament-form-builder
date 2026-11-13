@@ -10,6 +10,7 @@ return new class () extends Migration {
         Schema::create('form_submission_notification_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('form_submission_id')->constrained('form_submissions')->cascadeOnDelete();
+            $table->string('notification_id')->nullable()->index();
             $table->string('notification_subject');
             $table->string('sender')->nullable();
             $table->string('recipient');

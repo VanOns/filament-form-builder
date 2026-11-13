@@ -4,46 +4,52 @@ namespace VanOns\FilamentFormBuilder\Filament\Resources;
 
 use BackedEnum;
 use Filament\Actions;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\ToggleButtons;
-use Filament\Infolists\Components\TextEntry;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Callout;
-use Filament\Schemas\Components\Component;
-use Filament\Schemas\Components\Fieldset;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Support\Enums\Alignment;
-use Filament\Support\Enums\FontFamily;
-use Filament\Support\Enums\IconSize;
-use Filament\Support\Enums\TextSize;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Livewire\Component as LivewireComponent;
+use VanOns\FilamentFormBuilder\Classes\EmailNotification;
+use VanOns\FilamentFormBuilder\Classes\FieldConditions;
 use VanOns\FilamentFormBuilder\Classes\Integration;
-use VanOns\FilamentFormBuilder\Enums\SubmitNotificationType;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormBuilder;
+use VanOns\FilamentFormBuilder\Classes\MappedField;
+use VanOns\FilamentFormBuilder\Classes\MergeTags;
+use VanOns\FilamentFormBuilder\Classes\StepSettings;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\FormCanvas;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\IntegrationList;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\MergeTagEditor;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\NotificationList;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\SubmitNotifications;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages;
 use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers\FormSubmissionsRelationManager;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
+use VanOns\FilamentFormBuilder\Forms\FormType;
+use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
-use VanOns\FilamentFormBuilder\View\Components\FormComponent;
+use VanOns\FilamentMultisite\Facade\FilamentMultisite;
+use VanOns\FilamentMultisite\Filament\Columns\SiteColumn;
+use VanOns\FilamentMultisite\Filament\Fields\SiteSelect;
+use VanOns\FilamentMultisite\Filament\Filters\SiteFilter;
 
 class FormResource extends Resource
 {
@@ -68,16 +74,14 @@ class FormResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        if (config('filament-form-builder.add_nav_group')) {
-            return __('filament-form-builder::general.navigation-group');
-        }
-
-        return null;
+        return FilamentFormBuilderPlugin::get()->getNavigationGroup();
     }
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
+        FormModel::ensureSiteColumns();
+
+        $schema = $schema
             ->components([
                 Tabs::make()
                     ->columnSpanFull()
@@ -89,32 +93,29 @@ class FormResource extends Resource
                             ->key('general', isInheritable: false)
                             ->icon('heroicon-o-pencil-square')
                             ->schema([
-                                static::getGeneralSection(),
+                                FormModel::usesSites()
+                                    ? Grid::make(['lg' => 4])->schema([
+                                        static::getGeneralSection()->columnSpan(['lg' => 3]),
+                                        static::getSiteSection(),
+                                    ])
+                                    : static::getGeneralSection(),
                                 static::getCustomSection(),
-                                static::getSubmitNotificationSection()
-                                    ->hidden(fn (Get $get) => empty($get('template')) || empty(static::getSubmitNotificationTypes($get))),
+                                static::getSettingsSection(),
                             ]),
-                        Tabs\Tab::make(__('filament-form-builder::general.settings'))
-                            ->id('settings')
-                            ->key('settings', isInheritable: false)
-                            ->icon('heroicon-o-cog-6-tooth')
-                            ->visible(self::hasSettings(...))
-                            ->schema([
-                                static::getSettingsSection()
-                                    ->columns(),
-                            ]),
-                        Tabs\Tab::make(__('filament-form-builder::general.email_notification'))
-                            ->id('email-notification')
-                            ->key('email-notification', isInheritable: false)
+                        // What happens once someone sends the form: the visitor's outcome and the mails.
+                        Tabs\Tab::make(__('filament-form-builder::general.notifications_tab'))
+                            ->id('notifications')
+                            ->key('notifications-tab', isInheritable: false)
                             ->icon('heroicon-o-bell-alert')
-                            ->visible(self::hasNotificationsEnabled(...))
+                            ->visible(fn (Get $get): bool => static::hasSubmitNotifications($get) || static::hasNotificationsEnabled($get))
                             ->schema([
-                                static::getPlaceholdersSection(),
+                                static::getSubmitNotificationSection()
+                                    ->visible(static::hasSubmitNotifications(...)),
                                 static::getEmailNotificationSection(),
                             ]),
-                        Tabs\Tab::make(__('filament-form-builder::general.integrations'))
+                        Tabs\Tab::make(__('filament-form-builder::general.integrations.label'))
                             ->id('integrations')
-                            ->key('integrations', isInheritable: false)
+                            ->key('integrations-tab', isInheritable: false)
                             ->icon('heroicon-o-server-stack')
                             ->visible(self::hasIntegrationsEnabled(...))
                             ->schema([
@@ -124,6 +125,8 @@ class FormResource extends Resource
                             ->id('submissions')
                             ->key('submissions', isInheritable: false)
                             ->icon('heroicon-o-clipboard-document-check')
+                            ->badge(fn (?FormModel $record): ?int => $record?->submissions()->whereNull('read_at')->count() ?: null)
+                            ->badgeTooltip(__('filament-form-builder::general.submission.unread_badge'))
                             ->visible(fn (?FormModel $record): bool => $record !== null)
                             ->schema(fn (?FormModel $record): array => $record === null ? [] : [
                                 Livewire::make(FormSubmissionsRelationManager::class, [
@@ -133,6 +136,9 @@ class FormResource extends Resource
                             ]),
                     ]),
             ]);
+
+        // On a form's copy for another site, what follows the origin cannot change.
+        return FormModel::usesSites() ? FilamentMultisite::schema($schema) : $schema;
     }
 
     public static function getSettingsSection(): Section
@@ -140,44 +146,202 @@ class FormResource extends Resource
         return Section::make(__('filament-form-builder::general.settings'))
             ->description(__('filament-form-builder::general.settings_explanation'))
             ->icon('heroicon-o-cog-6-tooth')
-            ->statePath('settings')
-            ->schema(function (Get $get): array {
-                if (!$template = TemplateHelper::resolve($get('template'))) {
-                    return [];
-                }
+            ->columns()
+            ->schema([
+                Select::make('retention_months')
+                    ->label(__('filament-form-builder::general.retention.label'))
+                    ->placeholder(__('filament-form-builder::general.retention.default', ['retention' => static::describeRetention(config('filament-form-builder.retention_months'))]))
+                    ->options(collect([1, 3, 6, 12, 24])
+                        ->mapWithKeys(fn (int $months): array => [$months => static::describeRetention($months)])
+                        ->put(0, Str::ucfirst(static::describeRetention(null)))
+                        ->all())
+                    ->helperText(__('filament-form-builder::general.retention.helper')),
+                Group::make(function (Get $get, ?FormModel $record): array {
+                    $type = static::getFormType($get, $record);
 
-                return $template::settings();
-            });
+                    return [...$type?->settings() ?? [], ...FilamentFormBuilderPlugin::get()->getFormSettings($type)];
+                })
+                    ->statePath('settings')
+                    ->columns()
+                    ->columnSpanFull(),
+            ]);
     }
 
     public static function getGeneralSection(): Section
     {
-        return Section::make()
-            ->schema([
-                Select::make('template')
-                    ->required()
-                    ->label(__('filament-form-builder::general.template'))
-                    ->searchable()
-                    ->options(FormComponent::getTemplates())
+        $types = FormTypeHelper::options();
+        $fixedTypes = array_diff_key($types, [FormTypeHelper::CUSTOM => true]);
+        $hasCustom = isset($types[FormTypeHelper::CUSTOM]);
+        // Most forms are built on the canvas, so a type from code sits behind a switch.
+        $isFixed = fn (Get $get): bool => !$hasCustom || (bool) $get('fixed_type');
+
+        return Section::make(__('filament-form-builder::general.form_details'))
+            ->icon('heroicon-o-document-text')
+            ->afterHeader($hasCustom && $fixedTypes !== [] ? [
+                Toggle::make('fixed_type')
+                    ->label(__('filament-form-builder::general.fixed_type'))
+                    ->formatStateUsing(fn (?FormModel $record): bool => filled($record?->template) && $record->template !== FormTypeHelper::CUSTOM)
+                    ->dehydrated(false)
                     ->live()
-                    ->columnSpan(1),
+                    ->afterStateUpdated(fn (bool $state, Set $set) => $set('template', $state ? array_key_first($fixedTypes) : FormTypeHelper::CUSTOM)),
+            ] : [])
+            ->schema([
                 TextInput::make('title')
                     ->label(__('filament-form-builder::general.title'))
                     ->required()
                     ->unique(ignoreRecord: true)
+                    ->columnSpan(fn (Get $get): int | string => $isFixed($get) ? 2 : 'full'),
+                Select::make('template')
+                    ->required()
+                    ->label(__('filament-form-builder::general.type'))
+                    ->searchable()
+                    ->selectablePlaceholder(false)
+                    ->options(fn (Get $get): array => $hasCustom && $isFixed($get) ? $fixedTypes : $types)
+                    ->default($hasCustom ? FormTypeHelper::CUSTOM : null)
+                    ->live()
+                    ->visible($isFixed)
+                    ->dehydratedWhenHidden()
                     ->columnSpan(1),
-            ])->columns();
+            ])->columns(3);
+    }
+
+    public static function getSiteSection(): Section
+    {
+        return Section::make(__('filament-form-builder::general.site'))
+            ->icon('heroicon-o-globe-alt')
+            ->schema([
+                SiteSelect::make('site')->hiddenLabel(),
+            ]);
     }
 
     public static function getCustomSection(): Section
     {
-        return Section::make(__('filament-form-builder::general.custom_form'))
-            ->description(__('filament-form-builder::general.custom_form_explanation'))
+        return Section::make(fn (Get $get): string => static::hasCustomFields($get)
+            ? __('filament-form-builder::general.custom_form')
+            : __('filament-form-builder::general.form_fields'))
+            ->description(fn (Get $get): string => static::hasCustomFields($get)
+                ? __('filament-form-builder::general.custom_form_explanation')
+                : __('filament-form-builder::general.form_fields_explanation'))
             ->icon('heroicon-o-cube')
-            ->visible(self::hasCustomFields(...))
+            ->visible(fn (Get $get): bool => filled(static::getFormType($get)?->fields()))
             ->schema([
-                FormBuilder::make('custom'),
+                FormCanvas::make('custom.fields')
+                    ->hiddenLabel()
+                    ->formType(static::getFormType(...))
+                    ->stepSettings('custom.steps')
+                    ->fieldChanges('custom.overrides')
+                    ->afterKeyRenamed(static::renameKeyWhereUsed(...))
+                    ->keyUsagesUsing(static::findKeyUsages(...)),
+                // What the canvas's start block sets; the canvas draws it.
+                Field::make('custom.steps')
+                    ->hidden()
+                    ->dehydratedWhenHidden()
+                    ->formatStateUsing(fn (mixed $state): array => StepSettings::normalize(is_array($state) ? $state : [])),
+                // What editors changed of the fields from code; the canvas shows it.
+                Field::make('custom.overrides')
+                    ->hidden()
+                    ->dehydratedWhenHidden()
+                    ->formatStateUsing(fn (mixed $state): array => is_array($state) ? $state : []),
             ])->columnSpanFull();
+    }
+
+    /**
+     * The notifications, outcomes and integrations that still name one of a field's keys.
+     *
+     * @param  list<string>  $keys
+     * @return list<string>
+     */
+    public static function findKeyUsages(array $keys, Get $get, LivewireComponent $livewire): array
+    {
+        $labels = MergeTagEditor::form($livewire)->getMergeTags();
+        $names = fn (mixed $content): bool => array_intersect(MergeTags::ids($content), $keys) !== [];
+        $conditions = fn (array $item): bool => array_intersect(array_column($item['conditions'] ?? [], 'key'), $keys) !== [];
+        $recipients = array_map(fn (string $key): string => EmailNotification::FIELD_PREFIX . $key, $keys);
+        $usages = [];
+
+        foreach ($get('notifications') ?? [] as $notification) {
+            $isNamed = $conditions($notification)
+                || array_intersect([...Arr::flatten(Arr::only($notification, EmailNotification::RECIPIENT_LISTS)), $notification['reply_to'] ?? null], $recipients) !== []
+                || $names(Arr::only($notification, EmailNotification::TEXTS));
+
+            if ($isNamed) {
+                $usages[] = __('filament-form-builder::general.canvas.usage_notification', ['subject' => MergeTags::render($notification['subject'] ?? null, $labels, asText: true)]);
+            }
+        }
+
+        $outcomeNames = fn (array $outcome): bool => $names([$outcome['content'] ?? null, $outcome['query'] ?? null]);
+
+        if ($outcomeNames($get('submit_notifications.default') ?? [])) {
+            $usages[] = __('filament-form-builder::general.canvas.usage_after_submit');
+        }
+
+        foreach ($get('submit_notifications.rules') ?? [] as $rule) {
+            if ($conditions($rule) || $outcomeNames($rule)) {
+                $usages[] = __('filament-form-builder::general.canvas.usage_outcome');
+
+                break;
+            }
+        }
+
+        foreach ($get('integrations') ?? [] as $integration) {
+            $class = Integration::resolve($integration['class'] ?? null);
+            $mapping = is_array($integration['mapping'] ?? null) ? $integration['mapping'] : [];
+
+            if ($class !== null && ($conditions($integration) || array_intersect($mapping, $keys) !== [] || $names(array_values($mapping)))) {
+                $usages[] = __('filament-form-builder::general.canvas.usage_integration', ['label' => $class::label()]);
+            }
+        }
+
+        return $usages;
+    }
+
+    public static function renameKeyWhereUsed(string $from, string $to, Get $get, Set $set): void
+    {
+        $outcome = fn (array $outcome): array => [
+            ...$outcome,
+            'content' => MergeTags::rename($outcome['content'] ?? null, $from, $to),
+            'query' => MergeTags::rename($outcome['query'] ?? null, $from, $to),
+            'conditions' => FieldConditions::renameKey($outcome['conditions'] ?? [], $from, $to),
+        ];
+
+        $set('submit_notifications.default', $outcome($get('submit_notifications.default') ?? []));
+        $set('submit_notifications.rules', array_map($outcome, $get('submit_notifications.rules') ?? []));
+
+        $field = fn (?string $recipient): ?string => $recipient === EmailNotification::FIELD_PREFIX . $from ? EmailNotification::FIELD_PREFIX . $to : $recipient;
+        $notifications = [];
+
+        foreach ($get('notifications') ?? [] as $id => $notification) {
+            foreach (EmailNotification::TEXTS as $text) {
+                $notification[$text] = MergeTags::rename($notification[$text] ?? null, $from, $to);
+            }
+
+            foreach (EmailNotification::RECIPIENT_LISTS as $list) {
+                $notification[$list] = array_map($field, $notification[$list] ?? []);
+            }
+
+            $notification['reply_to'] = $field($notification['reply_to'] ?? null);
+            $notification['conditions'] = FieldConditions::renameKey($notification['conditions'] ?? [], $from, $to);
+
+            $notifications[$id] = $notification;
+        }
+
+        $set('notifications', $notifications);
+
+        $integrations = [];
+
+        foreach ($get('integrations') ?? [] as $id => $integration) {
+            $class = Integration::resolve($integration['class'] ?? null);
+            $texts = array_map(fn (MappedField $field): string => $field->key, array_filter($class === null ? [] : $class::fields(), fn (MappedField $field): bool => $field->isText()));
+
+            foreach (is_array($integration['mapping'] ?? null) ? $integration['mapping'] : [] as $field => $source) {
+                $integration['mapping'][$field] = in_array($field, $texts, true) ? MergeTags::rename($source, $from, $to) : ($source === $from ? $to : $source);
+            }
+
+            $integration['conditions'] = FieldConditions::renameKey($integration['conditions'] ?? [], $from, $to);
+            $integrations[$id] = $integration;
+        }
+
+        $set('integrations', $integrations);
     }
 
     public static function getSubmitNotificationSection(): Section
@@ -186,39 +350,8 @@ class FormResource extends Resource
             ->description(__('filament-form-builder::general.submit_notification_explanation'))
             ->icon('heroicon-o-paper-airplane')
             ->schema([
-                ToggleButtons::make('submit_notification_type')
-                    ->required()
-                    ->label(__('filament-form-builder::general.what_happens_after_submission'))
-                    ->options(static::getSubmitNotificationTypes(...))
-                    ->enum(SubmitNotificationType::class)
-                    ->default(SubmitNotificationType::URL)
-                    ->live()
-                    ->columnSpan(1)
-                    ->grouped()
-                    ->visible(fn (Get $get) => count(static::getSubmitNotificationTypes($get)) > 1),
-                Hidden::make('submit_notification_type')
-                    ->visible(fn (Get $get) => count(static::getSubmitNotificationTypes($get)) === 1)
-                    ->dehydrateStateUsing(fn (Get $get) => static::getSubmitNotificationType($get)),
-                Group::make(FilamentFormBuilderPlugin::getRedirectSchema())
-                    ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::URL->value)
-                    ->columnSpanFull(),
-                TextInput::make('submit_notification_query')
-                    ->label(__('filament-form-builder::general.submit_notification_query'))
-                    ->helperText(__('filament-form-builder::general.submit_notification_query_explanation'))
-                    ->placeholder('name={{ $key_name }}&form={{ $form_title }}')
-                    ->visible(static::hasSubmitNotificationQueryEnabled(...))
-                    ->columnSpanFull(),
-                static::getPlaceholderListEntry()
-                    ->visible(fn (Get $get, ?FormModel $record) => $record !== null
-                        && static::hasSubmitNotificationQueryEnabled($get))
-                    ->columnSpanFull(),
-                RichEditor::make('submit_notification_content')
-                    ->label(__('filament-form-builder::general.content'))
-                    ->required()
-                    ->placeholder(__('filament-form-builder::general.form_submitted_successfully'))
-                    ->visible(fn (Get $get) => static::getSubmitNotificationType($get) === SubmitNotificationType::Content->value)
-                    ->columnSpanFull(),
-            ])->columns();
+                SubmitNotifications::make(),
+            ]);
     }
 
     public static function getEmailNotificationSection(): Section
@@ -228,173 +361,56 @@ class FormResource extends Resource
             ->visible(self::hasNotificationsEnabled(...))
             ->icon('heroicon-o-bell-alert')
             ->schema([
-                Callout::make(__('filament-form-builder::general.notifications.sender_callout'))
-                    ->warning()
-                    ->columnSpanFull(),
-                Repeater::make('notifications')
-                    ->label(__('filament-form-builder::general.email_notifications'))
-                    ->hiddenLabel()
-                    ->columnSpanFull()
-                    ->columns(3)
-                    ->grid([
-                        '2xl' => 2,
-                    ])
-                    ->collapsed()
-                    ->default([])
-                    ->afterStateHydrated(static function (Component $component, ?array $rawState): void {
-                        $component->rawState(
-                            collect($rawState ?? [])
-                                ->mapWithKeys(fn ($itemData) => [(string) Str::uuid() => $itemData])
-                                ->toArray(),
-                        );
-                    })
-                    ->itemLabel(function (array $state) {
-                        if ($subject = $state['subject'] ?? null) {
-                            return "{$subject} - " . __('filament-form-builder::general.email_notification');
-                        }
-                        return __('filament-form-builder::general.email_notification');
-                    })
-                    ->schema([
-                        TextInput::make('subject')
-                            ->columnSpanFull()
-                            ->label(__('filament-form-builder::general.notifications.subject'))
-                            ->required(),
-                        RichEditor::make('content')
-                            ->columnSpanFull()
-                            ->label(__('filament-form-builder::general.notifications.content'))
-                            ->required(),
-                        Fieldset::make(__('filament-form-builder::general.notifications.sender'))
-                            ->columnSpanFull()
-                            ->schema([
-                                TextInput::make('sender')
-                                    ->helperText(__('filament-form-builder::general.notifications.sender_hint'))
-                                    ->label(__('filament-form-builder::general.notifications.email'))
-                                    ->placeholder(config('mail.from.address', 'email@example.com'))
-                                    ->email(),
-                                TextInput::make('senderName')
-                                    ->helperText(__('filament-form-builder::general.notifications.name_hint'))
-                                    ->label(__('filament-form-builder::general.notifications.name'))
-                                    ->placeholder(config('mail.from.name')),
-                            ]),
-                        Repeater::make('receivers')
-                            ->reorderable(false)
-                            ->columnStart(1)
-                            ->columnSpanFull()
-                            ->label(__('filament-form-builder::general.notifications.receivers'))
-                            ->hint(__('filament-form-builder::general.notifications.email_or_field_hint'))
-                            ->grid(3)
-                            ->addActionLabel(__('filament-form-builder::general.add'))
-                            ->addActionAlignment(Alignment::Start)
-                            ->default([])
-                            ->simple(
-                                TextInput::make('email')
-                                    ->regex('/^\S*$/')
-                                    ->placeholder(__('filament-form-builder::general.notifications.email_or_field'))
-                                    ->required(),
-                            ),
-                    ]),
-            ])->columns();
-    }
-
-    public static function getPlaceholdersSection(): Section
-    {
-        return Section::make(__('filament-form-builder::general.placeholders'))
-            ->description(__('filament-form-builder::general.placeholders_explanation'))
-            ->icon('heroicon-o-list-bullet')
-            ->collapsed()
-            ->collapsible()
-            ->visible(fn (?FormModel $record) => !is_null($record))
-            ->schema([
-                Text::make(__('filament-form-builder::general.placeholders_copy_hint'))
-                    ->color('gray')
-                    ->size(TextSize::Small),
-                static::getPlaceholderListEntry(),
-                Text::make(__('filament-form-builder::general.placeholders_receivers_hint'))
-                    ->color('gray')
-                    ->size(TextSize::Small),
+                NotificationList::make('notifications')
+                    ->hiddenLabel(),
             ]);
-    }
-
-    public static function getPlaceholderListEntry(): TextEntry
-    {
-        return TextEntry::make('placeholders')
-            ->hiddenLabel()
-            ->badge()
-            ->copyable()
-            ->fontFamily(FontFamily::Mono)
-            ->placeholder(__('filament-form-builder::general.unknown'))
-            ->state(function (Get $get, ?FormModel $record): array {
-                return TemplateHelper::isTemplate($get('template'))
-                    ? $record?->getFormComponent()->getPlaceholderList() ?? []
-                    : [];
-            });
     }
 
     public static function getIntegrationsSection(): Section
     {
-        $options = fn () => Integration::getOptionList();
-        return Section::make(__('filament-form-builder::general.integrations'))
-            ->description(__('filament-form-builder::general.integrations_explanation'))
+        return Section::make(__('filament-form-builder::general.integrations.label'))
+            ->description(__('filament-form-builder::general.integrations.description'))
             ->icon('heroicon-o-server-stack')
-            ->iconSize(IconSize::ExtraLarge)
             ->schema([
-                Repeater::make('integrations')
-                    ->label(__('filament-form-builder::general.integrations'))
-                    ->hiddenLabel()
-                    ->itemLabel(fn (array $state) => isset($state['class']) ? ($options()[$state['class']] ?? $state['class']) : __('filament-form-builder::general.integration'))
-                    ->columnSpanFull()
-                    ->columns()
-                    ->collapsed()
-                    ->reactive()
-                    ->default([])
-                    ->afterStateHydrated(static function (Component $component, ?array $rawState): void {
-                        $component->rawState(
-                            collect($rawState ?? [])
-                                ->mapWithKeys(fn ($itemData) => [(string) Str::uuid() => $itemData])
-                                ->toArray(),
-                        );
-                    })
-                    ->schema([
-                        Select::make('class')
-                            ->label(__('filament-form-builder::general.integration'))
-                            ->hiddenLabel()
-                            ->required()
-                            ->reactive()
-                            ->options($options),
-
-                        Group::make(self::getIntegrationSchema(...))
-                            ->columns()
-                            ->columnSpanFull(),
-                    ]),
-            ])->columns();
+                IntegrationList::make('integrations')
+                    ->hiddenLabel(),
+            ]);
     }
 
     public static function table(Table $table): Table
     {
+        FormModel::ensureSiteColumns();
+
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query
+                ->withCount(['submissions', 'submissions as unread_submissions_count' => fn (Builder $query) => $query->whereNull('read_at')])
+                ->withMax('submissions', 'created_at'))
             ->columns([
                 TextColumn::make('title')
                     ->label(__('filament-form-builder::general.title'))
                     ->sortable()
                     ->searchable(),
+                ...FormModel::usesSites() ? [SiteColumn::make('site')->toggleable()] : [],
                 TextColumn::make('template')
-                    ->state(fn (FormModel $record) => $record->getTemplateLabel())
-                    ->label(__('filament-form-builder::general.template')),
-                TextColumn::make('submissions_count')
+                    ->formatStateUsing(fn (?string $state): ?string => FormTypeHelper::options()[$state] ?? $state)
+                    ->label(__('filament-form-builder::general.type'))
+                    // Most forms are built on the canvas; the type only tells something where there are others.
+                    ->visible(count(FormTypeHelper::options()) > 1)
+                    ->toggleable(),
+                ViewColumn::make('submissions_count')
                     ->label(__('filament-form-builder::general.submissions'))
-                    ->counts('submissions')
+                    ->view('filament-form-builder::filament.tables.form-submissions')
+                    ->sortable(),
+                TextColumn::make('submissions_max_created_at')
+                    ->label(__('filament-form-builder::general.last_submission'))
+                    ->since()
+                    ->dateTimeTooltip()
+                    ->placeholder(__('filament-form-builder::general.forms.never'))
                     ->sortable()
                     ->toggleable(),
-                TextColumn::make('last_submission')
-                    ->label(__('filament-form-builder::general.last_submission'))
-                    ->state(function (FormModel $form) {
-                        return $form
-                            ->submissions()
-                            ->orderBy('created_at', 'desc')
-                            ->take(1)
-                            ->first()
-                            ?->created_at;
-                    })->since()
+                ViewColumn::make('follow_up')
+                    ->label(__('filament-form-builder::general.forms.follow_up'))
+                    ->view('filament-form-builder::filament.tables.form-follow-up')
                     ->toggleable(),
                 TextColumn::make('created_at')
                     ->label(__('filament-form-builder::general.created_at'))
@@ -409,17 +425,10 @@ class FormResource extends Resource
             ])
             ->recordUrl(static::recordUrl(...))
             ->filters([
+                ...FormModel::usesSites() ? [SiteFilter::make('site')] : [],
                 SelectFilter::make('template')
-                    ->label(__('filament-form-builder::general.template'))
-                    ->options(function () {
-                        return FormModel::query()
-                            ->distinct('template')
-                            ->pluck('template')
-                            ->mapWithKeys(function ($template) {
-                                return [$template => config("filament-form-builder.templates.{$template}", 'not-found')];
-                            })
-                            ->toArray();
-                    })
+                    ->label(__('filament-form-builder::general.type'))
+                    ->options(FormTypeHelper::options())
                     ->multiple()
                     ->searchable(),
                 TrashedFilter::make(),
@@ -444,7 +453,9 @@ class FormResource extends Resource
                                 ->required(),
                         ])
                         ->beforeReplicaSaved(function (FormModel $replica) {
-                            $replica->offsetUnset('submissions_count');
+                            foreach (['submissions_count', 'unread_submissions_count', 'submissions_max_created_at'] as $aggregate) {
+                                $replica->offsetUnset($aggregate);
+                            }
                         }),
                     Actions\DeleteAction::make(),
                 ]),
@@ -500,107 +511,48 @@ class FormResource extends Resource
     }
 
     /**
-     * The submit notification types the selected template allows.
+     * The type picked in the form, which can differ from the stored one while
+     * the editor is still choosing.
+     */
+    public static function getFormType(Get $get, ?FormModel $record = null): ?FormType
+    {
+        return FormTypeHelper::make($get('template'), $record);
+    }
+
+    /**
+     * The kinds of outcome after a submission the selected form type allows.
      *
      * @return array<string, string>
      */
     public static function getSubmitNotificationTypes(Get $get): array
     {
-        $template = TemplateHelper::resolve($get('template'));
-
-        $types = [];
-
-        foreach (SubmitNotificationType::cases() as $type) {
-            $allowed = !$template || match ($type) {
-                SubmitNotificationType::URL => $template::hasRedirect(),
-                SubmitNotificationType::Content => $template::hasNotificationMessage(),
-            };
-
-            if ($allowed) {
-                $types[$type->value] = $type->getLabel();
-            }
-        }
-
-        return $types;
-    }
-
-    /**
-     * The selected type, or the only type the template allows.
-     */
-    public static function getSubmitNotificationType(Get $get): ?string
-    {
-        $types = array_keys(static::getSubmitNotificationTypes($get));
-
-        if (count($types) === 1) {
-            return $types[0];
-        }
-
-        $state = $get('submit_notification_type');
-
-        return $state instanceof SubmitNotificationType ? $state->value : $state;
-    }
-
-    public static function hasSubmitNotificationQueryEnabled(Get $get): bool
-    {
-        if (static::getSubmitNotificationType($get) !== SubmitNotificationType::URL->value) {
-            return false;
-        }
-
-        $template = TemplateHelper::resolve($get('template'));
-
-        return $template
-            ? $template::hasSubmitNotificationQuery()
-            : config('filament-form-builder.submit_notification_query_enabled', true) === true;
+        return SubmitNotifications::getTypes(static::getFormType($get));
     }
 
     public static function hasNotificationsEnabled(Get $get): bool
     {
-        if ($template = TemplateHelper::resolve($get('template'))) {
-            return $template::hasNotifications();
-        }
-
-        return false;
+        return static::getFormType($get)?->hasNotifications() ?? false;
     }
 
     public static function hasIntegrationsEnabled(Get $get): bool
     {
-        if ($template = TemplateHelper::resolve($get('template'))) {
-            return $template::hasIntegrations();
-        }
-
-        return false;
+        return static::getFormType($get)?->hasIntegrations() ?? false;
     }
 
-    /**
-     * @param array<string, mixed> $state
-     * @return array<int, Component>
-     */
-    public static function getIntegrationSchema(array $state): array
+    public static function describeRetention(mixed $months): string
     {
-        $integration = $state['class'] ?? null;
-        if (isset($integration) && is_subclass_of($integration, Integration::class)) {
-            $schema = $integration::schema();
-        }
-
-        return [
-            ...$schema ?? [],
-        ];
+        return filled($months) && (int) $months > 0
+            ? trans_choice('filament-form-builder::general.retention.months', (int) $months, ['count' => (int) $months])
+            : __('filament-form-builder::general.retention.forever');
     }
 
-    public static function hasSettings(Get $get): bool
+    public static function hasSubmitNotifications(Get $get): bool
     {
-        $template = TemplateHelper::resolve($get('template'));
-
-        return $template && !empty($template::settings());
+        return filled($get('template')) && filled(static::getSubmitNotificationTypes($get));
     }
 
-    /**
-     * @param array<string, mixed> $state
-     */
-    public static function hasCustomFields(array $state): bool
+    public static function hasCustomFields(Get $get): bool
     {
-        $template = TemplateHelper::resolve($state['template'] ?? null);
-
-        return $template && $template::isCustom();
+        return static::getFormType($get)?->hasCustomFields() ?? false;
     }
 }

@@ -2,13 +2,17 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\Tables;
 
+use Filament\QueryBuilder\Constraints\Constraint;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\QueryBuilder;
+use Filament\Tables\Filters\QueryBuilder\Constraints\DateConstraint;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
+use VanOns\FilamentFormBuilder\Filament\Tables\Filters\AnswerConstraints;
 use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 /**
  * Turns one form into table columns and filters over its submissions, so the
@@ -36,104 +40,134 @@ class FormSubmissionColumns
                 ->label(__('filament-form-builder::general.created_at'))
                 ->dateTime()
                 ->sortable(),
-            TextColumn::make('submitter_email')
-                ->label(__('filament-form-builder::general.submitter_email'))
-                ->sortable()
-                ->searchable()
-                ->toggleable(),
             ...$this->fieldColumns(),
+            ...static::detailColumns(),
         ];
     }
 
     /**
-     * @return array<int, SelectFilter>
-     */
-    public function filters(): array
-    {
-        $filters = [];
-
-        foreach ($this->form->getFields() as $field) {
-            $options = $field->getFilterOptions();
-
-            if ($options === []) {
-                continue;
-            }
-
-            $key = $field->getKey();
-
-            $filters[] = SelectFilter::make($key)
-                ->label($field->getLabel())
-                ->options($options)
-                ->multiple()
-                ->query(fn (Builder $query, array $data): Builder => $query->when(
-                    $data['values'] ?? [],
-                    fn (Builder $query, array $values) => $query->whereIn($this->path($key), $values),
-                ));
-        }
-
-        return $filters;
-    }
-
-    /**
-     * One column per field, hidden until someone asks for it: a form of twenty
-     * fields would otherwise open as an unreadable wall.
+     * Where a submission came from, hidden until someone asks for it.
      *
      * @return array<int, TextColumn>
      */
-    private function fieldColumns(): array
+    public static function detailColumns(): array
     {
-        $columns = [];
+        $columns = [
+            TextColumn::make('source_url')
+                ->label(__('filament-form-builder::general.submission.submitted_from'))
+                ->formatStateUsing(fn (string $state): string => preg_replace('#^https?://(www\.)?#', '', $state) ?? $state)
+                ->limit(40)
+                ->tooltip(fn (FormSubmission $record): ?string => $record->source_url)
+                ->toggleable(isToggledHiddenByDefault: true),
+        ];
 
-        $fields = $this->fieldsByKey();
-
-        foreach ($this->form->getSubmissionFields() as $key => $label) {
-            $field = $fields[$key] ?? null;
-
-            $columns[] = TextColumn::make("data.{$key}")
-                ->label(Str::limit($label, 40))
-                ->formatStateUsing(fn (mixed $state): ?string => $this->format($field?->formatSubmissionValue($state) ?? $state))
-                ->toggleable(isToggledHiddenByDefault: true)
-                // Filament would look for a `data` column; these live inside it.
-                ->sortable(query: function (Builder $query, string $direction) use ($key): Builder {
-                    $query->orderBy($this->path($key), $direction);
-
-                    return $query;
-                })
-                ->searchable(query: function (Builder $query, string $search) use ($key): Builder {
-                    return $query->where($this->path($key), 'like', "%{$search}%");
-                });
+        foreach (SubmissionMeta::labels() as $key => $label) {
+            $columns[] = TextColumn::make("meta.{$key}")
+                ->label($label)
+                ->state(fn (FormSubmission $record): ?string => SubmissionMeta::describe($record->meta, $key))
+                ->toggleable(isToggledHiddenByDefault: true);
         }
 
         return $columns;
     }
 
     /**
-     * @return array<string, FormField>
+     * @return array<int, QueryBuilder>
      */
-    private function fieldsByKey(): array
+    public function filters(): array
     {
-        $fields = [];
+        return [
+            QueryBuilder::make()
+                ->constraints($this->constraints())
+                ->constraintPickerColumns(2)
+                // Rules, or groups of rules joined by OR, but no OR inside an OR.
+                ->maxNestingDepth(fn (): int => self::allowsOrGroups() ? 2 : 1),
+        ];
+    }
 
-        foreach ($this->form->getFields() as $field) {
-            foreach (array_keys($field->getSubmissionColumns()) as $key) {
-                $fields[$key] = $field;
+    /**
+     * Livewire refuses state paths deeper than its `payload.max_nesting_depth`
+     * (10 by default); a rule inside an OR group is edited 13 levels deep.
+     */
+    public static function allowsOrGroups(): bool
+    {
+        $depth = config('livewire.payload.max_nesting_depth');
+
+        return $depth === null || $depth >= 13;
+    }
+
+    /**
+     * Every answer the form asks for, then where and when it was sent.
+     *
+     * @return array<string, Constraint>
+     */
+    public function constraints(): array
+    {
+        $constraints = [];
+
+        foreach ($this->form->getFields(inputsOnly: true) as $field) {
+            foreach ($field->getFilterConstraints() as $constraint) {
+                $constraints[$constraint->getName()] = $constraint->icon($field::icon());
             }
         }
 
-        return $fields;
-    }
-
-    private function path(string $key): string
-    {
-        return "data->{$key}";
-    }
-
-    private function format(mixed $state): ?string
-    {
-        if (is_array($state)) {
-            return implode(', ', Arr::flatten($state));
+        foreach ($this->form->getType()->extraValues() as $key => $label) {
+            $constraints[$key] ??= AnswerConstraints::text($key, $label)->icon(Heroicon::OutlinedCube);
         }
 
-        return $state === null ? null : (string) $state;
+        $constraints['submitted_from'] ??= AnswerConstraints::text('submitted_from', __('filament-form-builder::general.submission.submitted_from'))
+            ->attribute('source_url')
+            ->icon(Heroicon::OutlinedGlobeAlt);
+
+        if (array_key_exists('campaign', SubmissionMeta::labels())) {
+            foreach (['source', 'medium', 'campaign'] as $part) {
+                $constraints["utm_{$part}"] ??= AnswerConstraints::text("utm_{$part}", __("filament-form-builder::general.filters.utm_{$part}"))
+                    ->attribute("meta->campaign->{$part}")
+                    ->icon(Heroicon::OutlinedMegaphone);
+            }
+        }
+
+        // A field could be called created_at, so the date goes by another name.
+        $constraints['submitted_at'] = DateConstraint::make('submitted_at')
+            ->label(__('filament-form-builder::general.submission.submitted_at'))
+            ->attribute('created_at');
+
+        return $constraints;
+    }
+
+    /**
+     * One column per field, hidden unless the field asks to be shown: a form of
+     * twenty fields would otherwise open as an unreadable wall.
+     *
+     * @return array<int, TextColumn>
+     */
+    private function fieldColumns(): array
+    {
+        $columns = [];
+        $shown = [];
+
+        foreach ($this->form->getFields(inputsOnly: true) as $field) {
+            if ($field->shouldShowColumn()) {
+                $shown += $field->getSubmissionColumns();
+            }
+        }
+
+        foreach ($this->form->getSubmissionFields() as $key => $label) {
+            $columns[] = TextColumn::make("data.{$key}")
+                ->label(Str::limit($label, 40))
+                ->state(fn (FormSubmission $record): ?string => $record->getDisplayText($key, fileNames: true))
+                ->toggleable(isToggledHiddenByDefault: !array_key_exists($key, $shown))
+                // Filament would look for a `data` column; these live inside it.
+                ->sortable(query: function (Builder $query, string $direction) use ($key): Builder {
+                    $query->orderBy(AnswerConstraints::lowered($query, "data->{$key}"), $direction);
+
+                    return $query;
+                })
+                ->searchable(query: function (Builder $query, string $search) use ($key): Builder {
+                    return $query->where(AnswerConstraints::lowered($query, "data->{$key}"), 'like', '%' . mb_strtolower($search) . '%');
+                });
+        }
+
+        return $columns;
     }
 }

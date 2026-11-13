@@ -1,103 +1,391 @@
-class FormBuilderForm {
-    constructor(formElement) {
-        this.formElement = formElement;
-        this.inputs = Array.from(formElement.querySelectorAll('[data-form-builder-input]'));
-        this.init();
+// The version query of this file, so an update never pairs it with cached older modules.
+const version = new URL(import.meta.url).search
+const { hiddenKeys, isShown, readValues } = await import(`./conditions.js${version}`)
+const { visibleSteps, nextStep, previousStep, firstStepWithError, progress, firstInvalid, reportStep, validateOnly } = await import(`./steps.js${version}`)
+
+function readConditions(form) {
+    const conditions = {}
+
+    for (const input of form.querySelectorAll('[data-form-builder-input][data-conditions]')) {
+        conditions[input.dataset.formBuilderInput] = JSON.parse(input.dataset.conditions)
     }
 
-    init() {
-        this.inputs.forEach(input => {
-            input.addEventListener('change', () => {
-                this.updateAllVisibility();
-            });
-        });
+    return conditions
+}
 
-        this.updateAllVisibility();
+/**
+ * Shows a conditional field while its conditions hold. A hidden field is
+ * disabled rather than emptied: it is not posted, so the server sees what the
+ * page does, and what the visitor typed is back when it shows again.
+ */
+function connect(form, conditions) {
+    const blocks = [...form.querySelectorAll('[data-form-builder-input-wrapper][data-conditions]')]
+
+    if (Object.keys(conditions).length === 0 && blocks.length === 0) {
+        return
     }
 
-    updateAllVisibility() {
-        this.inputs.forEach(input => this.updateVisibility(input));
-    }
+    const update = () => {
+        const values = readValues(form)
+        const hidden = hiddenKeys(conditions, values)
 
-    updateVisibility(input) {
-        const inputWrapper = input.closest('[data-form-builder-input-wrapper]');
+        for (const key of Object.keys(conditions)) {
+            toggle(form, key, !hidden.has(key))
+        }
 
-        const visibleWhenKey = input.getAttribute('data-visible-when-key');
-        const visibleWhenValue = input.getAttribute('data-visible-when-value');
-
-        if (!visibleWhenKey || !visibleWhenValue) return;
-
-        const currentValue = this.getValue(visibleWhenKey);
-
-        const shouldShow = this.shouldShow(currentValue, visibleWhenValue);
-
-        if (shouldShow) {
-            inputWrapper.style.display = '';
-            if (input.hasAttribute('data-required') && input.getAttribute('data-required') === 'true') {
-                input.setAttribute('required', true);
-            }
-        } else {
-            inputWrapper.style.display = 'none';
-            input.removeAttribute('required');
-
-            if (input.type === 'checkbox' || input.type === 'radio') {
-                input.checked = false;
-            } else if (input.tagName === 'SELECT') {
-                if (input.multiple) {
-                    Array.from(input.options).forEach(option => option.selected = false);
-                } else {
-                    input.selectedIndex = -1;
-                }
-            } else {
-                input.value = '';
-            }
+        for (const block of blocks) {
+            block.style.display = isShown(JSON.parse(block.dataset.conditions), values, hidden) ? '' : 'none'
         }
     }
 
-    shouldShow(value, conditionValue) {
-        if (conditionValue === '__not_empty__') {
-            return Array.isArray(value)
-                ? value.length > 0
-                : value !== undefined && value !== null && value !== '';
-        }
+    form.addEventListener('input', update)
+    form.addEventListener('change', update)
+    update()
+}
 
-        if (conditionValue === '__empty__') {
-            return Array.isArray(value)
-                ? value.length === 0
-                : value === undefined || value === null || value === '';
-        }
+function toggle(form, key, isShown) {
+    const wrapper = form.querySelector(`[data-form-builder-input-wrapper="${CSS.escape(key)}"]`)
 
-        if (conditionValue.startsWith('__not__')) {
-            const actualValue = conditionValue.replace('__not__', '');
-            return Array.isArray(value)
-                ? !value.includes(actualValue)
-                : value !== actualValue;
-        }
-
-        return Array.isArray(value)
-            ? value.includes(conditionValue)
-            : value === conditionValue;
+    if (wrapper) {
+        wrapper.style.display = isShown ? '' : 'none'
     }
 
-    getValue(key) {
-        const inputs = Array.from(this.formElement.querySelectorAll(`[data-form-builder-input="${CSS.escape(key)}"]`));
-
-        const values = inputs.reduce((acc, input) => {
-            if ('checked' in input && (input.type === 'checkbox' || input.type === 'radio')) {
-                if (input.checked) acc.push(input.value);
-            } else if (input.value?.trim() !== '') {
-                acc.push(input.value);
-            }
-            return acc;
-        }, []);
-
-        return values.length === 1 ? values[0] : values;
-    }
-
-    static initAll() {
-        const forms = document.querySelectorAll('[data-form-builder-form]');
-        forms.forEach(formElement => new FormBuilderForm(formElement));
+    for (const input of form.querySelectorAll(`[data-form-builder-input="${CSS.escape(key)}"]`)) {
+        input.disabled = !isShown
+        input.required = isShown && input.dataset.required === 'true'
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => FormBuilderForm.initAll());
+/**
+ * Shows a form in steps one step at a time. Without this script every step
+ * shows, one below the other, and the form works as one.
+ */
+function paginate(form, conditions) {
+    const container = form.querySelector('[data-form-builder-steps]')
+
+    if (!container) {
+        return
+    }
+
+    const fieldsets = [...container.querySelectorAll('[data-form-builder-step]')]
+    const steps = fieldsets.map((fieldset) => ({
+        title: fieldset.dataset.title ?? null,
+        keys: [...new Set([...fieldset.querySelectorAll('[data-form-builder-input]')].map((input) => input.dataset.formBuilderInput))],
+    }))
+    const previous = container.querySelector('[data-form-builder-previous]')
+    const next = container.querySelector('[data-form-builder-next]')
+    const ends = [...container.querySelectorAll('[data-form-builder-steps-end]')]
+    const hidden = () => hiddenKeys(conditions, readValues(form))
+    const pageTitle = document.title
+    let current = 0
+    let furthest = 0
+
+    const stepOf = (number, total) => container.dataset.stepOf.replace(':current', number).replace(':total', total)
+    const describe = (number, total) => stepOf(number, total) + (steps[current].title ? `: ${steps[current].title}` : '')
+
+    const render = (shouldFocus = false) => {
+        const hiddenNow = hidden()
+        const visible = visibleSteps(steps, hiddenNow)
+        const isLast = nextStep(steps, hiddenNow, current) === null
+        const { number, total, percent } = progress(steps, hiddenNow, current)
+
+        fieldsets.forEach((fieldset, index) => {
+            fieldset.hidden = index !== current
+        })
+        previous.hidden = previousStep(steps, hiddenNow, current) === null
+        next.hidden = isLast
+        // Out of sight rather than hidden: a captcha does not draw itself in an element that is not displayed.
+        ends.forEach((end) => end.toggleAttribute('data-form-builder-waiting', !isLast))
+
+        for (const item of container.querySelectorAll('[data-form-builder-progress-step]')) {
+            const index = Number(item.dataset.formBuilderProgressStep)
+
+            const isDone = index !== current && index < furthest
+            const isLink = isDone && index < current
+
+            item.hidden = !visible.includes(index)
+            item.dataset.state = isDone ? 'done' : (index === current ? 'current' : 'upcoming')
+            item.querySelector('[data-form-builder-progress-done]').hidden = !isDone
+            item.querySelector('[data-form-builder-progress-link]').hidden = !isLink
+            item.querySelector('[data-form-builder-progress-text]').hidden = isLink
+
+            if (index === current) {
+                item.setAttribute('aria-current', 'step')
+            } else {
+                item.removeAttribute('aria-current')
+            }
+        }
+
+        const bar = container.querySelector('[data-form-builder-progress-bar]')
+
+        if (bar) {
+            bar.style.setProperty('--ffb-progress', `${percent}%`)
+            bar.setAttribute('aria-valuenow', String(percent))
+            bar.setAttribute('aria-valuetext', describe(number, total))
+            container.querySelector('[data-form-builder-progress-label]').textContent = describe(number, total)
+        }
+
+        const legend = fieldsets[current].querySelector('legend')
+
+        legend.querySelector('[data-form-builder-step-number]').textContent = stepOf(number, total)
+
+        if (shouldFocus) {
+            document.title = `${describe(number, total)} – ${pageTitle}`
+            legend.focus()
+        }
+    }
+
+    const go = (index) => {
+        current = index
+        furthest = Math.max(furthest, index)
+        render(true)
+    }
+
+    const checksOnServer = form.hasAttribute('data-form-builder-check-steps')
+    let isChecking = false
+
+    const advance = async () => {
+        const hiddenNow = hidden()
+        const following = nextStep(steps, hiddenNow, current)
+
+        if (following === null || isChecking || !reportStep(fieldsets[current])) {
+            return
+        }
+
+        // An upload only goes along with the form itself.
+        const keys = steps[current].keys.filter((key) => !hiddenNow.has(key)
+            && !fieldsets[current].querySelector(`input[type="file"][data-form-builder-input="${CSS.escape(key)}"]`))
+
+        if (checksOnServer && keys.length > 0) {
+            const from = current
+
+            isChecking = true
+            next.setAttribute('aria-busy', 'true')
+
+            const passes = await checkStep(form, fieldsets[from], keys)
+
+            isChecking = false
+            next.removeAttribute('aria-busy')
+
+            // The visitor went back while the server checked.
+            if (!passes || current !== from) {
+                return
+            }
+        }
+
+        go(following)
+    }
+
+    next.addEventListener('click', advance)
+
+    for (const link of container.querySelectorAll('[data-form-builder-progress-link]')) {
+        link.addEventListener('click', () => go(Number(link.dataset.formBuilderProgressLink)))
+    }
+
+    previous.addEventListener('click', () => {
+        const before = previousStep(steps, hidden(), current)
+
+        if (before !== null) {
+            go(before)
+        }
+    })
+
+    // The browser would stop at a required field in a step the visitor has not seen yet.
+    form.noValidate = true
+
+    form.addEventListener('submit', (event) => {
+        const hiddenNow = hidden()
+        const following = nextStep(steps, hiddenNow, current)
+
+        // Enter in a field of an earlier step moves on instead of sending.
+        if (following !== null) {
+            event.preventDefault()
+            advance()
+
+            return
+        }
+
+        // An answer changed on the way may have made an earlier step incomplete again.
+        const incomplete = visibleSteps(steps, hiddenNow).find((index) => firstInvalid(fieldsets[index]) !== null)
+
+        if (incomplete !== undefined) {
+            event.preventDefault()
+            go(incomplete)
+            reportStep(fieldsets[incomplete])
+        } else if (ends.some((end) => !reportStep(end))) {
+            event.preventDefault()
+        }
+    })
+
+    form.addEventListener('input', () => render())
+    form.addEventListener('change', () => render())
+
+    const errorKeys = [...container.querySelectorAll('.ffb-error')]
+        .map((error) => error.closest('[data-form-builder-input-wrapper]')?.dataset.formBuilderInputWrapper)
+        .filter(Boolean)
+    const visible = visibleSteps(steps, hidden())
+
+    // After the server turned the form away: the step with the first error, or the last for one at the end.
+    current = firstStepWithError(steps, errorKeys) ?? (errorKeys.length > 0 ? visible.at(-1) : visible[0]) ?? 0
+    furthest = current
+
+    for (const element of container.querySelectorAll('[data-form-builder-progress]')) {
+        element.hidden = false
+    }
+
+    render()
+
+    if (errorKeys.length > 0) {
+        focusFirstError(container)
+    }
+}
+
+/**
+ * Has the server check the answers of one step, for rules only it knows, with
+ * Laravel Precognition. True when it has nothing against them, and also when
+ * it cannot be reached: the whole form is checked once it is sent anyway.
+ */
+async function checkStep(form, fieldset, keys) {
+    const body = new FormData(form)
+
+    for (const [name, value] of [...body]) {
+        if (value instanceof File) {
+            body.delete(name)
+        }
+    }
+
+    let response
+
+    try {
+        response = await fetch(form.action, {
+            method: 'POST',
+            body,
+            headers: { Accept: 'application/json', Precognition: 'true', 'Precognition-Validate-Only': validateOnly(keys) },
+        })
+    } catch {
+        return true
+    }
+
+    if (response.status !== 204 && response.status !== 422) {
+        return true
+    }
+
+    clearErrors(fieldset)
+
+    if (response.status === 204) {
+        return true
+    }
+
+    const { errors = {} } = await response.json().catch(() => ({}))
+
+    showErrors(fieldset, errors)
+
+    return Object.keys(errors).length === 0
+}
+
+function clearErrors(fieldset) {
+    for (const error of fieldset.querySelectorAll('.ffb-error')) {
+        for (const element of fieldset.querySelectorAll('[aria-describedby]')) {
+            describedBy(element, error.id, false)
+        }
+
+        error.remove()
+    }
+
+    fieldset.querySelectorAll('[aria-invalid]').forEach((input) => input.removeAttribute('aria-invalid'))
+}
+
+function describedBy(element, id, isAdded) {
+    const ids = (element.getAttribute('aria-describedby') ?? '').split(' ').filter((current) => current !== '' && current !== id)
+    const value = [...ids, ...(isAdded ? [id] : [])].join(' ')
+
+    if (value === '') {
+        element.removeAttribute('aria-describedby')
+    } else {
+        element.setAttribute('aria-describedby', value)
+    }
+}
+
+function describedElements(wrapper) {
+    return wrapper.matches('fieldset') ? [wrapper] : [...wrapper.querySelectorAll('[data-form-builder-input]')]
+}
+
+/**
+ * Puts each message where the server would have rendered it, under its field,
+ * and moves the focus to the first field with one.
+ */
+function showErrors(fieldset, errors) {
+    let first = null
+
+    for (const [key, messages] of Object.entries(errors)) {
+        const wrapper = fieldset.querySelector(`[data-form-builder-input-wrapper="${CSS.escape(key.split('.')[0])}"]`)
+
+        if (!wrapper || wrapper.querySelector('.ffb-error')) {
+            continue
+        }
+
+        const error = document.createElement('p')
+        error.id = `${wrapper.dataset.formBuilderInputWrapper}-error`
+        error.className = 'ffb-error'
+        error.textContent = [messages].flat()[0]
+        wrapper.append(error)
+
+        wrapper.querySelectorAll('[data-form-builder-input]').forEach((input) => input.setAttribute('aria-invalid', 'true'))
+        describedElements(wrapper).forEach((element) => describedBy(element, error.id, true))
+        first ??= wrapper.querySelector('[data-form-builder-input]:not(:disabled)')
+    }
+
+    first?.focus()
+}
+
+function focusFirstError(element) {
+    const error = [...element.querySelectorAll('.ffb-error')].find((candidate) => !candidate.closest('[hidden]'))
+    const input = error?.closest('[data-form-builder-input-wrapper]')?.querySelector('[data-form-builder-input]:not(:disabled)')
+
+    if (input) {
+        input.focus()
+    } else if (error) {
+        error.tabIndex = -1
+        error.focus()
+    }
+}
+
+/**
+ * Sends a form once: a second click would post the same answers again. The
+ * server stores a repeat only once as well, this spares the visitor the wait.
+ */
+function sendOnce(form) {
+    form.addEventListener('submit', (event) => {
+        // After every other listener, and after the browser read the buttons along with the form.
+        setTimeout(() => event.defaultPrevented || setBusy(form, true))
+    })
+
+    // Going back in the history brings the page back as it was left, buttons and all.
+    window.addEventListener('pageshow', (event) => event.persisted && setBusy(form, false))
+}
+
+function setBusy(form, isBusy) {
+    if (isBusy) {
+        form.setAttribute('aria-busy', 'true')
+    } else {
+        form.removeAttribute('aria-busy')
+    }
+
+    for (const button of form.querySelectorAll('button:not([type="button"]):not([type="reset"]), input[type="submit"]')) {
+        button.disabled = isBusy
+    }
+}
+
+document.querySelectorAll('[data-form-builder-form]').forEach((form) => {
+    const conditions = readConditions(form)
+
+    connect(form, conditions)
+    paginate(form, conditions)
+    sendOnce(form)
+
+    form.querySelector('[data-form-builder-message]')?.focus()
+
+    if (!form.querySelector('[data-form-builder-steps]')) {
+        focusFirstError(form)
+    }
+})
