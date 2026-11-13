@@ -139,6 +139,45 @@ it('limits the answers of a number field, set on the canvas', function () {
     expect($form->fresh()->getRules())->toBe(['aantal' => ['nullable', 'numeric', 'integer', 'min:1', 'max:8']]);
 });
 
+it('keeps the limits an editor sets on a field under the names its type reads them by', function (array $field, array $limits) {
+    $form = canvasForm([$field]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+
+    $page->callAction(onCanvas('edit', ['item' => array_keys($page->get('data.custom.fields'))[0]]), data: $limits)
+        ->assertHasNoActionErrors()
+        ->call('save');
+
+    expect(savedFields($form)[0])->toMatchArray($limits);
+})->with([
+    'a text' => [['type' => 'text', 'label' => 'Naam', 'key' => 'naam'], ['minLength' => 2, 'maxLength' => 40]],
+    'a text area' => [['type' => 'textarea', 'label' => 'Vraag', 'key' => 'vraag'], ['minLength' => 20, 'maxLength' => 500]],
+    'a date' => [['type' => 'date', 'label' => 'Datum', 'key' => 'datum'], ['minDate' => '2026-10-07', 'maxDate' => '2026-10-31', 'notInPast' => true]],
+    'checkboxes' => [
+        ['type' => 'checkbox_list', 'label' => 'Interesses', 'key' => 'interesses', 'options' => [['value' => 'web', 'label' => 'Websites'], ['value' => 'apps', 'label' => 'Apps']]],
+        ['minItems' => 1, 'maxItems' => 2],
+    ],
+    'an upload' => [['type' => 'file_upload', 'label' => 'Bijlagen', 'key' => 'bijlagen'], ['multiple' => true, 'extensions' => ['pdf'], 'maxSize' => 500, 'maxFiles' => 3]],
+]);
+
+it('refuses a limit that contradicts another or goes past the config', function (array $field, array $limits, string $refused) {
+    $form = canvasForm([$field]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+
+    $page->callAction(onCanvas('edit', ['item' => array_keys($page->get('data.custom.fields'))[0]]), data: $limits)
+        ->assertHasActionErrors([$refused]);
+})->with([
+    'a maximum length below the minimum' => [['type' => 'text', 'label' => 'Naam', 'key' => 'naam'], ['minLength' => 10, 'maxLength' => 5], 'maxLength'],
+    'a length past the config' => [['type' => 'text', 'label' => 'Naam', 'key' => 'naam'], ['maxLength' => 1001], 'maxLength'],
+    'a latest date before the earliest' => [['type' => 'date', 'label' => 'Datum', 'key' => 'datum'], ['minDate' => '2026-10-07', 'maxDate' => '2026-10-01'], 'maxDate'],
+    'fewer choices at most than at least' => [
+        ['type' => 'checkbox_list', 'label' => 'Interesses', 'key' => 'interesses', 'options' => [['value' => 'web', 'label' => 'Websites']]],
+        ['minItems' => 3, 'maxItems' => 2],
+        'maxItems',
+    ],
+    'more files than the config allows' => [['type' => 'file_upload', 'label' => 'Bijlagen', 'key' => 'bijlagen'], ['multiple' => true, 'maxFiles' => 11], 'maxFiles'],
+    'a larger file than the config allows' => [['type' => 'file_upload', 'label' => 'Bijlagen', 'key' => 'bijlagen'], ['maxSize' => 20000], 'maxSize'],
+]);
+
 it('asks a consent for no second short name', function () {
     $form = canvasForm([['type' => 'consent', 'text' => '<p>Akkoord</p>', 'label' => 'Privacy', 'key' => 'privacy']]);
     $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
