@@ -241,6 +241,15 @@ A text answer is at most `max_length.text` characters (1000), a text area
 of `uploads.extensions`, judged by its content rather than its name, and the
 file picker offers only those; `null` takes any file.
 
+A number is a whole number until it is given decimals, and can have a minimum
+and a maximum. An editor sets them under "Validation" in the field's
+slide-over, a field in code with
+`NumberField::make('bedrag')->min(1)->max(500)->decimals(2)`. The number input
+gets the same `min`, `max` and `step`, and `getMin()`, `getMax()` and
+`getStep()` give them to a front end of your own. A field type of your own
+offers its settings there by returning them from `getValidationFields()`, and
+turns them into rules in `fieldRules()`.
+
 Besides text, e-mail, phone, number, choices and uploads there is a date,
 stored as the date input sends it (`2026-10-07`) and shown in the format the
 editor picks (`7 October 2026`, `07-10-2026`, `7 Oct 2026` or `2026-10-07`),

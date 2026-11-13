@@ -51,6 +51,18 @@ trait HasFields
     abstract public static function getFields(): array;
 
     /**
+     * The settings that limit what a visitor may answer, shown under
+     * "Validation" in the field's slide-over. The field turns them into rules
+     * in `fieldRules()`.
+     *
+     * @return array<Component>
+     */
+    public static function getValidationFields(): array
+    {
+        return [];
+    }
+
+    /**
      * @return array<Component>
      */
     protected static function getDefaultFields(): array

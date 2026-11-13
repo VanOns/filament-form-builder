@@ -143,6 +143,8 @@ code. See [Form types](docs/usage.md#form-types).
 
 * `InputField` is split into `TextInputField`, `EmailField`, `PhoneField` and `NumberField`, and
   `SelectField` into `RadioField`, `CheckboxListField` and `DropdownField`.
+* A number field takes whole numbers only, as the browser's number input already did. Give a field that
+  has to take `4.5` decimals on the canvas, or `->decimals(1)` in code.
 * Keys no longer get a `key_` prefix: a field labelled "Voornaam" posts and stores `voornaam`.
 * `large` and `column_start` are gone. A field only has `column_span`, now in columns of a fixed
   12-column grid, limited to a quarter (3), a third (4), a half (6), two thirds (8), three quarters (9)

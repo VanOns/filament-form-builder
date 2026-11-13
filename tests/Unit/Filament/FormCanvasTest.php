@@ -125,6 +125,20 @@ it('gives a field a short column name and shows it as a column, set on the canva
         ->assertSeeHtml('title="Shown as a column in the submissions by default"');
 });
 
+it('limits the answers of a number field, set on the canvas', function () {
+    $form = canvasForm([['type' => 'number', 'label' => 'Aantal personen', 'key' => 'aantal']]);
+    $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);
+    $uuid = array_keys($page->get('data.custom.fields'))[0];
+
+    $page->callAction(onCanvas('edit', ['item' => $uuid]), data: ['min' => 5, 'max' => 2])
+        ->assertHasActionErrors(['max']);
+
+    $page->callAction(onCanvas('edit', ['item' => $uuid]), data: ['min' => 1, 'max' => 8, 'decimals' => 0])
+        ->call('save');
+
+    expect($form->fresh()->getRules())->toBe(['aantal' => ['nullable', 'numeric', 'integer', 'min:1', 'max:8']]);
+});
+
 it('asks a consent for no second short name', function () {
     $form = canvasForm([['type' => 'consent', 'text' => '<p>Akkoord</p>', 'label' => 'Privacy', 'key' => 'privacy']]);
     $page = Livewire::test(EditForm::class, ['record' => $form->getRouteKey()]);

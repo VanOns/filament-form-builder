@@ -948,15 +948,21 @@ class FormCanvas extends Field
                 ->statePath('settings')
                 ->schema($settings),
         ];
+        $validation = $type::getValidationFields();
         $fields = [
             Group::make($type::getFields())->columns(2),
-            View::make('filament-form-builder::filament.partials.settings-preview')
-                ->key('preview')
-                ->viewData(fn (Get $get): array => ['field' => new $type(self::getPreviewState($get))]),
+            ...($validation === [] ? [] : [
+                SettingsGroup::make(__('filament-form-builder::fields.validation'))
+                    ->schema($validation)
+                    ->columns(2),
+            ]),
         ];
+        $preview = View::make('filament-form-builder::filament.partials.settings-preview')
+            ->key('preview')
+            ->viewData(fn (Get $get): array => ['field' => new $type(self::getPreviewState($get))]);
 
         // A field without an advanced tab shows a project's own settings above its preview.
-        $general = $type::isInput() ? $fields : [$fields[0], ...$projectSettings, $fields[1]];
+        $general = [...$fields, ...($type::isInput() ? [] : $projectSettings), $preview];
         $tabs = [];
 
         if ($type::isInput()) {
