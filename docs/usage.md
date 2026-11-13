@@ -241,14 +241,27 @@ A text answer is at most `max_length.text` characters (1000), a text area
 of `uploads.extensions`, judged by its content rather than its name, and the
 file picker offers only those; `null` takes any file.
 
-A number is a whole number until it is given decimals, and can have a minimum
-and a maximum. An editor sets them under "Validation" in the field's
-slide-over, a field in code with
-`NumberField::make('bedrag')->min(1)->max(500)->decimals(2)`. The number input
-gets the same `min`, `max` and `step`, and `getMin()`, `getMax()` and
-`getStep()` give them to a front end of your own. A field type of your own
-offers its settings there by returning them from `getValidationFields()`, and
-turns them into rules in `fieldRules()`.
+A field can limit what a visitor may answer. An editor sets the limits under
+"Validation" in the field's slide-over, a field in code with the setters
+below, as in `NumberField::make('bedrag')->min(1)->max(500)->decimals(2)`. The
+server checks them, and the browser gets the same ones where HTML has an
+attribute for them:
+
+| Field           | Limits                                                                 | In code                                                   | In the browser           |
+|-----------------|------------------------------------------------------------------------|-----------------------------------------------------------|--------------------------|
+| Text, text area | The fewest and the most characters, never past `max_length`            | `minLength()`, `maxLength()`                              | `minlength`, `maxlength` |
+| Number          | A minimum, a maximum, and decimals: without them only whole numbers    | `min()`, `max()`, `decimals()`                            | `min`, `max`, `step`     |
+| Date            | An earliest and a latest date, each a fixed one, today, or the stricter | `minDate()`, `maxDate()`, `notInPast()`, `notInFuture()` | `min`, `max`             |
+| Checkboxes      | The fewest and the most choices                                        | `minItems()`, `maxItems()`                                | None, the server only    |
+| Upload          | Fewer file types than `uploads.extensions`, smaller files than `uploads.max_size`, and with multiple uploads fewer files than `uploads.max_files` (10) | `extensions()`, `maxSize()`, `maxFiles()` | `accept` |
+
+A limit only counts for an answer that is given, so an optional field may stay
+empty. "Today", for a date that may not be in the past or in the future, is the
+day in the app's `app.timezone`: on UTC that runs an hour or two behind the
+Netherlands around midnight. Every setter has a getter, such as `getMin()`,
+`getMaxLength()` or `getMinDate()`, for a front end of your own. A field type
+of your own offers its settings under "Validation" by returning them from
+`getValidationFields()`, and turns them into rules in `fieldRules()`.
 
 Besides text, e-mail, phone, number, choices and uploads there is a date,
 stored as the date input sends it (`2026-10-07`) and shown in the format the
