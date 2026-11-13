@@ -128,6 +128,50 @@ it('never takes a typed value for a stored file', function () {
     expect(FormSubmission::query()->where('form_id', $withText->id)->exists())->toBeFalse();
 });
 
+// post() takes files out of the data, so a value and a file under one key need call().
+it('never stores a file posted beside a typed value under the key of a text field', function () {
+    $form = Form::create([
+        'title' => 'Naam en cv',
+        'template' => 'custom',
+        'custom' => ['fields' => [
+            ['type' => 'text', 'label' => 'Naam', 'key' => 'naam'],
+            ['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv'],
+        ]],
+    ]);
+
+    test()->call(
+        'POST',
+        route('filament-form-builder.form.store', ['formId' => $form->id]),
+        ['naam' => 'Een naam'],
+        files: ['naam' => UploadedFile::fake()->createWithContent('page.html', '<script>alert(1)</script>')],
+    )->assertSessionHasErrors('naam');
+
+    expect(FormSubmission::query()->where('form_id', $form->id)->exists())->toBeFalse()
+        ->and(Storage::disk('local')->allFiles())->toBe([]);
+});
+
+it('checks an upload that comes with an empty value under the same key', function (bool $multiple, string $errorKey) {
+    $form = Form::create([
+        'title' => 'Optioneel cv',
+        'template' => 'custom',
+        'custom' => ['fields' => [['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv', 'multiple' => $multiple]]],
+    ]);
+    $file = UploadedFile::fake()->createWithContent('page.html', '<script>alert(1)</script>');
+
+    test()->call(
+        'POST',
+        route('filament-form-builder.form.store', ['formId' => $form->id]),
+        ['cv' => ''],
+        files: ['cv' => $multiple ? [$file] : $file],
+    )->assertSessionHasErrors($errorKey);
+
+    expect(FormSubmission::query()->where('form_id', $form->id)->exists())->toBeFalse()
+        ->and(Storage::disk('local')->allFiles())->toBe([]);
+})->with([
+    'a single upload' => [false, 'cv'],
+    'a multiple upload' => [true, 'cv.0'],
+]);
+
 it('keeps the files of a submission that can still be restored', function () {
     $submission = uploadSubmission(['cv' => pdf()]);
     $path = $submission->files['cv'][0]['path'];

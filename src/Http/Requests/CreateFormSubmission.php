@@ -72,12 +72,15 @@ class CreateFormSubmission extends FormRequest
 
     /**
      * The input as the form type prepared it: what is validated is also what
-     * is stored.
+     * is stored. Files go on top: in all() a typed value hides a file posted
+     * under the same key, which would then skip the rules of that key.
      *
      * @return array<string, mixed>
      */
     public function validationData(): array
     {
-        return $this->prepared ??= $this->getForm()->getType()->beforeValidation($this->all());
+        return $this->prepared ??= $this->getForm()->getType()->beforeValidation(
+            array_replace_recursive($this->input(), $this->allFiles()),
+        );
     }
 }

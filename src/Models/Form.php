@@ -398,6 +398,24 @@ class Form extends SiteAwareForm
     }
 
     /**
+     * The only keys a submission stores files under.
+     *
+     * @return array<int, string>
+     */
+    public function getFileKeys(): array
+    {
+        $keys = [];
+
+        foreach ($this->getFields(inputsOnly: true) as $field) {
+            if ($field::storesFiles()) {
+                $keys = [...$keys, ...$field->getInputKeys()];
+            }
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    /**
      * What a submission keeps of the form, so its answers still read well after
      * a field is renamed, moved or removed: per field its label, type, columns,
      * a choice's options and its place on the form. The values a form type adds

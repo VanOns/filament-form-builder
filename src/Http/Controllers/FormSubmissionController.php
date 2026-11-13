@@ -27,8 +27,13 @@ class FormSubmissionController
         $type = $form->getType();
         $keys = $form->getSubmittableKeys();
 
-        $input = Arr::only(Arr::except($request->validationData(), array_keys($request->allFiles())), $keys);
-        $uploads = Arr::only($request->allFiles(), $keys);
+        $data = $request->validationData();
+        $fileKeys = $form->getFileKeys();
+
+        // Uploads come from what was validated, never straight from the request:
+        // a file the rules of an upload field did not see is not stored.
+        $input = Arr::only(Arr::except($data, [...$fileKeys, ...array_keys($request->allFiles())]), $keys);
+        $uploads = Arr::only($data, $fileKeys);
         $unsaved = fn (): FormSubmission => (new FormSubmission(['form_id' => $form->id, 'data' => $input]))->setRelation('form', $form);
 
         if ($request->isCaught()) {
