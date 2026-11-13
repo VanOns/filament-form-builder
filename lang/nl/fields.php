@@ -26,6 +26,8 @@ return [
     'not_in_future' => 'Niet in de toekomst',
     'date_too_early' => 'Het veld :attribute mag niet vóór :date liggen.',
     'date_too_late' => 'Het veld :attribute mag niet na :date liggen.',
+    'min_items' => 'Minimaal aantal keuzes',
+    'max_items' => 'Maximaal aantal keuzes',
     'advanced' => 'Geavanceerd',
     'other_settings' => 'Overig',
     'key_helper' => 'Laat leeg om de key uit het label te maken. Daarna blijft de key vast, ook als het label verandert.',

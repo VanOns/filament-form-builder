@@ -62,3 +62,21 @@ it('renders a dropdown as a select with an empty first option', function () {
 it('lets an optional choice stay empty', function (string $type) {
     expect(choicePasses(choice($type), null))->toBeTrue();
 })->with([RadioField::class, CheckboxListField::class, DropdownField::class]);
+
+it('asks for at least and at most so many choices of a list of checkboxes', function () {
+    $field = CheckboxListField::make('interesses')->options(['web' => 'Websites', 'apps' => 'Apps', 'seo' => 'SEO', 'ads' => 'Advertenties'])->minItems(2)->maxItems(3);
+    $passes = fn (mixed $value): bool => Validator::make(['interesses' => $value], $field->getRules())->passes();
+
+    expect($passes(['web', 'apps']))->toBeTrue()
+        ->and($passes(['web', 'apps', 'seo']))->toBeTrue()
+        ->and($passes(['web']))->toBeFalse()
+        ->and($passes(['web', 'apps', 'seo', 'ads']))->toBeFalse()
+        ->and($passes(null))->toBeTrue();
+});
+
+it('reads the number of choices the canvas stores and ignores one that is no number', function () {
+    $stored = new CheckboxListField(['key' => 'interesses', 'minItems' => '2', 'maxItems' => '']);
+
+    expect($stored->getRules()['interesses'])->toBe(['nullable', 'array', 'min:2'])
+        ->and((new CheckboxListField(['key' => 'interesses']))->getRules()['interesses'])->toBe(['nullable', 'array']);
+});

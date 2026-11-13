@@ -97,7 +97,7 @@ abstract class ChoiceField extends FormField
 
         if (static::allowsMultiple()) {
             return $this->withExtraRules([
-                $this->getKey() => [...$this->getDefaultRules(), 'array'],
+                $this->getKey() => [...$this->getDefaultRules(), 'array', ...$this->getCountRules()],
                 $this->getKey() . '.*' => [$allowed],
             ]);
         }
@@ -105,6 +105,16 @@ abstract class ChoiceField extends FormField
         return $this->withExtraRules([
             $this->getKey() => [...$this->getDefaultRules(), $allowed],
         ]);
+    }
+
+    /**
+     * How many options a field that takes several may have ticked.
+     *
+     * @return array<int, string>
+     */
+    protected function getCountRules(): array
+    {
+        return [];
     }
 
     public static function getDefaultValueComponent(): ?Component

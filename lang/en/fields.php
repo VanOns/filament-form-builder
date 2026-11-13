@@ -26,6 +26,8 @@ return [
     'not_in_future' => 'Not in the future',
     'date_too_early' => 'The :attribute field may not be before :date.',
     'date_too_late' => 'The :attribute field may not be after :date.',
+    'min_items' => 'Minimum number of choices',
+    'max_items' => 'Maximum number of choices',
     'advanced' => 'Advanced',
     'other_settings' => 'Other',
     'key_helper' => 'Leave empty to derive the key from the label. After that the key stays the same, even when the label changes.',
