@@ -182,6 +182,25 @@ public function formatValues(array $values, FormSubmission $submission): array
 }
 ```
 
+`rules()` gives rules by field key, added after the rules of the field itself.
+A field in code takes its own with `->rules()`; this is for a field an editor
+built on the canvas, and for a rule about more than one field:
+
+```php
+public function rules(): array
+{
+    return [
+        'email' => ['unique:users,email'],
+        'einddatum' => ['after:startdatum'],
+    ];
+}
+```
+
+They are checked when the form is sent and, where
+[the server checks each step](#checking-a-step-on-the-server), with the step
+their field is in. A rule for a key the form has no field for is left out, so
+an editor who removes that field does not lock the form.
+
 A type may also override `settings()` (extra fields in the form's settings,
 under the canvas, stored in its `settings` column), `messages()` (validation
 messages), and the admin toggles described below.

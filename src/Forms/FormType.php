@@ -104,6 +104,18 @@ class FormType
     }
 
     /**
+     * Rules by field key, added after the rules of the field itself: for a
+     * field an editor built, or a rule about more than one field. A rule for a
+     * key the form has no field for is left out.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    public function rules(): array
+    {
+        return [];
+    }
+
+    /**
      * @return array<string, string>
      */
     public function messages(): array

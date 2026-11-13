@@ -7,6 +7,7 @@ use Tests\Fixtures\ApplicationForm;
 use Tests\Fixtures\HalfRowForm;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
+use VanOns\FilamentFormBuilder\Forms\CustomFields;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
@@ -37,13 +38,43 @@ class PostcodeForm extends FormType
     }
 }
 
+class TrainingForm extends FormType
+{
+    public function fields(): array
+    {
+        return [TextInputField::make('naam')->required(), CustomFields::make()];
+    }
+
+    public function rules(): array
+    {
+        return [
+            'naam' => ['min:2'],
+            'einddatum' => ['required', 'after:startdatum'],
+        ];
+    }
+}
+
 beforeEach(function () {
     config([
         'filament-form-builder.types.application' => ApplicationForm::class,
         'filament-form-builder.types.thanking' => ThankingForm::class,
         'filament-form-builder.types.postcode' => PostcodeForm::class,
+        'filament-form-builder.types.training' => TrainingForm::class,
     ]);
 });
+
+function trainingForm(array $customFields): Form
+{
+    return Form::create(['title' => 'Training', 'template' => 'training', 'custom' => ['fields' => $customFields]]);
+}
+
+function trainingDates(): array
+{
+    return [
+        ['type' => 'date', 'label' => 'Startdatum', 'key' => 'startdatum'],
+        ['type' => 'date', 'label' => 'Einddatum', 'key' => 'einddatum'],
+    ];
+}
 
 function applicationForm(array $customFields = []): Form
 {
@@ -167,4 +198,50 @@ it('leaves out a field an editor built when the type took its key in code', func
         ->and($form->getSubmissionFields()['naam'])->toBe('Naam');
 
     Log::shouldHaveReceived('warning')->twice();
+});
+
+it('checks the rules of a type on its own fields and on the ones an editor built', function () {
+    $form = trainingForm(trainingDates());
+    $post = fn (array $data) => test()->post(route('filament-form-builder.form.store', ['formId' => $form->id]), $data);
+
+    $post(['naam' => 'J', 'startdatum' => '2026-05-10', 'einddatum' => '2026-05-12'])
+        ->assertSessionHasErrors('naam')
+        ->assertSessionDoesntHaveErrors('einddatum');
+    $post(['naam' => 'Jan', 'startdatum' => '2026-05-10', 'einddatum' => '2026-05-01'])
+        ->assertSessionHasErrors('einddatum');
+
+    expect(FormSubmission::count())->toBe(0);
+
+    $post(['naam' => 'Jan', 'startdatum' => '2026-05-10', 'einddatum' => '2026-05-12'])
+        ->assertSessionHasNoErrors();
+
+    expect(FormSubmission::sole()->data)->toEqual(['naam' => 'Jan', 'startdatum' => '2026-05-10', 'einddatum' => '2026-05-12']);
+});
+
+it('leaves out a rule of a type for a field the form does not have', function () {
+    $form = trainingForm([]);
+
+    test()->post(route('filament-form-builder.form.store', ['formId' => $form->id]), ['naam' => 'Jan'])
+        ->assertSessionHasNoErrors();
+
+    expect($form->getRules())->not->toHaveKey('einddatum')
+        ->and(FormSubmission::sole()->data)->toEqual(['naam' => 'Jan']);
+});
+
+it('checks the rules of a type with the step their field is in', function () {
+    config(['filament-form-builder.validate_steps' => true]);
+    $form = trainingForm(trainingDates());
+    $checkStep = fn (array $data) => test()->postJson(route('filament-form-builder.form.store', ['formId' => $form->id]), $data, [
+        'Precognition' => 'true',
+        'Precognition-Validate-Only' => 'einddatum',
+    ]);
+
+    $checkStep(['startdatum' => '2026-05-10', 'einddatum' => '2026-05-01'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['einddatum'])
+        ->assertJsonMissingValidationErrors(['naam']);
+    $checkStep(['startdatum' => '2026-05-10', 'einddatum' => '2026-05-12'])
+        ->assertNoContent();
+
+    expect(FormSubmission::count())->toBe(0);
 });

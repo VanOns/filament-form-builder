@@ -354,6 +354,15 @@ class Form extends SiteAwareForm
             $rules = [...$rules, ...$field->getRules()];
         }
 
+        $keys = $this->getSubmittableKeys();
+
+        // An editor may have removed the field a type has a rule for; `required` on it would lock the form.
+        foreach ($this->getType()->rules() as $key => $typeRules) {
+            if (in_array(explode('.', $key)[0], $keys, true)) {
+                $rules[$key] = [...($rules[$key] ?? []), ...$typeRules];
+            }
+        }
+
         return array_filter($rules);
     }
 
