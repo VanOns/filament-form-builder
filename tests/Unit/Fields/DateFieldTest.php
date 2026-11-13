@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Foundation\Auth\User;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\ViewErrorBag;
 use Livewire\Livewire;
 use VanOns\FilamentFormBuilder\Enums\ConditionOperator;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\ConditionsEditor;
@@ -54,4 +56,62 @@ it('shows a date on the canvas in its format', function () {
     Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
         ->assertSee('Startdatum')
         ->assertSee(now()->format('d-m-Y'));
+});
+
+/**
+ * @return list<string>
+ */
+function dateErrors(DateField $field, mixed $value): array
+{
+    return Validator::make(['datum' => $value], $field->getRules(), attributes: ['datum' => 'Datum'])->errors()->all();
+}
+
+it('keeps a date between its earliest and its latest, and names them as the field shows dates', function () {
+    $field = DateField::make('datum')->minDate('2026-10-07')->maxDate('2026-10-31');
+
+    expect(dateErrors($field, '2026-10-07'))->toBe([])
+        ->and(dateErrors($field, '2026-10-31'))->toBe([])
+        ->and(dateErrors($field, '2026-10-06'))->toBe(['The Datum field may not be before 7 October 2026.'])
+        ->and(dateErrors($field, '2026-11-01'))->toBe(['The Datum field may not be after 31 October 2026.']);
+});
+
+it('takes today as the earliest or the latest date', function () {
+    $this->travelTo('2026-11-13 10:00');
+
+    $appointment = DateField::make('datum')->notInPast();
+    $birthday = DateField::make('datum')->notInFuture();
+
+    expect(dateErrors($appointment, '2026-11-13'))->toBe([])
+        ->and(dateErrors($appointment, '2026-11-12'))->toBe(['The Datum field may not be before 13 November 2026.'])
+        ->and(dateErrors($birthday, '2026-11-13'))->toBe([])
+        ->and(dateErrors($birthday, '2026-11-14'))->toBe(['The Datum field may not be after 13 November 2026.']);
+});
+
+it('takes the stricter of a fixed date and today', function () {
+    $this->travelTo('2026-11-13 10:00');
+
+    expect(DateField::make('datum')->minDate('2026-01-01')->notInPast()->getMinDate())->toBe('2026-11-13')
+        ->and(DateField::make('datum')->minDate('2027-01-01')->notInPast()->getMinDate())->toBe('2027-01-01')
+        ->and(DateField::make('datum')->maxDate('2027-01-01')->notInFuture()->getMaxDate())->toBe('2026-11-13');
+});
+
+it('reads the limits the canvas stores and ignores one that is no date', function () {
+    $field = new DateField(['key' => 'datum', 'minDate' => '2026-10-07 00:00:00', 'maxDate' => 'later', 'notInPast' => false]);
+
+    expect($field->getMinDate())->toBe('2026-10-07')
+        ->and($field->getMaxDate())->toBeNull()
+        ->and((new DateField(['key' => 'datum']))->getRules())->toBe(['datum' => ['nullable', 'string', 'max:1000', 'date_format:Y-m-d']]);
+});
+
+it('lets an optional date stay empty whatever its limits', function () {
+    expect(dateErrors(DateField::make('datum')->minDate('2026-10-07'), null))->toBe([]);
+});
+
+it('hands the date input the limits the server checks', function () {
+    view()->share('errors', new ViewErrorBag());
+
+    expect((string) DateField::make('datum')->minDate('2026-10-07')->maxDate('2026-10-31')->render())
+        ->toContain('min="2026-10-07"')
+        ->toContain('max="2026-10-31"')
+        ->and((string) DateField::make('datum')->render())->not->toContain('min=')->not->toContain('max=');
 });
