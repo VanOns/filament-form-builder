@@ -6,9 +6,12 @@ use BackedEnum;
 use Filament\Forms\Components\TextInput;
 use Filament\Support\Icons\Heroicon;
 use VanOns\FilamentFormBuilder\Enums\FieldWidth;
+use VanOns\FilamentFormBuilder\Traits\Fields\HasLength;
 
 class TextAreaField extends FormField
 {
+    use HasLength;
+
     public static string $view = 'filament-form-builder::components.fields.text-area-field';
     public static string $previewView = 'filament-form-builder::filament.previews.text-area';
 
@@ -29,14 +32,16 @@ class TextAreaField extends FormField
         return $this;
     }
 
+    protected static function lengthLimitKey(): string
+    {
+        return 'textarea';
+    }
+
     protected function fieldRules(): array
     {
-        $max = config('filament-form-builder.max_length.textarea', 20000);
-
         return [
             ...$this->getDefaultRules(),
-            'string',
-            ...(is_numeric($max) ? ['max:' . (int) $max] : []),
+            ...$this->getLengthRules(),
         ];
     }
 

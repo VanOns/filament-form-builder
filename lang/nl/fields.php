@@ -18,6 +18,8 @@ return [
     'decimals_none' => 'Geen, alleen hele getallen',
     'decimals_count' => '{1} :count decimaal|[2,*] :count decimalen',
     'max_decimals' => '{1} Het veld :attribute mag hoogstens :count decimaal hebben.|[2,*] Het veld :attribute mag hoogstens :count decimalen hebben.',
+    'min_length' => 'Minimaal aantal tekens',
+    'max_length' => 'Maximaal aantal tekens',
     'advanced' => 'Geavanceerd',
     'other_settings' => 'Overig',
     'key_helper' => 'Laat leeg om de key uit het label te maken. Daarna blijft de key vast, ook als het label verandert.',

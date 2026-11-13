@@ -18,6 +18,8 @@ return [
     'decimals_none' => 'None, whole numbers only',
     'decimals_count' => '{1} :count decimal|[2,*] :count decimals',
     'max_decimals' => '{1} The :attribute field may have at most :count decimal.|[2,*] The :attribute field may have at most :count decimals.',
+    'min_length' => 'Minimum number of characters',
+    'max_length' => 'Maximum number of characters',
     'advanced' => 'Advanced',
     'other_settings' => 'Other',
     'key_helper' => 'Leave empty to derive the key from the label. After that the key stays the same, even when the label changes.',
