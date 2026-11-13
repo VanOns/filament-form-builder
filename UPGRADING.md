@@ -79,6 +79,7 @@ Take a database backup first: it rewrites stored data and cannot be rolled back.
 | `form-middleware`                            | `form_middleware`                                                                     |
 | `form-uploads-disk`: `private`               | `uploads.disk`: `local`                                                               |
 | `form-uploads-max-size`                      | `uploads.max_size`                                                                    |
+|                                              | `uploads.max_files`: the most files a field with multiple uploads takes, 10; `null` for no limit |
 | `form-uploads-middleware`: `['web', 'auth']` | `uploads.middleware`: `[]`, the download links are signed                             |
 |                                              | `uploads.link_days`: how long a link stays valid                                      |
 |                                              | `uploads.attach_max_size`: how many kilobytes of uploads a notification attaches      |

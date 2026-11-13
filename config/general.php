@@ -73,6 +73,8 @@ return [
         'disk' => 'local',
         // In kilobytes, per file.
         'max_size' => 10240,
+        // The most files a field with multiple uploads takes; null for no limit.
+        'max_files' => 10,
         // What an upload may be, checked against its content; null takes any file.
         'extensions' => [
             'pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif',

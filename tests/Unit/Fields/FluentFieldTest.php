@@ -8,6 +8,7 @@ use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FileUploadField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextAreaField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TitleField;
+use VanOns\FilamentFormBuilder\Rules\MaxFiles;
 
 it('builds the same field in code as the canvas stores', function () {
     $inCode = EmailField::make('email')
@@ -42,7 +43,7 @@ it('adds the rules given in code to a choice and an upload too', function () {
     $upload = FileUploadField::make('cv')->multiple()->rules(['max:3'])->getRules();
 
     expect($choice['interests'])->toBe(['nullable', 'array', 'max:2'])
-        ->and($upload['cv'])->toBe(['nullable', 'array', 'max:3'])
+        ->and($upload['cv'])->toEqual(['nullable', 'array', new MaxFiles(10), 'max:3'])
         ->and($upload)->toHaveKey('cv.*');
 });
 

@@ -238,3 +238,65 @@ it('leaves the size rule out when no size is set', function () {
 
     expect((new FileUploadField(['key' => 'cv']))->getRules()['cv'])->toBe(['nullable', 'file']);
 });
+
+function limitedUploadForm(array $settings): Form
+{
+    return Form::create([
+        'title' => 'Bijlagen',
+        'template' => 'custom',
+        'custom' => ['fields' => [['type' => 'file_upload', 'label' => 'Bijlagen', 'key' => 'bijlagen', ...$settings]]],
+    ]);
+}
+
+it('takes fewer file types when the field asks for fewer, and offers only those', function () {
+    $form = limitedUploadForm(['extensions' => ['pdf']]);
+    $post = fn (UploadedFile $file) => test()->post(route('filament-form-builder.form.store', ['formId' => $form->id]), ['bijlagen' => $file]);
+
+    $post(UploadedFile::fake()->image('foto.png'))->assertSessionHasErrors('bijlagen');
+    $post(pdf())->assertSessionHasNoErrors();
+
+    expect((new FileUploadField(['extensions' => ['pdf']]))->getAccept())->toBe('.pdf')
+        ->and(FormSubmission::query()->where('form_id', $form->id)->count())->toBe(1);
+});
+
+it('never takes a file type the config does not allow, whatever the field asks for', function () {
+    config(['filament-form-builder.uploads.extensions' => ['pdf', 'png']]);
+
+    expect((new FileUploadField(['extensions' => ['PDF', '.exe']]))->getExtensions())->toBe(['pdf'])
+        ->and((new FileUploadField(['extensions' => ['exe']]))->getExtensions())->toBe(['pdf', 'png'])
+        ->and((new FileUploadField())->getExtensions())->toBe(['pdf', 'png']);
+});
+
+it('takes at most as many files as the field asks for', function () {
+    $form = limitedUploadForm(['multiple' => true, 'maxFiles' => 2]);
+    $post = fn (array $files) => test()->post(route('filament-form-builder.form.store', ['formId' => $form->id]), ['bijlagen' => $files]);
+
+    $post([pdf(), pdf(), pdf()])->assertSessionHasErrors(['bijlagen' => 'The Bijlagen field may have at most 2 files.']);
+    $post([pdf(), pdf()])->assertSessionHasNoErrors();
+
+    expect(FormSubmission::query()->where('form_id', $form->id)->sole()->files['bijlagen'])->toHaveCount(2);
+});
+
+it('caps the files of a multiple upload at what the config allows', function () {
+    expect(FileUploadField::make('bijlagen')->multiple()->getMaxFiles())->toBe(10)
+        ->and(FileUploadField::make('bijlagen')->multiple()->maxFiles(25)->getMaxFiles())->toBe(10);
+
+    config(['filament-form-builder.uploads.max_files' => null]);
+
+    expect(FileUploadField::make('bijlagen')->multiple()->getRules()['bijlagen'])->toBe(['nullable', 'array'])
+        ->and(FileUploadField::make('bijlagen')->multiple()->maxFiles(25)->getMaxFiles())->toBe(25);
+});
+
+it('keeps a file under the size the field asks for, and never over the config', function () {
+    config(['filament-form-builder.uploads.max_size' => 2048]);
+    $form = limitedUploadForm(['maxSize' => 100]);
+    $post = fn (int $kilobytes) => test()->post(route('filament-form-builder.form.store', ['formId' => $form->id]), [
+        'bijlagen' => UploadedFile::fake()->create('cv.pdf', $kilobytes, 'application/pdf'),
+    ]);
+
+    $post(101)->assertSessionHasErrors('bijlagen');
+    $post(100)->assertSessionHasNoErrors();
+
+    expect((new FileUploadField(['maxSize' => '5000']))->getMaxSize())->toBe(2048)
+        ->and((new FileUploadField(['maxSize' => '']))->getMaxSize())->toBe(2048);
+});
