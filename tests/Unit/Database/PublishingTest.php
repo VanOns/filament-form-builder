@@ -20,30 +20,27 @@ afterEach(function () {
     }
 });
 
-it('publishes the upgrade and multisite migrations once, also when the app published one before', function () {
+it('publishes the upgrade migration once, also when the app published it before', function () {
     File::copy(
-        __DIR__.'/../../../database/multisite/2026_10_09_000000_add_sites_to_forms_table.php',
-        database_path('migrations/2026_10_20_120000_add_sites_to_forms_table.php'),
+        __DIR__.'/../../../database/upgrades/2026_10_08_000000_upgrade_filament_form_builder_tables_to_v3.php',
+        database_path('migrations/2026_10_20_120000_upgrade_filament_form_builder_tables_to_v3.php'),
     );
     $this->refreshApplication();
 
     foreach (range(1, 2) as $run) {
-        $this->artisan('vendor:publish', ['--tag' => 'filament-form-builder-multisite-migrations'])->assertSuccessful();
         $this->artisan('vendor:publish', ['--tag' => 'filament-form-builder-upgrade-migrations'])->assertSuccessful();
     }
 
-    expect(appMigrations())->toHaveCount(2)
-        ->and(appMigrations()[0])->toBe('2026_10_20_120000_add_sites_to_forms_table.php')
-        ->and(appMigrations()[1])->toEndWith('_upgrade_filament_form_builder_tables_to_v3.php');
+    expect(appMigrations())->toBe(['2026_10_20_120000_upgrade_filament_form_builder_tables_to_v3.php']);
 });
 
-it('puts the multisite migration after the create migrations, also when both are published at once', function () {
+it('puts the upgrade migration after the create migrations, also when both are published at once', function () {
     $this->artisan('vendor:publish', [
-        '--tag' => ['filament-form-builder-migrations', 'filament-form-builder-multisite-migrations'],
+        '--tag' => ['filament-form-builder-migrations', 'filament-form-builder-upgrade-migrations'],
     ])->assertSuccessful();
 
     expect(appMigrations())->toHaveCount(5)
-        ->and(last(appMigrations()))->toEndWith('_add_sites_to_forms_table.php');
+        ->and(last(appMigrations()))->toEndWith('_upgrade_filament_form_builder_tables_to_v3.php');
 });
 
 it('publishes the translations under the v2 tag as well', function () {

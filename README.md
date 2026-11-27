@@ -126,11 +126,6 @@ Please see [Contributing](https://github.com/VanOns/filament-form-builder/blob/m
 composer test
 ```
 
-The tests of forms per site need `van-ons/filament-multisite`, which is
-private for now, and are skipped without it. With access to it,
-`composer multisite` installs it beside the rest without changing
-`composer.json`; `composer install` takes it out again.
-
 ## Changelog
 
 Please see [Changelog](https://github.com/VanOns/filament-form-builder/blob/main/CHANGELOG.md) for more information about what has changed recently.

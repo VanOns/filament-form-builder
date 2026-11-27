@@ -43,9 +43,6 @@ return [
     // "Next" in a form in steps has the server check the step first, for rules
     // the browser cannot check; a form type can say otherwise.
     'validate_steps' => false,
-    // Forms per site with van-ons/filament-multisite, linked like pages: publish
-    // the `filament-form-builder-multisite-migrations` and migrate first.
-    'multisite' => false,
     'redirect_query' => true,
     // The forms on the site load a minimal stylesheet with the grid; turn it off
     // to style them entirely yourself.

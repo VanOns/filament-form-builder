@@ -7,8 +7,7 @@ fields, its steps and its spam traps working; it loads the script and
 stylesheet they need once per page, see
 [Styling forms on the site](#styling-forms-on-the-site). Given `null`, it shows
 nothing. An editor picks the form, for instance in a page block, with
-`FormSelect`, which with [forms per site](installation.md#forms-per-site)
-offers the forms of the page's site:
+`FormSelect`:
 
 ```php
 use VanOns\FilamentFormBuilder\Filament\Forms\Components\FormSelect;

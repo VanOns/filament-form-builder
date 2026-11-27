@@ -24,7 +24,7 @@ return $panel->plugin(
 </code-snippet>
 @endverbatim
 
-Publish tags: `filament-form-builder-migrations`, `filament-form-builder-config` (to `config/filament-form-builder.php`), `filament-form-builder-views`, `filament-form-builder-lang`, plus `filament-form-builder-multisite-migrations` and, for a v2 upgrade only, `filament-form-builder-upgrade-migrations`.
+Publish tags: `filament-form-builder-migrations`, `filament-form-builder-config` (to `config/filament-form-builder.php`), `filament-form-builder-views`, `filament-form-builder-lang` and, for a v2 upgrade only, `filament-form-builder-upgrade-migrations`.
 
 What the app needs to run:
 - **A queue worker.** E-mail notifications (`SendFormNotificationJob`), integrations (`RunFormIntegrationJob`) and the export are queued; without a worker set `QUEUE_CONNECTION=sync`.
@@ -115,7 +115,7 @@ An integration extends `VanOns\FilamentFormBuilder\Classes\Integration` and is l
 
 ### Config (`config/filament-form-builder.php`)
 
-`types`, `fields`, `integrations`, `webhook.allow_private_network`, `layout` (`flexible`, `two_columns`, `full_width`), `field_conditions`, `email_notifications`, `validate_steps` (server check of each step through Precognition before "Next", for every type; a type overrides with `validatesSteps()`), `multisite`, `redirect_query`, `styles`, `form_middleware`, `rate_limit_per_hour`, `max_length.text` / `textarea`, `submission_meta` (`ip`: `false`, `'anonymized'` or `'full'`), `retention_months`, `uploads.disk` / `max_size` / `extensions` / `link_days` / `attach_max_size` / `middleware`, `honeypot.enabled` / `field` / `min_seconds`, `duplicate_seconds`, `recaptcha` and `turnstile` (env `RECAPTCHA_ENABLED`/`_KEY`/`_SECRET`, `TURNSTILE_ENABLED`/`_KEY`/`_SECRET`), `navigation_group`, `without_fields`, `export_action`.
+`types`, `fields`, `integrations`, `webhook.allow_private_network`, `layout` (`flexible`, `two_columns`, `full_width`), `field_conditions`, `email_notifications`, `validate_steps` (server check of each step through Precognition before "Next", for every type; a type overrides with `validatesSteps()`), `redirect_query`, `styles`, `form_middleware`, `rate_limit_per_hour`, `max_length.text` / `textarea`, `submission_meta` (`ip`: `false`, `'anonymized'` or `'full'`), `retention_months`, `uploads.disk` / `max_size` / `extensions` / `link_days` / `attach_max_size` / `middleware`, `honeypot.enabled` / `field` / `min_seconds`, `duplicate_seconds`, `recaptcha` and `turnstile` (env `RECAPTCHA_ENABLED`/`_KEY`/`_SECRET`, `TURNSTILE_ENABLED`/`_KEY`/`_SECRET`), `navigation_group`, `without_fields`, `export_action`.
 
 ### Conventions and gotchas
 
@@ -125,7 +125,6 @@ An integration extends `VanOns\FilamentFormBuilder\Classes\Integration` and is l
 - Field keys are stored as given, without `.`, `*`, `[`, `]` or spaces (and with no `key_` prefix as in v2). A key in a type's `fields()` or `extraValues()` is reserved; an editor's field with the same key is left out of the form.
 - Uploads are kept in the submission's `files` column on `uploads.disk` (`local`), served through signed links valid for `uploads.link_days`.
 - `validate_steps` only matters for forms in steps (`StepField`). A Precognition request to a type that does not validate steps gets a 403, and step checks have their own limit of 60 a minute per visitor.
-- **Multisite** (`van-ons/filament-multisite`): publish and run `filament-form-builder-multisite-migrations` (adds `site` and `origin_id` to `forms`), then set `multisite` to `true`. `<x-render-form>` then shows the current site's copy (`$form->inCurrentSite()`), `FormSelect` offers the forms of the record's site, and `Form::idInSite($id, $site)` maps an id elsewhere.
 - OR groups in the submissions filter need `payload.max_nesting_depth` of 13 in `config/livewire.php` (default 10).
 - `$form->getType()` gives the form type instance and `$form->getFields()` the fields. A submission keeps the raw answers in `data` (uploads in `files`); `$submission->getValues()` gives them as shown (choice labels, file links, after `formatValues()`), `getFormattedData()` as text without the empty ones.
 @endverbatim

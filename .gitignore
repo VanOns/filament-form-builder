@@ -183,5 +183,3 @@ coverage
 phpstan.neon
 testbench.yaml
 .php-cs-fixer.cache
-composer-multisite.json
-composer-multisite.lock

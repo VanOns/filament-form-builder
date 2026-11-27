@@ -38,7 +38,6 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
     {
         $this->hasTranslations();
         $this->hasUpgradeMigration();
-        $this->hasMultisiteMigration();
         $this->hasConfig();
         $this->hasViewComponents();
         $this->hasViews();
@@ -63,12 +62,6 @@ class FilamentFormBuilderProvider extends PackageServiceProvider
     public function hasUpgradeMigration(): void
     {
         $this->publishesMigrationsOnce(__DIR__.'/../database/upgrades', 'filament-form-builder-upgrade-migrations');
-    }
-
-    // Only an app that turns `multisite` on wants these columns.
-    public function hasMultisiteMigration(): void
-    {
-        $this->publishesMigrationsOnce(__DIR__.'/../database/multisite', 'filament-form-builder-multisite-migrations');
     }
 
     // Like discoversMigrations(): a migration the app already published keeps its file. A minute

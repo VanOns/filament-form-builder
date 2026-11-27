@@ -20,7 +20,6 @@ use Orchestra\Testbench\TestCase as BaseTestCase;
 use RyanChandler\BladeCaptureDirective\BladeCaptureDirectiveServiceProvider;
 use Tests\Fixtures\TestPanelProvider;
 use VanOns\FilamentFormBuilder\FilamentFormBuilderProvider;
-use VanOns\FilamentMultisite\FilamentMultisiteServiceProvider;
 
 #[WithMigration]
 abstract class TestCase extends BaseTestCase
@@ -46,8 +45,6 @@ abstract class TestCase extends BaseTestCase
             FilamentServiceProvider::class,
             LivewireServiceProvider::class,
             FilamentFormBuilderProvider::class,
-            // Private for now, so only there after `composer multisite`.
-            ...class_exists(FilamentMultisiteServiceProvider::class) ? [FilamentMultisiteServiceProvider::class] : [],
             TestPanelProvider::class,
         ];
     }

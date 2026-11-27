@@ -5,18 +5,15 @@ namespace Tests\Fixtures;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
-use Illuminate\Database\Eloquent\Model;
 use Livewire\Component;
 use VanOns\FilamentFormBuilder\Filament\Forms\Components\FormSelect;
 
 /**
- * A record with a block that picks a form, the way a page has one.
+ * A block that picks a form, the way a page has one.
  */
 class PickFormPage extends Component implements HasSchemas
 {
     use InteractsWithSchemas;
-
-    public Model $record;
 
     public mixed $picked = null;
 
@@ -34,8 +31,7 @@ class PickFormPage extends Component implements HasSchemas
     {
         return $schema
             ->components([FormSelect::make('form_id')])
-            ->statePath('data')
-            ->model($this->record);
+            ->statePath('data');
     }
 
     public function render(): string

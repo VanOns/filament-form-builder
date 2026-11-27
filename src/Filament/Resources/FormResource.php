@@ -9,7 +9,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
@@ -46,10 +45,6 @@ use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Forms\FormType;
 use VanOns\FilamentFormBuilder\Helpers\FormTypeHelper;
 use VanOns\FilamentFormBuilder\Models\Form as FormModel;
-use VanOns\FilamentMultisite\Facade\FilamentMultisite;
-use VanOns\FilamentMultisite\Filament\Columns\SiteColumn;
-use VanOns\FilamentMultisite\Filament\Fields\SiteSelect;
-use VanOns\FilamentMultisite\Filament\Filters\SiteFilter;
 
 class FormResource extends Resource
 {
@@ -79,9 +74,7 @@ class FormResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        FormModel::ensureSiteColumns();
-
-        $schema = $schema
+        return $schema
             ->components([
                 Tabs::make()
                     ->columnSpanFull()
@@ -93,12 +86,7 @@ class FormResource extends Resource
                             ->key('general', isInheritable: false)
                             ->icon('heroicon-o-pencil-square')
                             ->schema([
-                                FormModel::usesSites()
-                                    ? Grid::make(['lg' => 4])->schema([
-                                        static::getGeneralSection()->columnSpan(['lg' => 3]),
-                                        static::getSiteSection(),
-                                    ])
-                                    : static::getGeneralSection(),
+                                static::getGeneralSection(),
                                 static::getCustomSection(),
                                 static::getSettingsSection(),
                             ]),
@@ -136,9 +124,6 @@ class FormResource extends Resource
                             ]),
                     ]),
             ]);
-
-        // On a form's copy for another site, what follows the origin cannot change.
-        return FormModel::usesSites() ? FilamentMultisite::schema($schema) : $schema;
     }
 
     public static function getSettingsSection(): Section
@@ -203,15 +188,6 @@ class FormResource extends Resource
                     ->dehydratedWhenHidden()
                     ->columnSpan(1),
             ])->columns(3);
-    }
-
-    public static function getSiteSection(): Section
-    {
-        return Section::make(__('filament-form-builder::general.site'))
-            ->icon('heroicon-o-globe-alt')
-            ->schema([
-                SiteSelect::make('site')->hiddenLabel(),
-            ]);
     }
 
     public static function getCustomSection(): Section
@@ -379,8 +355,6 @@ class FormResource extends Resource
 
     public static function table(Table $table): Table
     {
-        FormModel::ensureSiteColumns();
-
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query
                 ->withCount(['submissions', 'submissions as unread_submissions_count' => fn (Builder $query) => $query->whereNull('read_at')])
@@ -390,7 +364,6 @@ class FormResource extends Resource
                     ->label(__('filament-form-builder::general.title'))
                     ->sortable()
                     ->searchable(),
-                ...FormModel::usesSites() ? [SiteColumn::make('site')->toggleable()] : [],
                 TextColumn::make('template')
                     ->formatStateUsing(fn (?string $state): ?string => FormTypeHelper::options()[$state] ?? $state)
                     ->label(__('filament-form-builder::general.type'))
@@ -425,7 +398,6 @@ class FormResource extends Resource
             ])
             ->recordUrl(static::recordUrl(...))
             ->filters([
-                ...FormModel::usesSites() ? [SiteFilter::make('site')] : [],
                 SelectFilter::make('template')
                     ->label(__('filament-form-builder::general.type'))
                     ->options(FormTypeHelper::options())

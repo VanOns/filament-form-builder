@@ -24,4 +24,3 @@
 /art                     export-ignore
 /docs                    export-ignore
 /phpstan.neon.dist       export-ignore
-/phpstan-multisite.php   export-ignore
