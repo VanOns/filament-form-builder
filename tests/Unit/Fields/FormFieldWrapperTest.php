@@ -1,48 +1,39 @@
 <?php
 
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\InputField;
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\RecaptchaField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\SubmitField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextAreaField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
 
-function field(array $data = [], int $columns = 3): InputField
+function field(array $data = []): TextInputField
 {
-    return (new InputField(['key' => 'voornaam', 'label' => 'Voornaam', ...$data]))
-        ->setGridColumns($columns);
+    return new TextInputField(['key' => 'voornaam', 'label' => 'Voornaam', ...$data]);
 }
 
 it('places a field on the grid through its wrapper', function () {
-    $attributes = field(['column_span' => 2, 'column_start' => 2])->getWrapperAttributes();
+    $attributes = field(['column_span' => 4])->getWrapperAttributes()->toHtml();
 
-    expect($attributes)->toContain('data-form-builder-column-span=2')
-        ->and($attributes)->toContain('data-form-builder-column-start=2')
-        ->and($attributes)->toContain('--form-builder-column-span:2')
-        ->and($attributes)->toContain('--form-builder-column-start:2');
+    expect($attributes)->toContain('data-form-builder-column-span="4"')
+        ->and($attributes)->toContain('--form-builder-column-span:4');
 });
 
-it('leaves out the start column when the field places itself', function () {
-    $attributes = field(['column_span' => 2])->getWrapperAttributes();
-
-    expect($attributes)->not->toContain('column-start')
-        ->and($attributes)->toContain('data-form-builder-column-span=2');
+it('takes the full width when nothing is stored', function () {
+    expect(field()->getWrapperAttributes()->toHtml())->toContain('data-form-builder-column-span="12"');
 });
 
-it('spans the whole row for a full width field', function () {
-    $attributes = field(['large' => true], columns: 4)->getWrapperAttributes();
-
-    expect($attributes)->toContain('data-form-builder-column-span=4');
+it('keeps a stored span to a width a row can hold', function () {
+    expect(field(['column_span' => 5])->getColumnSpan())->toBe(4)
+        ->and(field(['column_span' => 1])->getColumnSpan())->toBe(3)
+        ->and(field(['column_span' => 20])->getColumnSpan())->toBe(12);
 });
 
-it('falls back to a single column when nothing is stored', function () {
-    $attributes = field()->getWrapperAttributes();
-
-    expect($attributes)->toContain('data-form-builder-column-span=1');
-});
-
-it('never spans past the last column', function () {
-    // Stored on a wider form, then the template dropped to 3 columns.
-    $attributes = field(['column_span' => 4, 'column_start' => 3])->getWrapperAttributes();
-
-    expect($attributes)->toContain('data-form-builder-column-span=1');
+it('never reads a field narrower than its type works at', function () {
+    expect((new TextAreaField(['key' => 'bericht', 'column_span' => 3]))->getWidth())->toBe(FieldWidth::THIRD)
+        ->and((new RecaptchaField(['column_span' => 4]))->getColumnSpan())->toBe(6)
+        ->and(SubmitField::make('verstuur')->span(FieldWidth::HALF)->getColumnSpan())->toBe(12);
 });
 
 it('keeps the existing wrapper key attribute', function () {
-    expect(field()->getWrapperAttributes())->toContain('data-form-builder-input-wrapper=key_voornaam');
+    expect(field()->getWrapperAttributes()->toHtml())->toContain('data-form-builder-input-wrapper="voornaam"');
 });

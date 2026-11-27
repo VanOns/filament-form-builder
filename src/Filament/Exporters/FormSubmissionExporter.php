@@ -2,62 +2,187 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\Exporters;
 
+use Filament\Actions\ExportAction;
+use Filament\Actions\ExportBulkAction;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Number;
+use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
+use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class FormSubmissionExporter extends Exporter
 {
     /**
-     * @var Collection<int, int> $selectedRecords
-     */
-    public static Collection $selectedRecords;
-
-    /**
-     * The form being exported, when the export runs from its own submissions
-     * page. Its fields decide the columns, so a form is not handed the keys of
-     * every other form on the site.
+     * The form whose submissions the export modal offers columns for, so a form
+     * is not handed the keys of every other form on the site. The export job
+     * runs in another process and finds the form through the `form_id` option.
      */
     public static ?Form $form = null;
 
     protected static ?string $model = FormSubmission::class;
 
+    /**
+     * Filament reads the columns again on every request of the modal, so the
+     * form is set where the table is built, not once when the modal opens.
+     *
+     * @template TAction of ExportAction|ExportBulkAction
+     *
+     * @param  TAction  $action
+     * @return TAction
+     */
+    public static function configureAction(ExportAction | ExportBulkAction $action, ?Form $form = null): ExportAction | ExportBulkAction
+    {
+        static::$form = $form;
+
+        return $action
+            ->label(__('filament-form-builder::general.export_form_submissions'))
+            ->visible(fn (): bool => FilamentFormBuilderPlugin::get()->hasExportAction())
+            ->options(['form_id' => $form?->getKey()])
+            ->exporter(static::class);
+    }
+
     public static function getColumns(): array
     {
-        return [
-            ExportColumn::make('form_id'),
-            ExportColumn::make('form.title'),
-            ExportColumn::make('submitter_email'),
-            ...static::getAvailableDataExportColumns(),
-            ExportColumn::make('created_at'),
-        ];
+        return static::getColumnsFor(static::$form);
     }
 
     /**
-     * The form's own fields first, in its order and under the labels the editor
-     * typed, then whatever else the submissions hold.
+     * @param  array<int, string>|null  $dataKeys  the keys an export across forms has columns for
+     * @return array<ExportColumn>
+     */
+    public static function getColumnsFor(?Form $form, ?array $dataKeys = null): array
+    {
+        return array_map(
+            fn (ExportColumn $column): ExportColumn => $column->formatStateUsing(fn (mixed $state): mixed => static::escapeFormula($state)),
+            [
+                ExportColumn::make('form_id'),
+                ExportColumn::make('form.title'),
+                ...static::getAvailableDataExportColumns($form, $dataKeys),
+                ExportColumn::make('created_at'),
+                ...static::getDetailExportColumns(),
+            ],
+        );
+    }
+
+    // Visitors fill in the answers, so what a spreadsheet would run as a formula is written as text.
+    public static function escapeFormula(mixed $state): mixed
+    {
+        if (!is_string($state) || $state === '') {
+            return $state;
+        }
+
+        // A signed number such as -5 is a number to a spreadsheet, not a formula.
+        if (in_array($state[0], ['-', '+'], true) && is_numeric($state)) {
+            return $state;
+        }
+
+        return in_array($state[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'" . $state : $state;
+    }
+
+    /**
+     * Where a submission came from, off until someone ticks it in the modal.
      *
      * @return array<ExportColumn>
      */
-    protected static function getAvailableDataExportColumns(): array
+    protected static function getDetailExportColumns(): array
     {
+        $columns = [
+            ExportColumn::make('source_url')
+                ->label(__('filament-form-builder::general.submission.submitted_from'))
+                ->enabledByDefault(false),
+        ];
+
+        foreach (SubmissionMeta::labels() as $key => $label) {
+            $columns[] = ExportColumn::make("meta.{$key}")
+                ->label($label)
+                ->state(fn (FormSubmission $record): ?string => SubmissionMeta::describe($record->meta, $key))
+                ->enabledByDefault(false);
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Every chunk of the export builds these again, so an export across forms
+     * takes its keys from the columns that were picked instead of from every
+     * submission there is.
+     */
+    public function getCachedColumns(): array
+    {
+        if (isset($this->cachedColumns)) {
+            return $this->cachedColumns;
+        }
+
+        $dataKeys = array_map(
+            fn (string $name): string => Str::after($name, 'data.'),
+            array_values(array_filter(array_keys($this->columnMap), fn (string $name): bool => str_starts_with($name, 'data.'))),
+        );
+
+        return $this->cachedColumns = array_reduce(
+            static::getColumnsFor($this->getExportedForm(), $dataKeys),
+            function (array $carry, ExportColumn $column): array {
+                $carry[$column->getName()] = $column->exporter($this);
+
+                return $carry;
+            },
+            [],
+        );
+    }
+
+    protected function getExportedForm(): ?Form
+    {
+        $formId = $this->getOptions()['form_id'] ?? null;
+
+        return $formId === null ? null : Form::withTrashed()->find($formId);
+    }
+
+    /**
+     * One form exports its own fields, in its order and under the labels the
+     * editor typed, and whatever else its submissions hold in one column. An
+     * export across forms has a column for every key the submissions hold.
+     *
+     * @param  array<int, string>|null  $dataKeys
+     * @return array<ExportColumn>
+     */
+    protected static function getAvailableDataExportColumns(?Form $form, ?array $dataKeys = null): array
+    {
+        if ($form === null) {
+            return array_map(
+                fn (string $key): ExportColumn => static::getExportColumn($key, str($key)->headline()->toString()),
+                $dataKeys ?? static::submittedDataKeys(),
+            );
+        }
+
         $columns = [];
 
-        foreach (static::$form?->getSubmissionFields() ?? [] as $key => $label) {
-            $columns[$key] = ExportColumn::make("data.{$key}")->label($label);
+        foreach ($form->getSubmissionFields() as $key => $label) {
+            $columns[] = static::getExportColumn($key, $label);
         }
 
-        // A field that was renamed or removed still has answers under its old
-        // key. Going by the form alone would drop that column without a word.
-        foreach (static::submittedDataKeys() as $key) {
-            $columns[$key] ??= static::getExportColumn($key);
-        }
+        $columns[] = ExportColumn::make('other_data')
+            ->label(__('filament-form-builder::general.submission.other_data'))
+            ->state(fn (FormSubmission $record): ?string => static::getOtherData($record));
 
-        return array_values($columns);
+        return $columns;
+    }
+
+    /**
+     * The answers to fields the form no longer has, so an export loses
+     * nothing, one per line under the label they had.
+     */
+    protected static function getOtherData(FormSubmission $record): ?string
+    {
+        $lines = array_map(
+            fn (SubmissionAnswer $answer): string => $answer->label . ': ' . FormSubmission::toText($answer->value ?? $answer->files),
+            $record->getRemovedAnswers(),
+        );
+
+        return $lines === [] ? null : implode("\n", $lines);
     }
 
     /**
@@ -68,41 +193,34 @@ class FormSubmissionExporter extends Exporter
         /** @var class-string<FormSubmission> $model */
         $model = static::$model;
 
-        $query = $model::query();
-
-        if (static::$form !== null) {
-            $query->where('form_id', static::$form->getKey());
-        }
-
-        if (isset(static::$selectedRecords)) {
-            $query->whereIn('id', static::$selectedRecords);
-        }
-
-        return $query
-            ->pluck('data')
-            ->flatMap(fn ($data) => array_keys($data ?? []))
+        return $model::query()
+            ->get(['data', 'files'])
+            ->flatMap(fn (FormSubmission $submission): array => [
+                ...array_keys($submission->data ?? []),
+                ...array_keys($submission->files ?? []),
+            ])
             ->unique()
             ->values()
             ->all();
     }
 
-    protected static function getExportColumn(string $key): ExportColumn
+    protected static function getExportColumn(string $key, string $label): ExportColumn
     {
-        $keyLabel = str($key)
-            ->replaceFirst('key_', '')
-            ->headline()
-            ->toString();
-
         return ExportColumn::make("data.{$key}")
-            ->label($keyLabel);
+            ->label($label)
+            ->state(fn (FormSubmission $record): ?string => $record->getDisplayText($key));
     }
 
     public static function getCompletedNotificationBody(Export $export): string
     {
-        $body = 'Your product export has completed and ' . Number::format($export->successful_rows) . ' ' . str('row')->plural($export->successful_rows) . ' exported.';
+        $body = trans_choice('filament-form-builder::general.export_completed', $export->successful_rows, [
+            'count' => Number::format($export->successful_rows),
+        ]);
 
         if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' ' . Number::format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' failed to export.';
+            $body .= ' ' . trans_choice('filament-form-builder::general.export_failed_rows', $failedRowsCount, [
+                'count' => Number::format($failedRowsCount),
+            ]);
         }
 
         return $body;

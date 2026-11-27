@@ -2,25 +2,27 @@
 
 use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
 
-it('returns an empty string for an empty array', function () {
-    expect(AttributeHelper::arrayToString([]))->toBe('');
+it('renders nothing for no attributes', function () {
+    expect(AttributeHelper::render([])->toHtml())->toBe('');
 });
 
-it('converts a single attribute to a key=value string', function () {
-    expect(AttributeHelper::arrayToString(['enctype' => 'multipart/form-data']))->toBe('enctype=multipart/form-data');
-});
-
-it('converts multiple attributes separated by spaces', function () {
-    $result = AttributeHelper::arrayToString([
+it('renders quoted attributes separated by spaces', function () {
+    $html = AttributeHelper::render([
         'enctype' => 'multipart/form-data',
-        'data-form-builder-form' => '42',
-    ]);
+        'data-form-builder-form' => 42,
+    ])->toHtml();
 
-    expect($result)->toBe('enctype=multipart/form-data data-form-builder-form=42');
+    expect($html)->toBe('enctype="multipart/form-data" data-form-builder-form="42"');
 });
 
-it('trims trailing whitespace from the result', function () {
-    $result = AttributeHelper::arrayToString(['foo' => 'bar']);
+it('keeps a value with spaces inside its attribute', function () {
+    expect(AttributeHelper::render(['data-visible-when-value' => 'Ja graag'])->toHtml())
+        ->toBe('data-visible-when-value="Ja graag"');
+});
 
-    expect($result)->not->toEndWith(' ');
+it('escapes a value so it cannot break out of the attribute', function () {
+    $html = AttributeHelper::render(['data-visible-when-value' => '"><script>alert(1)</script>'])->toHtml();
+
+    expect($html)->not->toContain('<script>')
+        ->and($html)->toBe('data-visible-when-value="&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"');
 });

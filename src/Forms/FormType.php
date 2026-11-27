@@ -1,0 +1,193 @@
+<?php
+
+namespace VanOns\FilamentFormBuilder\Forms;
+
+use Filament\Schemas\Components\Component;
+use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Classes\StepSettings;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Models\Form;
+use VanOns\FilamentFormBuilder\Models\FormSubmission;
+use VanOns\FilamentFormBuilder\Traits\Forms\HasIntegrations;
+use VanOns\FilamentFormBuilder\Traits\Forms\HasNotifications;
+use VanOns\FilamentFormBuilder\Traits\Forms\HasSubmitNotification;
+
+/**
+ * What a kind of form does: the fields it has in code, where editors may add
+ * their own, and the hooks around a submission.
+ */
+class FormType
+{
+    use HasIntegrations;
+    use HasNotifications;
+    use HasSubmitNotification;
+
+    final public function __construct(public Form $form)
+    {
+    }
+
+    public static function getLabel(): string
+    {
+        return Str::headline(class_basename(static::class));
+    }
+
+    /**
+     * The fields every form of this type has. CustomFields::make() marks where
+     * the fields an editor builds go; without it there are none.
+     *
+     * @return array<int, FormField|CustomFields>
+     */
+    public function fields(): array
+    {
+        return [];
+    }
+
+    public function hasCustomFields(): bool
+    {
+        foreach ($this->fields() as $field) {
+            if ($field instanceof CustomFields) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Values beforeStore() adds on its own, as key => label, so they show up as
+     * placeholders, on the detail page and in the table and export.
+     *
+     * @return array<string, string>
+     */
+    public function extraValues(): array
+    {
+        return [];
+    }
+
+    /**
+     * The keys the type fills in itself, which no field of an editor's may take.
+     *
+     * @return array<int, string>
+     */
+    public function keys(): array
+    {
+        $keys = array_keys($this->extraValues());
+
+        foreach ($this->fields() as $field) {
+            if ($field instanceof FormField && $field::isInput()) {
+                $keys[] = $field->getKey();
+            }
+        }
+
+        return $keys;
+    }
+
+    /**
+     * The title of the first step, the progress and the button labels of a
+     * form in steps; by default as set on the canvas's start block.
+     *
+     * @return array{title: ?string, progress: string, previous: ?string, next: ?string}
+     */
+    public function stepSettings(): array
+    {
+        return StepSettings::normalize((array) ($this->form->custom['steps'] ?? []));
+    }
+
+    /**
+     * Fields for the form's settings under the canvas, stored in its `settings` column.
+     *
+     * @return array<Component>
+     */
+    public function settings(): array
+    {
+        return [];
+    }
+
+    /**
+     * Rules by field key, added after the rules of the field itself: for a
+     * field an editor built, or a rule about more than one field. A rule for a
+     * key the form has no field for is left out.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    public function rules(): array
+    {
+        return [];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function beforeValidation(array $data): array
+    {
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function beforeStore(array $data): array
+    {
+        return $data;
+    }
+
+    /**
+     * Applied wherever answers are shown: the table, the detail page, the
+     * export, the mails and their placeholders. Keeps the field keys.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    public function formatValues(array $values, FormSubmission $submission): array
+    {
+        return $values;
+    }
+
+    /**
+     * Runs for a visitor's submission, not for one a seeder or import creates.
+     * Integrations call other systems, so they wait in the queue.
+     */
+    public function afterSubmission(FormSubmission $submission): void
+    {
+        $this->triggerNotifications($submission);
+
+        $this->triggerIntegrations($submission);
+    }
+
+    /**
+     * Whether the form sets the honeypot traps, when the config turns them on.
+     * Turn it off for a form that is only ever sent from code.
+     */
+    public function hasHoneypot(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Whether "Next" in a form in steps first has the server check the step,
+     * for rules the browser cannot check itself, such as unique or exists.
+     */
+    public function validatesSteps(): bool
+    {
+        return config('filament-form-builder.validate_steps') === true;
+    }
+
+    /**
+     * Replaces the response to a submission; null keeps the redirect or message
+     * the form is set up with.
+     */
+    public function response(FormSubmission $submission): mixed
+    {
+        return null;
+    }
+}

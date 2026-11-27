@@ -1,11 +1,18 @@
 <?php
 
 use Filament\Actions\Exports\ExportColumn;
+use Filament\Actions\Exports\Models\Export;
+use Filament\Actions\Testing\TestAction;
+use Illuminate\Foundation\Auth\User;
+use Livewire\Livewire;
 use VanOns\FilamentFormBuilder\Filament\Exporters\FormSubmissionExporter;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\InputField;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\Pages\EditForm;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormResource\RelationManagers\FormSubmissionsRelationManager;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
-use VanOns\FilamentFormBuilder\View\Components\Forms\CustomForm;
 
 afterEach(function () {
     FormSubmissionExporter::$form = null;
@@ -15,9 +22,9 @@ function formWithFields(string $title, array $labels): Form
 {
     return Form::create([
         'title' => $title,
-        'template' => CustomForm::class,
+        'template' => 'custom',
         'custom' => ['fields' => array_map(
-            fn (string $label): array => ['fieldType' => InputField::class, 'label' => $label],
+            fn (string $label): array => ['type' => 'text', 'label' => $label],
             $labels,
         )],
     ]);
@@ -37,42 +44,182 @@ it('exports only the fields of the form it was opened from', function () {
     $sollicitatie = formWithFields('Solliciteren', ['Voornaam', 'Achternaam']);
     $klacht = formWithFields('Klacht', ['Onderwerp']);
 
-    FormSubmission::create(['form_id' => $klacht->id, 'data' => ['key_onderwerp' => 'Te traag']]);
+    FormSubmission::create(['form_id' => $klacht->id, 'data' => ['onderwerp' => 'Te traag']]);
 
     FormSubmissionExporter::$form = $sollicitatie;
 
-    expect(exportColumnMap())->toHaveKeys(['data.key_voornaam', 'data.key_achternaam'])
-        ->and(exportColumnMap())->not->toHaveKey('data.key_onderwerp');
+    expect(exportColumnMap())->toHaveKeys(['data.voornaam', 'data.achternaam'])
+        ->and(exportColumnMap())->not->toHaveKey('data.onderwerp');
 });
 
 it('heads the columns with the labels the editor typed', function () {
     FormSubmissionExporter::$form = formWithFields('Solliciteren', ['Voornaam']);
 
     // Without the form it falls back to the key, headlined: "Voornaam" either
-    // way here, but a key like `key_tel_nr` would read as "Tel Nr".
-    expect(exportColumnMap()['data.key_voornaam'])->toBe('Voornaam');
+    // way here, but a key like `tel_nr` would read as "Tel Nr".
+    expect(exportColumnMap()['data.voornaam'])->toBe('Voornaam');
 });
 
-it('keeps a column for a field the form no longer has', function () {
+it('puts the answers the form no longer asks for in one column', function () {
     // Renaming or removing a field does not touch the answers already given;
     // exporting only what the form asks today would drop them silently.
-    $form = formWithFields('Solliciteren', ['Voornaam']);
-
-    FormSubmission::create([
-        'form_id' => $form->id,
-        'data' => ['key_voornaam' => 'Jesse', 'key_telefoon' => '0612345678'],
+    $form = Form::create([
+        'title' => 'Solliciteren',
+        'template' => 'custom',
+        'custom' => ['fields' => [
+            ['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam'],
+            ['type' => 'text', 'label' => 'Telefoonnummer', 'key' => 'telefoon'],
+            ['type' => 'file_upload', 'label' => 'CV', 'key' => 'cv'],
+        ]],
     ]);
+    $submission = FormSubmission::create([
+        'form_id' => $form->id,
+        'data' => ['voornaam' => 'Jesse', 'telefoon' => '0612345678', 'bron' => 'LinkedIn'],
+        'files' => ['cv' => [['path' => 'form_uploads/cv.pdf', 'name' => 'cv.pdf']]],
+    ]);
+    $form->update(['custom' => ['fields' => [['type' => 'text', 'label' => 'Voornaam', 'key' => 'voornaam']]]]);
 
-    FormSubmissionExporter::$form = $form;
+    FormSubmissionExporter::$form = $form->fresh();
 
-    expect(exportColumnMap())->toHaveKeys(['data.key_voornaam', 'data.key_telefoon'])
-        ->and(exportColumnMap()['data.key_voornaam'])->toBe('Voornaam')
-        ->and(exportColumnMap()['data.key_telefoon'])->toBe('Telefoon');
+    expect(exportColumnMap())->toHaveKey('other_data', 'Other data')
+        ->not->toHaveKey('data.telefoon')
+        ->not->toHaveKey('data.bron');
+
+    $exporter = new FormSubmissionExporter(new Export(), ['data.voornaam' => 'Voornaam', 'other_data' => 'Other data'], ['form_id' => $form->id]);
+    [$voornaam, $other] = $exporter($submission->fresh());
+
+    expect($voornaam)->toBe('Jesse')
+        ->and(explode("\n", $other))->toHaveCount(3)
+        ->and(explode("\n", $other)[0])->toBe('Telefoonnummer: 0612345678')
+        ->and(explode("\n", $other)[1])->toStartWith('CV: http')
+        ->and(explode("\n", $other)[2])->toBe('Bron: LinkedIn');
+});
+
+it('leaves the other data empty when the form still asks for everything', function () {
+    $form = formWithFields('Solliciteren', ['Voornaam']);
+    $submission = FormSubmission::create(['form_id' => $form->id, 'data' => ['voornaam' => 'Jesse']]);
+
+    $exporter = new FormSubmissionExporter(new Export(), ['other_data' => 'Other data'], ['form_id' => $form->id]);
+
+    expect($exporter($submission))->toBe([null]);
 });
 
 it('falls back to the keys found in the submissions', function () {
     $form = formWithFields('Solliciteren', ['Voornaam']);
-    FormSubmission::create(['form_id' => $form->id, 'data' => ['key_voornaam' => 'Jesse']]);
+    FormSubmission::create(['form_id' => $form->id, 'data' => ['voornaam' => 'Jesse']]);
 
-    expect(exportColumnMap())->toHaveKey('data.key_voornaam');
+    expect(exportColumnMap())->toHaveKey('data.voornaam');
 });
+
+it('gives the export job the columns of the modal, also for a field nobody answered yet', function () {
+    $form = formWithFields('Solliciteren', ['Voornaam', 'Motivatie']);
+    FormSubmission::create(['form_id' => $form->id, 'data' => ['voornaam' => 'Jesse']]);
+
+    // The job runs in another process: the static form from the modal is gone.
+    $exporter = new FormSubmissionExporter(new Export(), ['data.motivatie' => 'Motivatie'], ['form_id' => $form->id]);
+
+    expect($exporter->getCachedColumns())->toHaveKey('data.motivatie');
+});
+
+it('builds an export across forms from the columns that were picked', function () {
+    $form = formWithFields('Solliciteren', ['Voornaam']);
+    FormSubmission::create(['form_id' => $form->id, 'data' => ['voornaam' => 'Jesse', 'telefoon' => '0612345678']]);
+
+    $exporter = new FormSubmissionExporter(new Export(), ['data.voornaam' => 'Voornaam'], []);
+
+    expect($exporter->getCachedColumns())->toHaveKey('data.voornaam')
+        ->not->toHaveKey('data.telefoon');
+});
+
+it('offers where a submission came from, unticked until someone wants it', function () {
+    $form = formWithFields('Solliciteren', ['Voornaam']);
+    $submission = FormSubmission::create([
+        'form_id' => $form->id,
+        'data' => ['voornaam' => 'Jesse'],
+        'source_url' => 'https://fonk.nl/vacatures/adviseur',
+        'meta' => ['locale' => 'nl', 'campaign' => ['source' => 'nieuwsbrief']],
+    ]);
+
+    FormSubmissionExporter::$form = $form;
+    $columns = collect(FormSubmissionExporter::getColumns())->keyBy(fn (ExportColumn $column): string => $column->getName());
+
+    expect($columns->only(['source_url', 'meta.user_agent', 'meta.locale', 'meta.user', 'meta.campaign'])->map->isEnabledByDefault()->all())
+        ->toBe(['source_url' => false, 'meta.user_agent' => false, 'meta.locale' => false, 'meta.user' => false, 'meta.campaign' => false])
+        ->and($columns->get('data.voornaam')->isEnabledByDefault())->toBeTrue()
+        ->and($columns)->not->toHaveKey('meta.ip');
+
+    $exporter = new FormSubmissionExporter(new Export(), ['source_url' => 'Submitted from', 'meta.user_agent' => 'Browser', 'meta.campaign' => 'Campaign'], ['form_id' => $form->id]);
+
+    expect($exporter($submission->fresh()))->toBe(['https://fonk.nl/vacatures/adviseur', null, 'source: nieuwsbrief']);
+});
+
+it('reports how many submissions were exported', function () {
+    $export = new Export(['total_rows' => 3, 'successful_rows' => 2]);
+
+    expect(FormSubmissionExporter::getCompletedNotificationBody($export))
+        ->toBe('The submissions export is ready: 2 rows exported. 1 row failed to export.');
+});
+
+it('offers the export unless the config turns it off', function () {
+    $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+    $form = formWithFields('Solliciteren', ['Voornaam']);
+    $table = fn () => Livewire::test(FormSubmissionsRelationManager::class, ['ownerRecord' => $form, 'pageClass' => EditForm::class]);
+
+    $table()->assertActionVisible(TestAction::make('export')->table());
+
+    config(['filament-form-builder.export_action' => false]);
+
+    $table()->assertActionHidden(TestAction::make('export')->table());
+
+    FilamentFormBuilderPlugin::get()->exportAction();
+
+    $table()->assertActionVisible(TestAction::make('export')->table());
+});
+
+it('knows its form again on every request of the modal, also the one that sends it', function () {
+    $this->actingAs(User::forceCreate(['name' => 'Editor', 'email' => 'editor@example.test', 'password' => 'secret']));
+    $form = formWithFields('Solliciteren', ['Voornaam']);
+    $table = Livewire::test(FormSubmissionsRelationManager::class, ['ownerRecord' => $form, 'pageClass' => EditForm::class])
+        ->mountAction(TestAction::make('export')->table());
+
+    // A request of its own starts without the static the modal was opened with.
+    FormSubmissionExporter::$form = null;
+    $table->call('$refresh');
+
+    expect(FormSubmissionExporter::$form?->is($form))->toBeTrue();
+});
+
+it('lists the forms in the navigation group a panel sets', function () {
+    $plugin = FilamentFormBuilderPlugin::get();
+
+    expect(FormResource::getNavigationGroup())->toBe(__('filament-form-builder::general.navigation-group'))
+        ->and($plugin->navigationGroup('Website')->getNavigationGroup())->toBe('Website')
+        ->and(FormSubmissionResource::getNavigationGroup())->toBe('Website')
+        ->and($plugin->navigationGroup(false)->getNavigationGroup())->toBeNull();
+});
+
+it('writes an answer a spreadsheet would run as a formula as text', function () {
+    $form = formWithFields('Formules', ['Voornaam', 'Bericht']);
+    $submission = FormSubmission::create([
+        'form_id' => $form->id,
+        'data' => ['voornaam' => '=HYPERLINK("https://evil.example","x")', 'bericht' => '@SUM(1+1)'],
+        'source_url' => 'https://fonk.nl/contact',
+    ]);
+
+    $exporter = new FormSubmissionExporter(new Export(), ['data.voornaam' => 'Voornaam', 'data.bericht' => 'Bericht', 'source_url' => 'Submitted from'], ['form_id' => $form->id]);
+
+    expect($exporter($submission->fresh()))->toBe(["'=HYPERLINK(\"https://evil.example\",\"x\")", "'@SUM(1+1)", 'https://fonk.nl/contact']);
+});
+
+it('leaves numbers and plain text alone when escaping formulas', function (mixed $state, mixed $expected) {
+    expect(FormSubmissionExporter::escapeFormula($state))->toBe($expected);
+})->with([
+    'negative number' => ['-5', '-5'],
+    'positive number' => ['+31', '+31'],
+    'phone with spaces' => ['+31 6 1234', "'+31 6 1234"],
+    'tab' => ["\tx", "'\tx"],
+    'plain' => ['Jan', 'Jan'],
+    'empty' => ['', ''],
+    'null' => [null, null],
+    'int' => [5, 5],
+]);

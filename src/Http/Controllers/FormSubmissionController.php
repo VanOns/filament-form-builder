@@ -3,128 +3,180 @@
 namespace VanOns\FilamentFormBuilder\Http\Controllers;
 
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
-use VanOns\FilamentFormBuilder\Contracts\FilamentForm;
-use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
+use VanOns\FilamentFormBuilder\Classes\SubmissionMeta;
+use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmitted;
+use VanOns\FilamentFormBuilder\Forms\FormType;
+use VanOns\FilamentFormBuilder\Helpers\UrlHelper;
 use VanOns\FilamentFormBuilder\Http\Requests\CreateFormSubmission;
-use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class FormSubmissionController
 {
-    public function store(
-        int $formId,
-        CreateFormSubmission $request
-    ): mixed {
-        $data = $request->except(['submitter_email', '_token', 'g-recaptcha-response']);
-        if (!empty($files = $request->allFiles())) {
-            // Files under keys without rules skipped validation, so they're never stored.
-            $data = Arr::except($data, array_keys(array_diff_key($files, $request->validated())));
-            $data = array_merge($data, $this->mapFields($data));
+    public function store(CreateFormSubmission $request): mixed
+    {
+        $form = $request->getForm();
+        $type = $form->getType();
+        $keys = $form->getSubmittableKeys();
+
+        $data = $request->validationData();
+        $fileKeys = $form->getFileKeys();
+
+        // Uploads come from what was validated, never straight from the request:
+        // a file the rules of an upload field did not see is not stored.
+        $input = Arr::only(Arr::except($data, [...$fileKeys, ...array_keys($request->allFiles())]), $keys);
+        $uploads = Arr::only($data, $fileKeys);
+        $unsaved = fn (): FormSubmission => (new FormSubmission(['form_id' => $form->id, 'data' => $input]))->setRelation('form', $form);
+
+        if ($request->isCaught()) {
+            Log::info("The honeypot caught a submission of form {$form->getKey()}.");
+
+            return $this->respond($request, $type, $unsaved());
         }
 
-        $form = Form::query()->findOrFail($formId);
+        $repeat = $this->repeatKey($request, $input, $uploads);
+        $seconds = (int) config('filament-form-builder.duplicate_seconds', 10);
 
-        /** @var FilamentForm $template */
-        $template = $form->template;
+        if ($seconds > 0 && ! Cache::add($repeat, 0, $seconds)) {
+            // The first one may still be on its way; until it is stored, only its outcome can be shown.
+            $first = FormSubmission::query()->find(Cache::get($repeat));
 
-        $data = $template::modifyDataUsing($data, $form);
+            if ($first === null) {
+                return $this->respond($request, $type, $unsaved());
+            }
 
-        $submitterEmail = $request->input('submitter_email');
-        if (empty($submitterEmail) && !empty($emailData = Arr::only($data, static::getPossibleEmailFields()))) {
-            $submitterEmail = head($emailData);
+            return $type->response($first) ?? $this->respond($request, $type, $first);
         }
 
-        $submission = FormSubmission::query()
-            ->create([
+        try {
+            $data = $type->beforeStore($input);
+            $files = $this->storeFiles($uploads);
+
+            $submission = new FormSubmission([
                 'form_id' => $form->id,
-                'submitter_email' => $submitterEmail,
                 'data' => $data,
+                'files' => $files ?: null,
+                // The page the form was on, the same one the redirect back goes to.
+                'source_url' => UrlHelper::http($request->headers->get('referer')),
+                'meta' => SubmissionMeta::capture($request),
             ]);
+            $submission->setRelation('form', $form)->save();
+        } catch (Throwable $exception) {
+            // Sent again, it has to be stored after all.
+            Cache::forget($repeat);
 
-        if ($response = $template::successResponse($submission)) {
-            return $response;
+            throw $exception;
         }
 
-        $formComponent = $form->getFormComponent()->resolveSubmitNotification($submission);
-
-        if (!empty($callBackUrl = $formComponent->getRedirectUrl())) {
-            return redirect($callBackUrl);
+        if ($seconds > 0) {
+            Cache::put($repeat, $submission->getKey(), $seconds);
         }
 
-        return back(Response::HTTP_CREATED)->with([
-            'submit_notification_type' => $formComponent->getNotificationType(),
-            'submit_notification_content' => $formComponent->getNotificationMessage(),
+        $type->afterSubmission($submission);
+        FormSubmitted::dispatch($submission);
+
+        return $type->response($submission) ?? $this->respond($request, $type, $submission);
+    }
+
+    /**
+     * The redirect or message the form is set up with, for the answers given.
+     * A 303, which a browser and Inertia both follow with a GET.
+     */
+    protected function respond(Request $request, FormType $type, FormSubmission $submission): mixed
+    {
+        $type->resolveSubmitNotification($submission);
+
+        if (! empty($callBackUrl = $type->getRedirectUrl())) {
+            $host = parse_url($callBackUrl, PHP_URL_HOST);
+
+            // Inertia cannot follow a redirect to another site: this is how it lets the browser go there itself.
+            if ($request->hasHeader('X-Inertia') && is_string($host) && $host !== $request->getHost()) {
+                return response('', Response::HTTP_CONFLICT, ['X-Inertia-Location' => $callBackUrl]);
+            }
+
+            return redirect($callBackUrl, Response::HTTP_SEE_OTHER);
+        }
+
+        return back(Response::HTTP_SEE_OTHER)->with([
+            'submit_notification_type' => $type->getNotificationType(),
+            'submit_notification_content' => $type->getNotificationMessage(),
         ]);
     }
 
     /**
-     * @param array<string, mixed> $allFields
-     * @return array<string, mixed>
+     * The same answers and files from the same visitor, as a double click sends them.
+     *
+     * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>  $uploads
      */
-    protected function mapFields(array $allFields): array
+    protected function repeatKey(CreateFormSubmission $request, array $input, array $uploads): string
     {
-        $mappedFields = [];
-        foreach ($allFields as $key => $value) {
-            if (is_array($value)) {
-                $mappedFields[$key] = $this->mapFields($value);
-            } elseif ($value instanceof UploadedFile) {
-                $mappedFields[$key] = route(
-                    'filament-form-builder.form.download-file',
-                    ['filePath' => $value->store('form_uploads', config('filament-form-builder.form-uploads-disk'))]
-                );
-            } else {
-                $mappedFields[$key] = $value;
-            }
-        }
-
-        return $mappedFields;
-    }
-
-    public function showFile(string $filePath): Response
-    {
-        $disk = config('filament-form-builder.form-uploads-disk', 'private');
-
-        if (!Storage::disk($disk)->exists($filePath)) {
-            abort(404);
-        }
-
-        $filesystem = Storage::disk($disk);
-        $mimeType = $filesystem instanceof FilesystemAdapter
-            ? $filesystem->mimeType($filePath)
-            : 'application/octet-stream';
-
-        return response(
-            $filesystem->get($filePath),
-            200,
-            [
-                'Content-Type' => $mimeType,
-                'Content-Disposition' => 'inline; filename="' . basename($filePath) . '"',
-            ]
+        $files = array_map(
+            fn (UploadedFile $file): array => [$file->getClientOriginalName(), $file->getSize()],
+            array_filter(Arr::flatten($uploads), fn (mixed $file): bool => $file instanceof UploadedFile),
         );
+
+        return 'filament-form-builder:submission:' . sha1(serialize([
+            $request->getForm()->getKey(),
+            $request->user()?->getAuthIdentifier() ?? $request->ip(),
+            $input,
+            $files,
+        ]));
     }
 
     /**
-     * @return array<string>
+     * Files live apart from the answers, so a visitor cannot pass off a typed
+     * value as a stored file. Their size and type are kept, so showing them
+     * needs no trip to the disk.
+     *
+     * @param array<string, mixed> $uploads
+     * @return array<string, list<array{path: string, name: string, size: int, mime_type: ?string}>>
      */
-    public static function getPossibleEmailFields(): array
+    protected function storeFiles(array $uploads): array
     {
-        $possibleEmailFields = [
-            'email',
-            'e-mail',
-            'emailadres',
-            'email_adres',
-            'e-mail_adres',
-            'e-mail_address',
-            'mail_address',
-        ];
+        $disk = FormSubmission::getFilesDisk();
+        $files = [];
 
-        return array_merge(
-            $possibleEmailFields,
-            array_map(fn ($field) => FormField::$keyPrefix . $field, $possibleEmailFields)
+        foreach ($uploads as $key => $upload) {
+            foreach (Arr::flatten(Arr::wrap($upload)) as $file) {
+                if ($file instanceof UploadedFile && ($path = $file->store('form_uploads', $disk)) !== false) {
+                    $files[$key][] = [
+                        'path' => $path,
+                        'name' => $file->getClientOriginalName(),
+                        'size' => (int) $file->getSize(),
+                        'mime_type' => $file->getMimeType(),
+                    ];
+                }
+            }
+        }
+
+        return $files;
+    }
+
+    public function showFile(Request $request, int $submissionId, string $key, int $index): StreamedResponse
+    {
+        $file = FormSubmission::query()->findOrFail($submissionId)->getFiles()[$key][$index] ?? abort(404);
+        $disk = Storage::disk(FormSubmission::getFilesDisk());
+
+        if (!$disk instanceof FilesystemAdapter || !$file->exists()) {
+            abort(404);
+        }
+
+        $inline = !$request->boolean('download') && $file->opensInBrowser();
+
+        return $disk->response(
+            $file->path,
+            $file->name,
+            ['X-Content-Type-Options' => 'nosniff'],
+            $inline ? 'inline' : 'attachment',
         );
     }
 }

@@ -1,30 +1,32 @@
 <?php
 
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
+use VanOns\FilamentFormBuilder\Classes\MergeTags;
 use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TextInputField;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\Form;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
-function placeholderSubmission(array $data = [], ?string $email = null): FormSubmission
+afterEach(fn () => FilamentFormBuilderPlugin::forgetCustomMergeTags());
+
+function placeholderSubmission(array $data = []): FormSubmission
 {
     $form = Form::create(['title' => 'Contact']);
 
     return FormSubmission::create([
         'form_id' => $form->id,
-        'submitter_email' => $email,
         'data' => $data,
     ]);
 }
 
-it('exposes the submitted values, the form title and the submitter', function () {
-    $submission = placeholderSubmission(['key_naam' => 'Jesse'], 'jesse@example.test');
+it('exposes the submitted values and the form title', function () {
+    $submission = placeholderSubmission(['naam' => 'Jesse']);
 
     expect(SubmissionPlaceholders::make($submission)->values())
         ->toMatchArray([
-            'key_naam' => 'Jesse',
             'naam' => 'Jesse',
             'form_title' => 'Contact',
-            'submitter_email' => 'jesse@example.test',
         ]);
 });
 
@@ -35,55 +37,132 @@ it('lets a submitted field win from the form title', function () {
 });
 
 it('drops empty values so their placeholder stays recognisable', function () {
-    $submission = placeholderSubmission(['key_naam' => '']);
+    $submission = placeholderSubmission(['naam' => '']);
 
-    expect(SubmissionPlaceholders::make($submission)->values())->not->toHaveKey('key_naam');
+    expect(SubmissionPlaceholders::make($submission)->values())->not->toHaveKey('naam');
 });
 
 it('flattens a multi-value field the way the mail does', function () {
-    $submission = placeholderSubmission(['key_interesses' => ['php', 'laravel']]);
+    $submission = placeholderSubmission(['interesses' => ['php', 'laravel']]);
 
-    expect(SubmissionPlaceholders::make($submission)->values()['key_interesses'])->toBe('php, laravel');
+    expect(SubmissionPlaceholders::make($submission)->values()['interesses'])->toBe('php, laravel');
 });
 
 it('replaces both placeholder spellings and leaves unknown ones alone', function () {
-    $submission = placeholderSubmission(['key_naam' => 'Jesse']);
+    $submission = placeholderSubmission(['naam' => 'Jesse']);
 
-    expect(SubmissionPlaceholders::make($submission)->replace('Hoi {{ $key_naam }} en {{$key_naam}}, {{ $key_x }}'))
-        ->toBe('Hoi Jesse en Jesse, {{ $key_x }}');
+    expect(SubmissionPlaceholders::make($submission)->replace('Hoi {{ $naam }} en {{$naam}}, {{ $x }}'))
+        ->toBe('Hoi Jesse en Jesse, {{ $x }}');
 });
 
 it('does not treat a placeholder a visitor typed as a placeholder', function () {
-    $submission = placeholderSubmission(['key_naam' => '{{ $submitter_email }}'], 'jesse@example.test');
+    $submission = placeholderSubmission(['naam' => '{{ $form_title }}']);
 
-    expect(SubmissionPlaceholders::make($submission)->replace('Hoi {{ $key_naam }}'))
-        ->toBe('Hoi {{ $submitter_email }}');
+    expect(SubmissionPlaceholders::make($submission)->replace('Hoi {{ $naam }}'))
+        ->toBe('Hoi {{ $form_title }}');
 });
 
 it('still replaces the placeholders in an e-mail notification', function () {
-    $submission = placeholderSubmission(['key_naam' => 'Jesse'], 'jesse@example.test');
+    $submission = placeholderSubmission(['naam' => 'Jesse', 'email' => 'jesse@example.test']);
 
     $notification = new EmailNotification($submission, [
         'subject' => 'Inzending {{ $form_title }}',
-        'content' => '<p>Hoi {{ $key_naam }}, we hebben je bericht ontvangen.</p>',
+        'content' => '<p>Hoi {{ $naam }}, we hebben je bericht ontvangen.</p>',
         'senderName' => '{{ $form_title }}',
-        'receivers' => ['key_naam', 'info@example.test'],
+        'to' => ['field:email', 'info@example.test', 'field:naam'],
     ]);
 
     expect($notification->subject)->toBe('Inzending Contact')
         ->and($notification->content)->toBe('<p>Hoi Jesse, we hebben je bericht ontvangen.</p>')
         ->and($notification->senderName)->toBe('Contact')
-        // A receiver naming a field resolves to its value, anything else is used as typed.
-        ->and($notification->receivers)->toBe(['Jesse', 'info@example.test']);
+        // A receiver naming a field resolves to its answer; one that is no address is left out.
+        ->and($notification->receivers)->toBe(['jesse@example.test', 'info@example.test']);
 });
 
 it('strips a placeholder the e-mail cannot fill in', function () {
-    $submission = placeholderSubmission(['key_naam' => 'Jesse']);
+    $submission = placeholderSubmission(['naam' => 'Jesse']);
 
     $notification = new EmailNotification($submission, [
         'subject' => 'Inzending',
-        'content' => '<p>Hoi {{ $key_onbekend }}.</p>',
+        'content' => '<p>Hoi {{ $onbekend }}.</p>',
     ]);
 
     expect($notification->content)->toBe('<p>Hoi .</p>');
+});
+
+it('escapes an answer before it goes into the html of a notification', function () {
+    $submission = placeholderSubmission(['naam' => '<a href="https://evil.test">Klik</a>']);
+
+    $notification = new EmailNotification($submission, [
+        'subject' => 'Van {{ $naam }}',
+        'content' => '<p>Van {{ $naam }}</p>{{ $all_fields }}',
+    ]);
+
+    expect($notification->content)->not->toContain('<a href')
+        ->and($notification->content)->toContain('&lt;a href=&quot;https://evil.test&quot;&gt;Klik&lt;/a&gt;');
+});
+
+it('does not read a placeholder typed into a field as one in the field overview', function () {
+    $submission = placeholderSubmission(['naam' => '{{ $form_title }}']);
+
+    $notification = new EmailNotification($submission, ['subject' => 'Nieuw', 'content' => '{{ $all_fields }}']);
+
+    expect($notification->content)->toContain('<b>Naam</b>: {{ $form_title }}</p>');
+});
+
+it('points the placeholders of a renamed key at its new name', function () {
+    $renamed = MergeTags::rename([
+        'subject' => 'Van {{ $naam }} ({{$naam}})',
+        'content' => ['<p>{{ $naam }} en {{ $naam_2 }}</p>'],
+        'sender' => null,
+    ], 'naam', 'volledige_naam');
+
+    expect($renamed)->toBe([
+        'subject' => 'Van {{ $volledige_naam }} ({{ $volledige_naam }})',
+        'content' => ['<p>{{ $volledige_naam }} en {{ $naam_2 }}</p>'],
+        'sender' => null,
+    ]);
+});
+
+it('leaves a dollar sign in an answer alone', function () {
+    $submission = placeholderSubmission(['bericht' => 'Kost het $100 of $USD?']);
+
+    $notification = new EmailNotification($submission, ['subject' => 'Vraag', 'content' => '<p>{{ $bericht }}</p>']);
+
+    expect($notification->content)->toBe('<p>Kost het $100 of $USD?</p>');
+});
+
+it('drops a placeholder no answer fills from a mail subject', function () {
+    $notification = new EmailNotification(placeholderSubmission(), ['subject' => 'Vraag van {{ $onbekend }}', 'content' => '']);
+
+    expect($notification->subject)->toBe('Vraag van');
+});
+
+it('fills in a key with a dash and placeholders spaced any way', function () {
+    $submission = placeholderSubmission(['e-mailadres' => 'jan@example.com']);
+
+    expect(SubmissionPlaceholders::make($submission)->replace('{{$e-mailadres}} / {{   $e-mailadres }}'))
+        ->toBe('jan@example.com / jan@example.com');
+});
+
+it('fills in a merge tag of the project its own, offers it under Other and keeps fields off its key', function () {
+    FilamentFormBuilderPlugin::mergeTag('site_name', 'Site name', fn (FormSubmission $submission): string => 'Bronwerk #' . $submission->getKey());
+    $submission = placeholderSubmission(['naam' => 'Jan']);
+
+    $notification = new EmailNotification($submission, [
+        'subject' => '<p>Van <span data-type="mergeTag" data-id="site_name"></span></p>',
+        'content' => '<p>Hoi {{ $naam }}, dit komt van {{ $site_name }}.</p>',
+        'to' => ['hr@example.test'],
+    ]);
+    $groups = collect($submission->form->getMergeTagGroups())->pluck('tags', 'label');
+
+    expect($notification->subject)->toBe('Van Bronwerk #' . $submission->getKey())
+        ->and($notification->content)->toContain('dit komt van Bronwerk #' . $submission->getKey())
+        ->and($groups['Other'])->toHaveKey('site_name')
+        ->and($submission->form->getPlaceholderList())->toContain('{{ $site_name }}')
+        ->and(TextInputField::reservedKeys())->toContain('site_name');
+});
+
+it('offers no Other group without merge tags of the project its own', function () {
+    expect(collect(placeholderSubmission()->form->getMergeTagGroups())->pluck('label'))->not->toContain('Other');
 });

@@ -2,20 +2,21 @@
 
 namespace VanOns\FilamentFormBuilder\Helpers;
 
+use Illuminate\Support\HtmlString;
+
 class AttributeHelper
 {
     /**
      * @param array<string, mixed> $attributes
-     * @return string
      */
-    public static function arrayToString(array $attributes): string
+    public static function render(array $attributes): HtmlString
     {
-        $extraAttributes = '';
+        $rendered = [];
 
         foreach ($attributes as $key => $value) {
-            $extraAttributes .= "{$key}={$value} ";
+            $rendered[] = $key . '="' . e((string) $value) . '"';
         }
 
-        return trim($extraAttributes);
+        return new HtmlString(implode(' ', $rendered));
     }
 }

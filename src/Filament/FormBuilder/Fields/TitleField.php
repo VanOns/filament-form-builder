@@ -2,16 +2,63 @@
 
 namespace VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields;
 
+use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Support\Icons\Heroicon;
+use VanOns\FilamentFormBuilder\Enums\FieldWidth;
 
 class TitleField extends FormField
 {
     public static string $view = 'filament-form-builder::components.fields.title-field';
-    public static string $itemLabelField = 'title';
+    public static string $previewView = 'filament-form-builder::filament.previews.title';
 
-    public ?string $title;
+    public ?string $title = null;
     public ?string $headingLevel = 'h2';
+
+    public function title(?string $title): static
+    {
+        $this->title = $title;
+
+        return $this;
+    }
+
+    public function headingLevel(string $level): static
+    {
+        $this->headingLevel = $level;
+
+        return $this;
+    }
+
+    public static function startsGroup(): bool
+    {
+        return true;
+    }
+
+    public function getGroupTitle(): ?string
+    {
+        return $this->title;
+    }
+
+    public static function paletteGroup(): string
+    {
+        return 'layout';
+    }
+
+    public static function minWidth(): FieldWidth
+    {
+        return FieldWidth::THIRD;
+    }
+
+    public static function icon(): string | BackedEnum
+    {
+        return Heroicon::OutlinedH1;
+    }
+
+    public static function editableSettings(): array
+    {
+        return ['title'];
+    }
 
     public static function getFields(): array
     {
@@ -32,9 +79,9 @@ class TitleField extends FormField
         ];
     }
 
-    protected function rules(): array
+    protected function fieldRules(): array
     {
-        return $this->getDefaultRules();
+        return [];
     }
 
     public static function isInput(): bool
@@ -42,8 +89,8 @@ class TitleField extends FormField
         return false;
     }
 
-    public static function hasVisibilitySettings(): bool
+    public static function canHaveConditions(): bool
     {
-        return false;
+        return true;
     }
 }

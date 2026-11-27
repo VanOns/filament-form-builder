@@ -4,58 +4,71 @@ namespace VanOns\FilamentFormBuilder\Traits\Forms;
 
 use Throwable;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
+use VanOns\FilamentFormBuilder\Enums\NotificationStatus;
 use VanOns\FilamentFormBuilder\Jobs\SendFormNotificationJob;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\Models\FormSubmissionNotificationLog;
 
 trait HasNotifications
 {
-    public static function hasNotifications(): bool
+    public function hasNotifications(): bool
     {
-        return config('filament-form-builder.email_notification_enabled') === true;
+        return config('filament-form-builder.email_notifications') === true;
     }
 
-    public static function getNotifications(FormSubmission $submission): array
+    /**
+     * @return array<EmailNotification>
+     */
+    public function getNotifications(FormSubmission $submission): array
     {
         return $submission->getNotifications();
     }
 
-    public static function triggerNotifications(FormSubmission $submission): void
+    public function triggerNotifications(FormSubmission $submission): void
     {
-        if (!self::hasNotifications()) {
+        if (!$this->hasNotifications()) {
             return;
         }
 
-        self::sendNotifications($submission);
+        $this->sendNotifications($submission);
     }
 
-    public static function sendNotifications(FormSubmission $submission): void
+    public function sendNotifications(FormSubmission $submission): void
     {
-        foreach (self::getNotifications($submission) as $notification) {
-            self::sendNotification($notification, $submission);
+        foreach ($this->getNotifications($submission) as $notification) {
+            $this->sendNotification($notification, $submission);
         }
     }
 
-    public static function sendNotification(EmailNotification $notification, FormSubmission $submission): void
+    public function sendNotification(EmailNotification $notification, FormSubmission $submission): void
     {
+        if (!$notification->shouldSend()) {
+            return;
+        }
+
+        $mail = $notification->toMail();
+
         foreach ($notification->receivers as $receiver) {
+            // Every recipient gets a mail of their own; the copies go along with each, but not to whoever it is already for.
+            $cc = array_values(array_diff($notification->cc, [$receiver]));
+            $bcc = array_values(array_diff($notification->bcc, [$receiver, ...$cc]));
+
             try {
                 $log = FormSubmissionNotificationLog::create([
                     'form_submission_id' => $submission->id,
+                    'notification_id' => $notification->id,
                     'notification_subject' => $notification->subject,
                     'sender' => $notification->sender,
                     'recipient' => $receiver,
-                    'status' => 'queued',
+                    'status' => NotificationStatus::Queued,
                 ]);
 
                 SendFormNotificationJob::dispatch(
                     notificationLogId: $log->id,
-                    subject: $notification->subject,
-                    content: $notification->content,
-                    sender: $notification->sender,
+                    mail: $mail,
                     receiver: $receiver,
-                    formSubmission: $submission,
-                    senderName: $notification->senderName,
+                    cc: $cc,
+                    bcc: $bcc,
                 );
             } catch (Throwable $e) {
                 report($e);

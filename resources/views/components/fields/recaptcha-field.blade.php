@@ -4,4 +4,6 @@
      */
 @endphp
 
-<x-filament-form-builder::recaptcha :key="$field->getKey()" />
+<div {{ $field->getWrapperAttributes() }}>
+    <x-filament-form-builder::recaptcha :key="$field->getKey()" />
+</div>

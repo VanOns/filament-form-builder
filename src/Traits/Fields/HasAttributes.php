@@ -2,6 +2,7 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
+use Illuminate\Support\HtmlString;
 use VanOns\FilamentFormBuilder\Helpers\AttributeHelper;
 
 trait HasAttributes
@@ -13,8 +14,7 @@ trait HasAttributes
     {
         return array_filter([
             'data-form-builder-input' => $this->getKey(),
-            'data-visible-when-key' => $this->getVisibleWenKey(),
-            'data-visible-when-value' => $this->getVisibleWhenValue(),
+            'data-conditions' => $this->hasConditions() ? json_encode($this->getConditions()->toArray()) : null,
             'data-required' => !$withRequired
                 ? null
                 : ($this->isRequired() ? 'true' : 'false'),
@@ -24,15 +24,8 @@ trait HasAttributes
     /**
      * @param array<string, string|null>|null $attributes
      */
-    public function getAttributes(?array $attributes = null, bool $withRequired = true): string
+    public function getAttributes(?array $attributes = null, bool $withRequired = true): HtmlString
     {
-        return AttributeHelper::arrayToString($attributes ?? $this->getAttributesList($withRequired));
-    }
-
-    public function getWrapperAttributes(): string
-    {
-        return $this->getAttributes([
-            'data-form-builder-input-wrapper' => $this->getKey(),
-        ]);
+        return AttributeHelper::render($attributes ?? $this->getAttributesList($withRequired));
     }
 }

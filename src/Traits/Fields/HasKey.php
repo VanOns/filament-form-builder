@@ -2,39 +2,52 @@
 
 namespace VanOns\FilamentFormBuilder\Traits\Fields;
 
-use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Classes\Honeypot;
+use VanOns\FilamentFormBuilder\Classes\SubmissionPlaceholders;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\RecaptchaField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\TurnstileField;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 
 trait HasKey
 {
-    public ?string $key;
-    public static string $keyPrefix = 'key_';
+    public ?string $key = null;
 
     /**
      * @var array<string>
      */
-    public static array $disallowedKeyCharacters = ['.', '*', ' '];
+    public static array $disallowedKeyCharacters = ['.', '*', ' ', '[', ']'];
 
-    protected function generateKey(): string
+    /**
+     * Names the request or the placeholders already use for something else.
+     *
+     * @var array<string>
+     */
+    public static array $reservedKeys = ['_token', '_method', RecaptchaField::KEY, TurnstileField::KEY];
+
+    /**
+     * @return array<string>
+     */
+    public static function reservedKeys(): array
     {
-        return Str::snake(
-            $this->getLabel()
-        );
+        return [
+            ...static::$reservedKeys,
+            ...array_keys(SubmissionPlaceholders::BUILT_IN),
+            ...array_keys(FilamentFormBuilderPlugin::getCustomMergeTags()),
+            ...Honeypot::keys(),
+        ];
+    }
+
+    public function key(string $key): static
+    {
+        $this->key = $key;
+
+        return $this;
     }
 
     public static function cleanKey(string $key): string
     {
         return str_replace(static::$disallowedKeyCharacters, '', $key);
-    }
-
-    public static function getKeyHelperText(Get $get, ?string $state): ?string
-    {
-        $key = static::cleanKey(Str::snake($get('key') ?? $state ?? ''));
-        $prefix = static::$keyPrefix;
-
-        return empty($key)
-            ? null
-            : __('filament-form-builder::fields.key') . ": {$prefix}{$key}";
     }
 
     public static function getKeyValidationRule(): string
@@ -44,8 +57,11 @@ trait HasKey
 
     public function getKey(): string
     {
-        $key = $this->key ?? ($this->key = $this->generateKey());
+        return static::cleanKey(filled($this->key) ? $this->key : Str::snake($this->label ?? class_basename(static::class)));
+    }
 
-        return static::$keyPrefix . static::cleanKey($key);
+    public function getInputName(): string
+    {
+        return $this->getKey();
     }
 }

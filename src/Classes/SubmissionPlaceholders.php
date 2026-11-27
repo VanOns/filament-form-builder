@@ -2,13 +2,27 @@
 
 namespace VanOns\FilamentFormBuilder\Classes;
 
-use Exception;
-use Illuminate\Support\Str;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
+use Filament\Support\Icons\Heroicon;
+use Throwable;
+use VanOns\FilamentFormBuilder\Filament\Resources\FormSubmissionResource;
+use VanOns\FilamentFormBuilder\FilamentFormBuilderPlugin;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 
 class SubmissionPlaceholders
 {
+    /**
+     * The tags every form has, by the group the editor lists them in. A field
+     * can never take one of these keys.
+     */
+    public const BUILT_IN = [
+        'form_title' => ['group' => 'form', 'icon' => Heroicon::OutlinedDocumentText],
+        'all_fields' => ['group' => 'form', 'icon' => Heroicon::OutlinedQueueList],
+        'submission_id' => ['group' => 'submission', 'icon' => Heroicon::OutlinedHashtag],
+        'submitted_at' => ['group' => 'submission', 'icon' => Heroicon::OutlinedCalendar],
+        'submitted_from' => ['group' => 'submission', 'icon' => Heroicon::OutlinedGlobeAlt],
+        'submission_url' => ['group' => 'submission', 'icon' => Heroicon::OutlinedArrowTopRightOnSquare],
+    ];
+
     /**
      * @var array<string, string>|null
      */
@@ -32,36 +46,49 @@ class SubmissionPlaceholders
             return $this->values;
         }
 
-        // Later keys win: a submitted field beats a template fallback, and
-        // `form_title` when an editor named a field that way.
-        $values = array_filter([
+        // Later keys win: an answer beats the dash an empty field gets.
+        return $this->values = [
             'form_title' => $this->formSubmission->form->title,
-            ...$this->templatePlaceholders(),
-            ...$this->formSubmission->getFormattedData(
-                data: $this->formSubmission->modifyDataValuesUsing($this->formSubmission->data),
-            ),
-            'submitter_email' => $this->formSubmission->submitter_email,
-        ], fn ($value) => $value !== null && $value !== '');
-
-        return $this->values = $this->withoutKeyPrefixAliases($values);
+            'submission_id' => (string) $this->formSubmission->getKey(),
+            'submitted_at' => (string) $this->formSubmission->created_at?->translatedFormat('j F Y, H:i'),
+            'submitted_from' => (string) $this->formSubmission->source_url,
+            'submission_url' => $this->submissionUrl(),
+            ...array_map(fn (array $tag): string => (string) ($tag['value'])($this->formSubmission), FilamentFormBuilderPlugin::getCustomMergeTags()),
+            ...static::fallbacks($this->formSubmission),
+            ...$this->formSubmission->getFormattedData(),
+        ];
     }
 
-    public function replace(string $subject, ?callable $escape = null): string
+    /**
+     * The submission's page in the panel, or nothing where no panel serves it,
+     * such as an app that registers the plugin without the resources.
+     */
+    public function submissionUrl(): string
     {
-        $replacements = [];
+        try {
+            return FormSubmissionResource::getUrl('view', ['record' => $this->formSubmission]);
+        } catch (Throwable) {
+            return '';
+        }
+    }
 
-        foreach ($this->values() as $key => $value) {
-            $value = (string) $value;
+    /**
+     * One pass over the subject, so a filled-in value is never searched for
+     * placeholders of its own.
+     */
+    public function replace(string $subject, ?callable $escape = null, bool $removeUnknown = false): string
+    {
+        $values = $this->values();
 
-            if ($escape !== null) {
-                $value = $escape($value);
+        return preg_replace_callback(MergeTags::LEGACY, function (array $match) use ($values, $escape, $removeUnknown): string {
+            if (!array_key_exists($match[1], $values)) {
+                return $removeUnknown ? '' : $match[0];
             }
 
-            $replacements['{{ $' . $key . ' }}'] = $value;
-            $replacements['{{$' . $key . '}}'] = $value;
-        }
+            $value = (string) $values[$match[1]];
 
-        return $replacements === [] ? $subject : strtr($subject, $replacements);
+            return $escape !== null ? $escape($value) : $value;
+        }, $subject) ?? $subject;
     }
 
     public function appendQuery(?string $url, ?string $query): ?string
@@ -72,10 +99,16 @@ class SubmissionPlaceholders
             return $url;
         }
 
-        $query = $this->replace($query, rawurlencode(...));
-
         // Unfilled tags leave their parameter empty rather than the raw placeholder.
-        $query = trim(preg_replace('/{{\s*\$[^}]*}}/', '', $query) ?? $query, "?& \t\n\r\0\x0B");
+        return static::joinQuery($url, $this->replace($query, rawurlencode(...), removeUnknown: true));
+    }
+
+    /**
+     * The URL with a filled-in query added, before any fragment.
+     */
+    public static function joinQuery(string $url, string $query): string
+    {
+        $query = trim($query, "?& \t\n\r\0\x0B");
 
         if ($query === '') {
             return $url;
@@ -89,44 +122,27 @@ class SubmissionPlaceholders
     }
 
     /**
-     * Fallbacks the template declares, so an empty field renders as "-".
-     *
-     * @return array<string, string>
+     * Every answer as a line of its own, label first, for the "all fields" tag.
      */
-    protected function templatePlaceholders(): array
+    public function allFieldsHtml(): string
     {
-        try {
-            if (TemplateHelper::isTemplate($this->formSubmission->form->template)) {
-                return $this->formSubmission->form->getFormComponent()->getPlaceholders();
-            }
-        } catch (Exception) {
-            return [];
-        }
+        $data = [
+            ...static::fallbacks($this->formSubmission),
+            ...$this->formSubmission->getFormattedData(),
+        ];
 
-        return [];
+        return implode('', array_map(
+            fn (string | int $key, mixed $value): string => '<p><b>' . e($this->formSubmission->findLabel((string) $key)) . '</b>: ' . e((string) $value) . '</p>',
+            array_keys($data),
+            $data,
+        ));
     }
 
     /**
-     * Forms from before the `key_` prefix used `{{ $naam }}`, so register both.
-     *
-     * @param  array<string, mixed>  $values
-     * @return array<string, mixed>
+     * @return array<string, string>
      */
-    protected function withoutKeyPrefixAliases(array $values): array
+    public static function fallbacks(FormSubmission $submission): array
     {
-        $prefix = 'key_';
-        $aliases = [];
-
-        foreach ($values as $key => $value) {
-            if (str_starts_with($key, $prefix)) {
-                $alias = Str::after($key, $prefix);
-
-                if (!array_key_exists($alias, $values)) {
-                    $aliases[$alias] = $value;
-                }
-            }
-        }
-
-        return array_merge($values, $aliases);
+        return array_fill_keys(array_keys($submission->form?->getSubmissionFields() ?? []), '-');
     }
 }

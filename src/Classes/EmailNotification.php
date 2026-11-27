@@ -2,135 +2,229 @@
 
 namespace VanOns\FilamentFormBuilder\Classes;
 
-use Exception;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
-use VanOns\FilamentFormBuilder\Models\Form;
+use Illuminate\Support\HtmlString;
+use VanOns\FilamentFormBuilder\Helpers\UrlHelper;
+use VanOns\FilamentFormBuilder\Mail\FormSubmission\FormSubmissionCreatedMail;
 use VanOns\FilamentFormBuilder\Models\FormSubmission;
 use VanOns\FilamentFormBuilder\View\Components\Mail\MailPanel;
 
 class EmailNotification
 {
-    public string $subject;
-    public string $content;
-    public string $sender = '';
-    public string $senderName = '';
     /**
-     * @var array<string>
+     * A recipient that stands for the answer of a field, rather than a fixed
+     * address.
      */
-    public ?array $receivers = null;
+    public const FIELD_PREFIX = 'field:';
 
     /**
-     * @param FormSubmission $formSubmission
-     * @param array<string, mixed> $notification
+     * The texts that can hold merge tags.
+     */
+    public const TEXTS = ['subject', 'content', 'senderName'];
+
+    public const RECIPIENT_LISTS = ['to', 'cc', 'bcc'];
+
+    public ?string $id;
+
+    public bool $isEnabled;
+
+    public string $subject;
+
+    public string $content;
+
+    public string $sender = '';
+
+    public string $senderName = '';
+
+    /**
+     * @var list<string>
+     */
+    public array $receivers;
+
+    /**
+     * @var list<string>
+     */
+    public array $cc;
+
+    /**
+     * @var list<string>
+     */
+    public array $bcc;
+
+    public ?string $replyTo;
+
+    public FieldConditions $conditions;
+
+    /**
+     * @var list<SubmissionFile>
+     */
+    public array $attachments;
+
+    /**
+     * @param  array<string, mixed>  $notification
      */
     public function __construct(
         public FormSubmission $formSubmission,
         array $notification,
     ) {
-        $this->subject = $this->replacePlaceholders($notification['subject'] ?? '');
-        $this->content = $this->replacePlaceholders($notification['content'] ?? '');
-        $this->content = $this->sanitizeContent($this->content);
+        $notification = static::normalize($notification);
+        $values = SubmissionPlaceholders::make($formSubmission)->values();
+
+        $this->id = $notification['id'];
+        $this->isEnabled = $notification['enabled'];
+        $this->subject = MergeTags::render($notification['subject'], $values, asText: true);
+        $this->content = MergeTags::render($notification['content'], [...$values, ...$this->getHtmlValues($values)]);
         $this->sender = $notification['sender'] ?? '';
-        $this->senderName = $this->replacePlaceholders($notification['senderName'] ?? '');
-        $this->receivers = $this->parseReceivers(
-            $notification['receivers'] ?? []
-        );
-    }
-
-    public function replacePlaceholders(string $content): string
-    {
-        // Only the mail renders every field as an HTML panel.
-        if (str_contains($content, '$all_fields') && ($allFields = $this->getAllFieldsHtml()) !== '') {
-            $content = str_replace(['{{ $all_fields }}', '{{$all_fields}}'], $allFields, $content);
-        }
-
-        return SubmissionPlaceholders::make($this->formSubmission)->replace($content);
+        $this->senderName = MergeTags::render($notification['senderName'], $values, asText: true);
+        $this->receivers = $this->resolveAddresses($notification['to']);
+        $this->cc = $this->resolveAddresses($notification['cc']);
+        $this->bcc = $this->resolveAddresses($notification['bcc']);
+        $this->replyTo = $this->resolveAddresses(array_filter([$notification['reply_to']]))[0] ?? null;
+        $this->conditions = FieldConditions::fromArray($notification['conditions'], $notification['conditionMatch']);
+        $this->attachments = $notification['attach_files'] ? $this->getAttachments() : [];
     }
 
     /**
-     * Validate content so no unprocessed placeholders, variables remain. This is to prevent errors.
+     * A notification with every setting filled in; what is missing or of the
+     * wrong type gets its default.
      *
-     * @param string $content
-     * @return string
+     * @param  array<string, mixed>  $notification
+     * @return array{id: ?string, enabled: bool, subject: ?string, content: ?string, sender: ?string, senderName: ?string, to: list<string>, cc: list<string>, bcc: list<string>, reply_to: ?string, conditions: array<mixed>, conditionMatch: string, attach_files: bool}
      */
-    protected function sanitizeContent(string $content): string
+    public static function normalize(array $notification): array
     {
-        $content = preg_replace('/{{\s*\$[a-zA-Z0-9_]+\s*}}/', '', $content);
-
-        return preg_replace('/\$[a-zA-Z_][a-zA-Z0-9_]*/', '', $content);
-    }
-
-    /**
-     * Get html ata for the `all_fields` placeholder
-     *
-     * @param array<string, mixed>|null $data
-     * @return string
-     */
-    protected function getAllFieldsHtml(?array $data = null): string
-    {
-        if (empty($data ??= $this->getFormSubmissionData(true))) {
-            return '';
-        }
-
-        /* @var Form $form */
-        $form = $this->formSubmission->form;
-
-        $allFieldsFormatted = array_map(function ($key, $value) use ($form) {
-            $label = $form->getFormComponent()->findAttributeForKey($key);
-            return "<p><b>{$label}</b>: {$value}</p>";
-        }, array_keys($data), $data);
-
-        return Blade::render(MailPanel::$view, [
-            'slot' => implode('', $allFieldsFormatted),
-        ]);
-    }
-
-    /**
-     * @param array<string> $receivers
-     * @return array<string>
-     */
-    protected function parseReceivers(array $receivers): array
-    {
-        return array_map(function (string $emailOrKey) {
-            return ($value = Arr::get($this->getFormSubmissionData(), $emailOrKey))
-                ? $value
-                : $emailOrKey;
-        }, $receivers);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function getFormSubmissionData(bool $withPlaceholders = false): array
-    {
-        $placeholders = $withPlaceholders
-            ? $this->getPlaceholders()
-            : [];
+        $list = fn (mixed $recipients): array => array_values(array_filter(array_map(static::toRecipient(...), is_array($recipients) ? $recipients : [])));
 
         return [
-            ...$placeholders,
-            ...$this->formSubmission->getFormattedData(
-                data: $this->formSubmission->modifyDataValuesUsing($this->formSubmission->data),
-            ),
-            'submitter_email' => $this->formSubmission->submitter_email,
+            'id' => is_string($notification['id'] ?? null) && $notification['id'] !== '' ? $notification['id'] : null,
+            'enabled' => (bool) ($notification['enabled'] ?? true),
+            'subject' => is_string($notification['subject'] ?? null) ? $notification['subject'] : null,
+            'content' => is_string($notification['content'] ?? null) ? $notification['content'] : null,
+            'sender' => is_string($notification['sender'] ?? null) && $notification['sender'] !== '' ? $notification['sender'] : null,
+            'senderName' => is_string($notification['senderName'] ?? null) ? $notification['senderName'] : null,
+            'to' => $list($notification['to'] ?? []),
+            'cc' => $list($notification['cc'] ?? []),
+            'bcc' => $list($notification['bcc'] ?? []),
+            'reply_to' => static::toRecipient($notification['reply_to'] ?? null),
+            'conditions' => is_array($notification['conditions'] ?? null) ? array_values($notification['conditions']) : [],
+            'conditionMatch' => ($notification['conditionMatch'] ?? null) === 'any' ? 'any' : 'all',
+            'attach_files' => (bool) ($notification['attach_files'] ?? false),
         ];
     }
 
     /**
-     * @return array<string, string>
+     * An address, or `field:key` for the answer of a field.
      */
-    protected function getPlaceholders(): array
+    public static function toRecipient(mixed $recipient): ?string
     {
-        try {
-            if (TemplateHelper::isTemplate($this->formSubmission->form->template)) {
-                return $this->formSubmission->form->getFormComponent()->getPlaceholders();
+        return is_string($recipient) && trim($recipient) !== '' ? trim($recipient) : null;
+    }
+
+    public static function fieldKey(string $recipient): ?string
+    {
+        return str_starts_with($recipient, static::FIELD_PREFIX) ? substr($recipient, strlen(static::FIELD_PREFIX)) : null;
+    }
+
+    /**
+     * In bytes.
+     */
+    public static function attachmentLimit(): int
+    {
+        return (int) config('filament-form-builder.uploads.attach_max_size', 10240) * 1024;
+    }
+
+    public function toMail(): FormSubmissionCreatedMail
+    {
+        return new FormSubmissionCreatedMail(
+            emailSubject: $this->subject,
+            emailContent: $this->content,
+            formSubmission: $this->formSubmission,
+            sender: $this->sender,
+            senderName: $this->senderName,
+            replyToAddress: $this->replyTo,
+            files: array_map(fn (SubmissionFile $file): array => ['path' => $file->path, 'name' => $file->name], $this->attachments),
+        );
+    }
+
+    public function shouldSend(): bool
+    {
+        return $this->isEnabled
+            && $this->receivers !== []
+            && $this->conditions->passes($this->formSubmission->data ?? []);
+    }
+
+    /**
+     * @param  array<int, string>  $recipients
+     * @return list<string>
+     */
+    protected function resolveAddresses(array $recipients): array
+    {
+        $data = $this->formSubmission->data ?? [];
+        $addresses = [];
+
+        foreach ($recipients as $recipient) {
+            $key = static::fieldKey($recipient);
+
+            // A multiple choice of addresses holds a list.
+            foreach ((array) ($key === null ? $recipient : $data[$key] ?? null) as $address) {
+                if (is_string($address) && filter_var(trim($address), FILTER_VALIDATE_EMAIL)) {
+                    $addresses[] = trim($address);
+                }
             }
-        } catch (Exception) {
-            return [];
         }
 
-        return [];
+        return array_values(array_unique($addresses));
+    }
+
+    /**
+     * The uploads that fit within the attachment limit, in order. The rest
+     * stay a link in the list of all fields.
+     *
+     * @return list<SubmissionFile>
+     */
+    protected function getAttachments(): array
+    {
+        $limit = static::attachmentLimit();
+        $attachments = [];
+        $total = 0;
+
+        foreach ($this->formSubmission->getFiles() as $files) {
+            foreach ($files as $file) {
+                $size = $file->size();
+
+                if ($size !== null && $total + $size <= $limit) {
+                    $attachments[] = $file;
+                    $total += $size;
+                }
+            }
+        }
+
+        return $attachments;
+    }
+
+    /**
+     * In the HTML of a mail, all fields are a panel and the submission's page
+     * is a link.
+     *
+     * @param  array<string, string>  $values
+     * @return array<string, HtmlString>
+     */
+    protected function getHtmlValues(array $values): array
+    {
+        $url = $values['submission_url'] ?? '';
+        $from = UrlHelper::http($values['submitted_from'] ?? null) ?? '';
+
+        return [
+            'all_fields' => new HtmlString($this->getAllFieldsHtml()),
+            'submission_url' => new HtmlString($url === '' ? '' : '<a href="' . e($url) . '">' . e(__('filament-form-builder::general.merge_tags.view_submission')) . '</a>'),
+            'submitted_from' => new HtmlString($from === '' ? '' : '<a href="' . e($from) . '">' . e($from) . '</a>'),
+        ];
+    }
+
+    protected function getAllFieldsHtml(): string
+    {
+        $fields = SubmissionPlaceholders::make($this->formSubmission)->allFieldsHtml();
+
+        return $fields === '' ? '' : Blade::render(MailPanel::$view, ['slot' => $fields]);
     }
 }

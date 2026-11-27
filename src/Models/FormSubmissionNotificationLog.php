@@ -5,10 +5,12 @@ namespace VanOns\FilamentFormBuilder\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use VanOns\FilamentFormBuilder\Enums\NotificationStatus;
 
 /**
  * @property int $id
- * @property string $status
+ * @property ?string $notification_id
+ * @property NotificationStatus $status
  * @property string $notification_subject
  * @property string|null $sender
  * @property string $recipient
@@ -22,6 +24,7 @@ class FormSubmissionNotificationLog extends Model
 {
     protected $fillable = [
         'form_submission_id',
+        'notification_id',
         'notification_subject',
         'sender',
         'recipient',
@@ -34,6 +37,7 @@ class FormSubmissionNotificationLog extends Model
     protected function casts(): array
     {
         return [
+            'status' => NotificationStatus::class,
             'sent_at' => 'datetime',
             'failed_at' => 'datetime',
         ];

@@ -2,26 +2,41 @@
 
 namespace VanOns\FilamentFormBuilder\Models;
 
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use VanOns\FilamentFormBuilder\Casts\FieldSnapshot;
 use VanOns\FilamentFormBuilder\Classes\EmailNotification;
-use VanOns\FilamentFormBuilder\Classes\Integration;
+use VanOns\FilamentFormBuilder\Classes\SubmissionAnswer;
+use VanOns\FilamentFormBuilder\Classes\SubmissionFile;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionCreated;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionForceDeleted;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionRestored;
 use VanOns\FilamentFormBuilder\Events\FormSubmission\FormSubmissionUpdated;
-use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\ChoiceField;
+use VanOns\FilamentFormBuilder\Filament\FormBuilder\Fields\FormField;
+use VanOns\FilamentFormBuilder\Helpers\FieldTypeHelper;
 
 /**
  * @property int $id
  * @property int $form_id
- * @property ?string $submitter_email
  * @property array<string, mixed> $data
+ * @property array<string, list<array{path: string, name: string, size?: int, mime_type?: ?string}>>|null $files
+ * @property array<string, array{label: string, type: ?string, columns: array<string, string>, options: array<string, string>, title?: ?string, span?: int, new_row?: bool}>|null $field_snapshot
+ * @property string|null $source_url
+ * @property array<int, array<string, mixed>>|null $integrations What the integrations did before v3; since then FormSubmissionIntegrationLog
+ * @property array{user_agent?: string, locale?: string, user?: array{id?: mixed, name?: string}, campaign?: array<string, string>, ip?: string}|null $meta
+ * @property Carbon|null $read_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -29,16 +44,68 @@ use VanOns\FilamentFormBuilder\Helpers\TemplateHelper;
  */
 class FormSubmission extends Model
 {
+    use Prunable;
     use SoftDeletes;
 
     protected $guarded = ['id'];
+
+    /**
+     * @var array<string, mixed>|null
+     */
+    protected ?array $resolvedValues = null;
 
     protected function casts(): array
     {
         return [
             'data' => 'array',
+            'files' => 'array',
+            'field_snapshot' => FieldSnapshot::class,
+            'meta' => 'array',
             'integrations' => 'array',
+            'read_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The submissions older than their form keeps them, trashed ones included.
+     *
+     * @return Builder<static>
+     */
+    public function prunable(): Builder
+    {
+        $formIds = [];
+
+        foreach (Form::withTrashed()->get(['id', 'retention_months']) as $form) {
+            if (($months = $form->getRetentionMonths()) !== null) {
+                $formIds[$months][] = $form->getKey();
+            }
+        }
+
+        if ($formIds === []) {
+            return static::query()->whereKey([]);
+        }
+
+        return static::query()->where(function (Builder $query) use ($formIds): void {
+            foreach ($formIds as $months => $ids) {
+                $query->orWhere(fn (Builder $query) => $query
+                    ->whereIn('form_id', $ids)
+                    ->where('created_at', '<', now()->subMonthsNoOverflow($months)));
+            }
+        });
+    }
+
+    public function isRead(): bool
+    {
+        return $this->read_at !== null;
+    }
+
+    /**
+     * Quietly: opening a submission changes nothing about it, so it fires no
+     * update and leaves updated_at alone.
+     */
+    public function markAsRead(bool $isRead = true): void
+    {
+        static::withoutTimestamps(fn () => $this->forceFill(['read_at' => $isRead ? now() : null])->saveQuietly());
     }
 
     /**
@@ -69,88 +136,329 @@ class FormSubmission extends Model
     }
 
     /**
-     * @return array<string>
+     * @return HasMany<FormSubmissionIntegrationLog, $this>
      */
-    public function getFormattedDataAttribute(): array
+    public function integrationLogs(): HasMany
     {
-        return $this->getFormattedData();
+        return $this->hasMany(FormSubmissionIntegrationLog::class);
     }
 
     /**
-     * @return array<string>
+     * @return array<string, list<SubmissionFile>>
      */
-    public function getFormattedKeyDataAttribute(): array
+    public function getFiles(): array
     {
-        return $this->modifyFormattedKeyDataUsing(
-            $this->data
+        $files = [];
+
+        foreach ($this->files ?? [] as $key => $stored) {
+            foreach ($stored as $index => $file) {
+                $files[$key][] = new SubmissionFile(
+                    $this,
+                    (string) $key,
+                    $index,
+                    $file['path'],
+                    $file['name'],
+                    isset($file['size']) ? (int) $file['size'] : null,
+                    $file['mime_type'] ?? null,
+                );
+            }
+        }
+
+        return $files;
+    }
+
+    public static function getFilesDisk(): string
+    {
+        return config('filament-form-builder.uploads.disk', 'local');
+    }
+
+    public function deleteFiles(): void
+    {
+        $paths = collect($this->files ?? [])->flatten(1)->pluck('path')->filter()->all();
+
+        if ($paths !== []) {
+            Storage::disk(static::getFilesDisk())->delete($paths);
+        }
+    }
+
+    /**
+     * Every answer the way it is shown, under its field key: a choice by its
+     * label, a file as its download link, then the form type's own formatting.
+     * The table, the detail page, the export and the mails all read from here.
+     *
+     * @return array<string, mixed>
+     */
+    public function getValues(): array
+    {
+        if ($this->resolvedValues !== null) {
+            return $this->resolvedValues;
+        }
+
+        $values = [...$this->data ?? [], ...$this->getFiles()];
+
+        foreach ($this->form?->getFields() ?? [] as $field) {
+            foreach (array_keys($field->getSubmissionColumns()) as $key) {
+                if (array_key_exists($key, $values)) {
+                    $values[$key] = $field->formatSubmissionValue($values[$key]);
+                }
+            }
+
+            if (static::toText($values[$field->getKey()] ?? null) !== null) {
+                $values[$field->getKey()] = $field->formatAnswer($values[$field->getKey()], $this);
+            }
+        }
+
+        // A choice the form no longer has still reads by the label it had.
+        $current = $this->form?->getSubmissionFields() ?? [];
+
+        foreach ($this->field_snapshot ?? [] as $snapshot) {
+            if ($snapshot['options'] === []) {
+                continue;
+            }
+
+            foreach (array_diff_key(array_intersect_key($values, $snapshot['columns']), $current) as $key => $value) {
+                $values[$key] = ChoiceField::toLabels($value, $snapshot['options']);
+            }
+        }
+
+        if ($this->form !== null) {
+            $values = $this->form->getType()->formatValues($values, $this);
+        }
+
+        return $this->resolvedValues = $values;
+    }
+
+    /**
+     * A file reads as its download link, or as its name where the link would
+     * only clutter the screen.
+     */
+    public function getDisplayText(string $key, bool $fileNames = false): ?string
+    {
+        return static::toText($this->getValues()[$key] ?? null, $fileNames);
+    }
+
+    public static function toText(mixed $value, bool $fileNames = false): ?string
+    {
+        if (is_array($value)) {
+            $value = implode(', ', array_map(
+                fn (mixed $item): string => $fileNames && $item instanceof SubmissionFile ? $item->name : (string) $item,
+                Arr::flatten($value),
+            ));
+        }
+
+        return $value === null || $value === '' ? null : (string) $value;
+    }
+
+    /**
+     * The answers as text, without the empty ones.
+     *
+     * @return array<string, string>
+     */
+    public function getFormattedData(bool $formatKeys = false): array
+    {
+        $texts = [];
+
+        foreach ($this->getValues() as $key => $value) {
+            if (($text = static::toText($value)) !== null) {
+                $texts[$formatKeys ? $this->findLabel((string) $key) : $key] = $text;
+            }
+        }
+
+        return $texts;
+    }
+
+    /**
+     * The answers for the detail page: one per field of the form as it is now,
+     * and apart from those, what the submission holds for fields since removed.
+     *
+     * @return array{current: list<SubmissionAnswer>, removed: list<SubmissionAnswer>}
+     */
+    public function getAnswers(): array
+    {
+        $current = array_map(fn (FormField $field): ?SubmissionAnswer => $this->answerFor($field), $this->form?->getFields(inputsOnly: true) ?? []);
+
+        return ['current' => array_values(array_filter($current)), 'removed' => $this->getRemovedAnswers()];
+    }
+
+    /**
+     * The answers in the shape the form had when this came in: a group under
+     * each title, each field at its width. A field nobody answered stays,
+     * empty; one added since is left out and one removed since shows apart.
+     * A submission from before forms kept their shape follows the form now.
+     *
+     * @return list<array{title: ?string, fields: list<array{field: FormField, answer: ?SubmissionAnswer, span: int, newRow: bool}>}>
+     */
+    public function getAnswerGroups(): array
+    {
+        $fields = [];
+
+        foreach ($this->form?->getFields(inputsOnly: true) ?? [] as $field) {
+            $fields[$field->getKey()] = $field;
+        }
+
+        $hasPlace = fn (array $snapshot): bool => isset($snapshot['span']);
+        $places = array_filter($this->field_snapshot ?? [], $hasPlace) ?: array_filter($this->form?->getFieldSnapshot() ?? [], $hasPlace);
+        $groups = [];
+
+        foreach ($places as $key => $place) {
+            if (! $field = $fields[$key] ?? null) {
+                continue;
+            }
+
+            $title = $place['title'] ?? null;
+
+            if ($groups === [] || $groups[array_key_last($groups)]['title'] !== $title) {
+                $groups[] = ['title' => $title, 'fields' => []];
+            }
+
+            $groups[array_key_last($groups)]['fields'][] = ['field' => $field, 'answer' => $this->answerFor($field), 'span' => $place['span'], 'newRow' => $place['new_row'] ?? false];
+        }
+
+        return $groups;
+    }
+
+    /**
+     * The values the form type adds itself: no field asks for them, so they
+     * read as details of the submission rather than as answers.
+     *
+     * @return list<SubmissionAnswer>
+     */
+    public function getTypeAnswers(): array
+    {
+        $answers = [];
+
+        foreach ($this->form?->getType()->extraValues() ?? [] as $key => $label) {
+            $answers[] = $this->makeAnswer($key, $label, [$key => $label], Heroicon::OutlinedCube);
+        }
+
+        return array_values(array_filter($answers));
+    }
+
+    protected function answerFor(FormField $field): ?SubmissionAnswer
+    {
+        $columns = $field->getSubmissionColumns();
+
+        return $this->makeAnswer(
+            $field->getKey(),
+            $field->getLabel(),
+            $columns,
+            $field::icon(),
+            view: $field->getAnswerView(),
+            field: $field,
+            badge: $field->isHidden() ? __('filament-form-builder::general.submission.hidden_field') : null,
+            note: count($columns) > 1 ? __('filament-form-builder::general.submission.columns', ['count' => count($columns)]) : null,
         );
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    public function modifyFormattedKeyDataUsing(array $data): array
-    {
-        if ($template = TemplateHelper::resolve($this->form->template)) {
-            return $template::modifyResourceDataUsing($data, $this);
-        }
-        return $this->getFormattedData(true);
-    }
-
-    /**
-     * Apply the form template's value formatting while keeping the original
-     * field-name keys (used by notification emails, where keys map to placeholders).
+     * What the submission holds for fields the form no longer has, under the
+     * label they had, or under its key where nothing kept one.
      *
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
+     * @return list<SubmissionAnswer>
      */
-    public function modifyDataValuesUsing(array $data): array
+    public function getRemovedAnswers(): array
     {
-        if ($template = TemplateHelper::resolve($this->form->template)) {
-            return $template::modifyDataValues($data, $this);
-        }
-        return $data;
-    }
+        $handled = $this->form?->getSubmissionFields() ?? [];
+        $removed = [];
 
-    /**
-     * @param bool $formatKeys
-     * @param array<string, mixed>|null $data
-     * @return array<string>
-     */
-    public function getFormattedData(bool $formatKeys = false, ?array $data = null): array
-    {
-        $data ??= $this->data;
+        foreach ($this->field_snapshot ?? [] as $key => $snapshot) {
+            $columns = array_diff_key($snapshot['columns'], $handled);
 
-        return collect($data)
-            ->mapWithKeys(function ($value, $key) use ($formatKeys) {
-                $value = is_array($value)
-                    ? implode(', ', Arr::flatten($value))
-                    : $value;
-
-                if ($formatKeys) {
-                    $key = $this->form->getFormComponent()->findAttributeForKey($key);
-                }
-
-                return [$key => $value];
-            })->filter()->toArray();
-    }
-
-    /**
-     * @return array<string>
-     */
-    public function getAllUrlsInData(): array
-    {
-        $urls = [];
-        $data = $this->data;
-
-        array_walk_recursive($data, function ($value) use (&$urls) {
-            if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
-                $urls[] = $value;
+            if ($columns === []) {
+                continue;
             }
-        });
 
-        return $urls;
+            $handled += $columns;
+            $type = FieldTypeHelper::resolve($snapshot['type'])
+                ?? (is_string($snapshot['type']) && is_a($snapshot['type'], FormField::class, true) ? $snapshot['type'] : null);
+
+            $removed[] = $this->makeAnswer(
+                (string) $key,
+                $snapshot['label'],
+                $columns,
+                $type !== null ? $type::icon() : Heroicon::OutlinedQuestionMarkCircle,
+                badge: __('filament-form-builder::general.submission.removed_field'),
+                note: $type !== null ? __('filament-form-builder::general.submission.was', ['type' => mb_strtolower($type::getTypeLabel())]) : null,
+            );
+        }
+
+        foreach (array_keys(array_diff_key($this->getValues(), $handled)) as $key) {
+            $label = Str::headline((string) $key);
+
+            $removed[] = $this->makeAnswer(
+                (string) $key,
+                $label,
+                [$key => $label],
+                Heroicon::OutlinedQuestionMarkCircle,
+                badge: __('filament-form-builder::general.submission.unknown'),
+                note: __('filament-form-builder::general.submission.no_label'),
+            );
+        }
+
+        return array_values(array_filter($removed));
+    }
+
+    /**
+     * One answer for a field and every value and file it holds, or null when
+     * it holds nothing.
+     *
+     * @param  array<string, string>  $columns
+     */
+    protected function makeAnswer(
+        string $key,
+        string $label,
+        array $columns,
+        string | BackedEnum $icon,
+        ?string $view = null,
+        ?FormField $field = null,
+        ?string $badge = null,
+        ?string $note = null,
+    ): ?SubmissionAnswer {
+        $answered = array_filter(
+            array_diff_key(array_intersect_key($this->getValues(), $columns), $this->files ?? []),
+            fn (mixed $value): bool => static::toText($value) !== null,
+        );
+
+        $files = array_merge(...array_values(array_intersect_key($this->getFiles(), $columns)));
+
+        if ($answered === [] && $files === []) {
+            return null;
+        }
+
+        $isGrouped = count($columns) > 1;
+        $raw = $this->data ?? [];
+
+        return new SubmissionAnswer(
+            key: $key,
+            label: $label,
+            value: $answered === [] ? null : ($isGrouped ? $answered : reset($answered)),
+            raw: $isGrouped ? array_intersect_key($raw, $columns) : ($raw[$key] ?? null),
+            icon: $icon,
+            view: $view ?? ($isGrouped ? 'filament-form-builder::answers.columns' : 'filament-form-builder::answers.text'),
+            field: $field,
+            badge: $badge,
+            note: $note,
+            columns: $isGrouped ? $columns : [],
+            files: $files,
+        );
+    }
+
+    /**
+     * The label a key has now, or the one it had when this was submitted.
+     */
+    public function findLabel(string $key): string
+    {
+        if (($label = $this->form?->getSubmissionFields()[$key] ?? null) !== null) {
+            return $label;
+        }
+
+        foreach ($this->field_snapshot ?? [] as $snapshot) {
+            if (isset($snapshot['columns'][$key])) {
+                return $snapshot['columns'][$key];
+            }
+        }
+
+        return Str::headline($key);
     }
 
     /**
@@ -167,25 +475,15 @@ class FormSubmission extends Model
         );
     }
 
-    /**
-     * @return array<Integration>
- */
-    public function getIntegrations(): array
-    {
-        return array_map(
-            fn (array $integration) => Integration::fromArray($this, $integration),
-            $this->form->integrations ?? [],
-        );
-    }
-
     protected static function boot(): void
     {
         parent::boot();
 
-        static::created(function (FormSubmission $submission) {
-            if ($template = TemplateHelper::resolve($submission->form->template)) {
-                $template::afterSubmissionCreated($submission);
-            }
+        // A soft deleted submission can come back, so its files stay until then.
+        static::forceDeleted(fn (FormSubmission $submission) => $submission->deleteFiles());
+
+        static::creating(function (FormSubmission $submission): void {
+            $submission->field_snapshot ??= $submission->form?->getFieldSnapshot();
         });
     }
 }

@@ -4,4 +4,6 @@
      */
 @endphp
 
-<div>{!! $field->text !!}</div>
+<div {{ $field->getWrapperAttributes() }}>
+    <div class="ffb-text">{!! str((string) $field->text)->sanitizeHtml() !!}</div>
+</div>

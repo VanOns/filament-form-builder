@@ -1,0 +1,150 @@
+@php
+    use Filament\Support\Icons\Heroicon;
+    use Illuminate\Support\Js;
+
+    $width = $getCanvasWidth($field);
+    $options = $getWidthOptions($field);
+    $isEditable = $uuid !== null;
+    ['match' => $match, 'rules' => $rules] = $field->getConditions()->toArray();
+    $conditions = $conditionsEditor->badge($rules, $match);
+    // The type took this key in code, which leaves the field out of the form until it gets another.
+    $isTakenByType = $isEditable && $field::isInput() && in_array($field->getKey(), $typeKeys, true);
+    $editTexts = ! $isEditable && $canEditCodeFields && $field->getEditableSettings() !== []
+        ? $editCodeFieldAction(['key' => $field->getKey()])->getLivewireClickHandler()
+        : null;
+    $isChanged = ! $isEditable && isset($fieldChanges[$field->getKey()]);
+@endphp
+
+<div
+    @if ($isEditable)
+        wire:key="{{ $livewireKey }}.items.{{ $uuid }}"
+        data-item="{{ $uuid }}"
+        {{-- Through $data, like the palette: Sortable drags a copy of the field outside the component. --}}
+        x-bind:class="{ 'ffb-canvas-item-selected': $data.editing === @js($uuid) }"
+    @endif
+    data-span="{{ $width->value }}"
+    data-minimum="{{ $field::minWidth()->value }}"
+    @class([
+        'ffb-canvas-item',
+        'ffb-canvas-item-fixed' => ! $isEditable,
+        'ffb-canvas-item-hidden' => $field->isHidden(),
+        'ffb-canvas-item-taken' => $isTakenByType,
+    ])
+    style="--ffb-span: {{ $width->value }}"
+>
+    <div class="ffb-canvas-item-toolbar">
+        @if ($isEditable)
+            <svg class="ffb-canvas-item-grip" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <circle cx="5.5" cy="3.5" r="1.25" /><circle cx="10.5" cy="3.5" r="1.25" />
+                <circle cx="5.5" cy="8" r="1.25" /><circle cx="10.5" cy="8" r="1.25" />
+                <circle cx="5.5" cy="12.5" r="1.25" /><circle cx="10.5" cy="12.5" r="1.25" />
+            </svg>
+        @endif
+        <x-filament::icon :icon="$field::icon()" class="ffb-canvas-item-icon" />
+        <span class="ffb-canvas-item-type">{{ $field::getTypeLabel() }}</span>
+
+        @if ($isTakenByType)
+            <span class="ffb-canvas-badge ffb-canvas-badge-danger" title="{{ __('filament-form-builder::general.canvas.key_taken_by_type', ['key' => $field->getKey()]) }}">
+                <x-filament::icon :icon="Heroicon::OutlinedExclamationTriangle" class="ffb-canvas-badge-icon" />
+                <span class="ffb-canvas-badge-text">{{ __('filament-form-builder::general.canvas.key_taken_by_type_badge') }}</span>
+            </span>
+        @endif
+        @if ($field::isInput() && $field->shouldShowColumn())
+            <span class="ffb-canvas-badge" title="{{ __('filament-form-builder::general.canvas.column_badge_tooltip') }}">
+                <x-filament::icon :icon="Heroicon::OutlinedTableCells" class="ffb-canvas-badge-icon" />
+                {{ __('filament-form-builder::general.canvas.column_badge') }}
+            </span>
+        @endif
+        @if (filled($field->queryParameter ?? null))
+            <span class="ffb-canvas-badge" title="{{ __('filament-form-builder::general.canvas.query_badge') }}">
+                <x-filament::icon :icon="Heroicon::OutlinedLink" class="ffb-canvas-badge-icon" />
+                <span class="ffb-canvas-badge-text">?{{ $field->queryParameter }}</span>
+            </span>
+        @endif
+        @if ($field->isHidden())
+            <span class="ffb-canvas-badge">
+                <x-filament::icon :icon="Heroicon::OutlinedEyeSlash" class="ffb-canvas-badge-icon" />
+                {{ __('filament-form-builder::fields.hidden_badge') }}
+            </span>
+        @endif
+        @if ($conditions)
+            <span class="ffb-canvas-badge ffb-canvas-badge-primary" title="{{ $conditions }}">
+                <x-filament::icon :icon="Heroicon::OutlinedArrowTurnDownRight" class="ffb-canvas-badge-icon" />
+                <span class="ffb-canvas-badge-text">{{ $conditions }}</span>
+            </span>
+        @endif
+        @unless ($isEditable)
+            <span class="ffb-canvas-badge" title="{{ __('filament-form-builder::general.canvas.fixed') }}">
+                <x-filament::icon :icon="Heroicon::OutlinedLockClosed" class="ffb-canvas-badge-icon" />
+                {{ __('filament-form-builder::general.canvas.code') }}
+            </span>
+        @endunless
+        @if ($isChanged)
+            <span class="ffb-canvas-badge ffb-canvas-badge-primary" title="{{ __('filament-form-builder::general.canvas.code_field_changed_tooltip') }}">
+                <x-filament::icon :icon="Heroicon::OutlinedPencilSquare" class="ffb-canvas-badge-icon" />
+                <span class="ffb-canvas-badge-text">{{ __('filament-form-builder::general.canvas.code_field_changed') }}</span>
+            </span>
+        @endif
+
+        @if ($canResize && $isEditable && ! $field->isHidden() && count($options) > 1)
+            <x-filament::dropdown placement="bottom-end">
+                <x-slot name="trigger">
+                    <button
+                        type="button"
+                        title="{{ __('filament-form-builder::general.canvas.width') }}"
+                        class="ffb-canvas-width-trigger"
+                    >
+                        {{ $width->getLabel() }}
+                        <x-filament::icon :icon="Heroicon::ChevronDown" class="ffb-canvas-width-chevron" />
+                    </button>
+                </x-slot>
+
+                <x-filament::dropdown.list>
+                    @foreach ($options as $option)
+                        <x-filament::dropdown.list.item
+                            :color="$option === $width ? 'primary' : 'gray'"
+                            x-on:click="resize({{ Js::from($uuid) }}, {{ $option->value }}); close()"
+                        >
+                            <span class="ffb-canvas-width-option">
+                                <span class="ffb-canvas-width-bar" style="--ffb-fill: {{ $option->value }}"></span>
+                                <span class="ffb-canvas-width-label">{{ $option->getLabel() }}</span>
+                                <span>{{ $option->getDescription() }}</span>
+                            </span>
+                        </x-filament::dropdown.list.item>
+                    @endforeach
+                </x-filament::dropdown.list>
+            </x-filament::dropdown>
+        @elseif ($canResize)
+            <span class="ffb-canvas-item-span">{{ $width->getLabel() }}</span>
+        @endif
+
+        @if ($isEditable)
+            <div class="ffb-canvas-item-actions">
+                {{ $cloneAction(['item' => $uuid]) }}
+                {{ $deleteAction(['item' => $uuid]) }}
+            </div>
+        @endif
+    </div>
+
+    @if ($isEditable)
+        <div
+            role="button"
+            tabindex="0"
+            x-on:click="edit(@js($uuid))"
+            x-on:keydown.enter="edit(@js($uuid))"
+            class="ffb-canvas-item-preview"
+        >
+    @elseif ($editTexts)
+        <div
+            role="button"
+            tabindex="0"
+            wire:click="{{ $editTexts }}"
+            wire:keydown.enter="{{ $editTexts }}"
+            class="ffb-canvas-item-preview"
+        >
+    @else
+        <div class="ffb-canvas-item-preview">
+    @endif
+        @include($field->isHidden() ? 'filament-form-builder::filament.previews.hidden' : $field->getPreviewView(), ['field' => $field])
+    </div>
+</div>
